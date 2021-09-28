@@ -85,7 +85,7 @@ def eval():
         if len(test_dataloader) == 0:
             raise ValueError('No Data Exist. Please check the data path or data_plit.')
         # fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(6, 2))
-        y_true, y_pred = [], []
+        y_true, y_pred, errors = [], [], []
         for i, data in enumerate(test_dataloader):
             print('Sample: {}'.format(i+1))
             inputs, labels = data['input'], data['gt']
@@ -129,11 +129,15 @@ def eval():
             y_true.append(labels)
             y_pred.append(prediction)
         
+            if labels != prediction:
+                errors.append({'true': labels[0],
+                               'pred': prediction[0],
+                               'value': os.path.basename(test_dataset.input_data_indices[i])})
         y_true = np.concatenate(y_true, axis=0)
         y_pred = np.concatenate(y_pred, axis=0)
         cm = confusion_matrix(y_true, y_pred)
         print(cm)
-        plot_confusion_matrix(cm, [0,1,2], normalize=True)
+        plot_confusion_matrix(cm, [0,1], normalize=False)
         plt.show()
 
         precision = metrics.precision(evaluator.total_tp, evaluator.total_fp)
@@ -149,7 +153,13 @@ def eval():
         print(f'total recall: {mean_recall:.4f}\n')
         print(f'total specificity: {mean_specificity:.4f}\n')
         print(f'total accuracy: {accuracy:.4f}\n')
-
+        
+        with open('error_samples.txt', 'w+') as fw:
+            for i, v in enumerate(errors):
+                true = v['true']
+                pred = v['pred']
+                value = v['value']
+                fw.write(f'{i+1}  true: {true} pred: {pred}  value: {value}\n')
         # mean_precision = sum(total_precision)/len(total_precision)
         # mean_recall = sum(total_recall)/len(total_recall)
         # mean_dsc = sum(total_dsc)/len(total_dsc) if len(total_dsc) != 0 else 0

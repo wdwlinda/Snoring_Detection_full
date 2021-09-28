@@ -85,10 +85,10 @@ def main():
             format(config.train.epoch, config.dataset.train.batch_size, config.dataset.train.shuffle, training_samples))
     print(60*"-")
     
-    # train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
+    train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
     # TODO: train_logging
     config['experiment'] = experiment
-    # train_utils.train_logging(os.path.join(config.train.project_path, 'checkpoints', 'train_logging.txt'), config)
+    train_utils.train_logging(os.path.join(config.train.project_path, 'checkpoints', 'train_logging.txt'), config)
     loss_func = nn.CrossEntropyLoss()
     
     for epoch in range(1, config.train.epoch+1):

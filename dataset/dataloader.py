@@ -216,6 +216,7 @@ class AudioDataset(AbstractDastaset):
         self.input_data_indices = dataset_utils.load_content_from_txt(
                 os.path.join(config.dataset.index_path, f'{mode}.txt'))
         self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
+        self.transform_methods = config.dataset.transform
         print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
 
     def data_loading_function(self, filename):
@@ -227,6 +228,11 @@ class AudioDataset(AbstractDastaset):
     def audio_trasform(self, data):
         # TODO: different method, e.g., mel-spectrum, MFCC, time-domain
         waveform, sample_rate = data
+        # if len(self.transform_methods) == 0:
+        #     return waveform
+        
+        # for method in self.transform_methods:
+        #     if method == 'fbank':
         fbank = torchaudio.compliance.kaldi.fbank(
             waveform, htk_compat=True, sample_frequency=sample_rate, use_energy=False, 
             window_type='hanning', num_mel_bins=128, dither=0.0, frame_shift=10)
