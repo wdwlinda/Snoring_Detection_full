@@ -155,6 +155,7 @@ def eval():
         print(f'total accuracy: {accuracy:.4f}\n')
         
         with open('error_samples.txt', 'w+') as fw:
+            errors.sort(key=len)
             for i, v in enumerate(errors):
                 true = v['true']
                 pred = v['pred']

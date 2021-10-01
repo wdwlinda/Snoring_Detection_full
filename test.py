@@ -7,6 +7,54 @@ import librosa.display
 import pandas as pd
 
 
+def save_aLL_files_name(path, keyword=None):
+    files = os.listdir(path)
+    files.sort(key=len)
+    with open(os.path.join(path, 'file_names.txt'), 'w+') as fw:
+        for f in files:
+            if keyword is not None:
+                if keyword not in f:
+                    fullpath = os.path.join(path, f)
+                    fw.write(fullpath)    
+                    fw.write('\n')
+            else:
+                fullpath = os.path.join(path, f)
+                fw.write(fullpath)    
+                fw.write('\n')
+
+
+# def string_keyword_remove(_str, keyword):
+#     if keyword in _str:
+#         return _str.remove(keyword)
+#     else:
+#         return _str
+    
+    
+def string_process(_str, keyword_pair, keep_remain=True):
+    assert isinstance(keyword_pair, (list, tuple))
+    if keep_remain:
+        return _str.replace(keyword_pair[0], keyword_pair[1])
+    else:
+        return keyword_pair[1]
+
+
+# TODO: coding start in 0 or 1
+# TODO: format filtering
+# TODO: optional zfill number?
+def change_all_file_names(path, keyword_pair, keep_remain=False, recode=True):
+    files = os.listdir(path)
+    files.sort(key=len)
+    os.chdir(path)
+    for i, f in enumerate(files):
+        
+        old_name, suffix = f.split('.')
+        new_name = string_process(old_name, keyword_pair, keep_remain)
+        if recode:
+            new_name = f'{new_name}_{i+1:03d}.{suffix}'
+        print(f'Changing file name from {f} to {new_name}')
+        os.rename(f, new_name)
+
+
 def Snoring_data_analysis():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
     threshold = 82
@@ -53,11 +101,11 @@ def data_analysis(path, threshold, single_length, data_format, test_amplitude):
                 non_effective.append(dir)
     print('Sample Number: ', len(sample_length))
     print('Effective Sample Number: ', len(sample_length_threshold))
-    print(f"Total data length: {np.sum(data_length_threshold)}")
-    print(f"Mean data length: {np.mean(data_length_threshold)}")
-    print(f"Std data length: {np.std(data_length_threshold)}")
-    print(f"Max data length: {np.max(data_length_threshold)}")
-    print(f"Min data length: {np.min(data_length_threshold)}")
+    print(f"Total data duration: {np.sum(data_length_threshold)} (sec) ")
+    print(f"Mean data duration: {np.mean(data_length_threshold)} (sec) ")
+    print(f"Std data duration: {np.std(data_length_threshold)} (sec) ")
+    print(f"Max data duration: {np.max(data_length_threshold)} (sec) ")
+    print(f"Min data duration: {np.min(data_length_threshold)} (sec) ")
     print(sample_length)
     if test_amplitude:
         print(f"Max data amplitude: {np.max(max_amplitude)}")
@@ -65,7 +113,7 @@ def data_analysis(path, threshold, single_length, data_format, test_amplitude):
 
     
     # Write effective sample names to text file.
-    print(sample_names)
+    # print(sample_names)
     with open('effective_samples.txt', 'w+') as fw:
         fw.write("effective\n")
         for item in sample_names:
@@ -76,7 +124,7 @@ def data_analysis(path, threshold, single_length, data_format, test_amplitude):
             fw.write(f"{item}\n")
 
     # Write audio belonging information
-    print(persons)
+    # print(persons)
     total_person = sum(list(persons.values()))
     with open('persons.txt', 'w+') as fw:
         for k, v in persons.items():
@@ -133,4 +181,10 @@ def save_audio_fig():
 if __name__ == '__main__':
     # Snoring_data_analysis()
     # save_audio_fig()
-    peak_analysis()
+    # peak_analysis()
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset1\1')
+    # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
+    #                       keyword_pair=['1', '0'], 
+    #                       keep_remain=False, 
+    #                       recode=True)
+    pass
