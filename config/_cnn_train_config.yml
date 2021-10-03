@@ -140,15 +140,18 @@
 
 # TODO: solve dir_key and file_key
 dataset:
-  data_path: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset
-  index_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\dataset
+  # data_path: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset
+  index_path: C:\Users\test\Downloads\0930\model_test2
+  # index_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\dataset
   # data_path: C:\Users\test\Desktop\Leon\Datasets\Kaggle_Breast_Ultraound\Kaggle_BU_aug
   data_split: 
     - 0.7
     - 0.3
   data_name: BU
+  transform:
+    - melspec
   train:
-    batch_size: 8
+    batch_size: 14
     shuffle: True
     dir_key: ""
     file_key: mask
@@ -206,9 +209,9 @@ manual_seed: 0
 # model configuration
 model:
   # model class, e.g. UNet3D, ResidualUNet3D
-  name: efficientnet_b4
+  name: resnet50
   # number of input channels to the model
-  in_channels: 1
+  in_channels: 3
   # number of output channels
   out_channels: 2
   # determines the order of operators in a single layer (gcr - GroupNorm+Conv3d+ReLU)
