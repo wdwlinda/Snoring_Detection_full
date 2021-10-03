@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from dataset import preprocess_utils
 from dataset import input_preprocess
 from dataset import dataset_utils
+from dataset import transformations
 from utils import configuration
 
 
@@ -223,20 +224,32 @@ class AudioDataset(AbstractDastaset):
         return torchaudio.load(filename)
 
     def preprocess(self, data):
-        return self.audio_trasform(data)
+        features = self.audio_trasform(data)
+        if len(features) > 1:
+            audio_feature = self.merge_audio_features(features)
+        else:
+            audio_feature = features.values[0]
+        return audio_feature
 
     def audio_trasform(self, data):
-        # TODO: different method, e.g., mel-spectrum, MFCC, time-domain
+        # TODO: different method, e.g., mel-spectogram, MFCC, time-domain
         waveform, sample_rate = data
+        # TODO: how to use time-domain data, split to clips?
         # if len(self.transform_methods) == 0:
         #     return waveform
-        
-        # for method in self.transform_methods:
-        #     if method == 'fbank':
-        fbank = torchaudio.compliance.kaldi.fbank(
-            waveform, htk_compat=True, sample_frequency=sample_rate, use_energy=False, 
-            window_type='hanning', num_mel_bins=128, dither=0.0, frame_shift=10)
-        return fbank
+        features = {}
+        for method in self.transform_methods:
+            if method == 'fbank':
+                features[method] = transformations.fbank(waveform, sample_rate)
+            elif method == 'spectrogram':
+                features[method] = transformations.spectrogram(waveform, sample_rate)
+            elif method == 'mel-spectrogram':
+                features[method] = transformations.mel_spec(waveform, sample_rate)
+            elif method == 'MFCC':
+                features[method] = transformations.MFCC(waveform, sample_rate)
+            else:
+                raise ValueError('Unknown audio transformations')
+        return features
 
     def __getitem__(self, idx):
         input_data = self.data_loading_function(self.input_data_indices[idx])
@@ -250,6 +263,9 @@ class AudioDataset(AbstractDastaset):
         input_data = torch.unsqueeze(input_data, 0)
         input_data = input_data.repeat(3, 1, 1)
         return {'input': input_data, 'gt': ground_truth}
+
+    def merge_audio_features(self):
+        pass
 
 
 class KaggleSnoringDataset(AudioDataset):
