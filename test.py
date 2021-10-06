@@ -5,22 +5,54 @@ from pydub import AudioSegment
 import matplotlib.pyplot as plt
 import librosa.display
 import pandas as pd
+import random
 
 
-def save_aLL_files_name(path, keyword=None):
+def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
     files = os.listdir(path)
     files.sort(key=len)
-    with open(os.path.join(path, 'file_names.txt'), 'w+') as fw:
-        for f in files:
-            if keyword is not None:
-                if keyword not in f:
-                    fullpath = os.path.join(path, f)
-                    fw.write(fullpath)    
-                    fw.write('\n')
-            else:
-                fullpath = os.path.join(path, f)
-                fw.write(fullpath)    
-                fw.write('\n')
+    file_names = []
+    for f in files:
+        if keyword is not None:
+            if filtering_mode == 'in':
+                if keyword not in f: continue
+            elif filtering_mode == 'out':
+                if keyword in f: continue
+
+        if is_fullpath:
+            file_names.append(os.path.join(path, f))
+        else:
+            file_names.append(f)
+    if shuffle: random.shuffle(file_names)
+    return file_names
+
+
+def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
+    file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
+    with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
+        for f in file_names:
+            fw.write(f)    
+            fw.write('\n')
+
+
+# def save_aLL_files_name(path, name=None, keyword=None, filtering_mode='in', is_fullpath=True):
+#     files = os.listdir(path)
+#     files.sort(key=len)
+#     if name is None:
+#         name = 'file_names'
+#     for root, dirs, f in os.walk(path):
+
+#     with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
+#         for f in files:
+#             if keyword is not None:
+#                 if keyword not in f:
+#                     fullpath = os.path.join(path, f)
+#                     fw.write(fullpath)    
+#                     fw.write('\n')
+#             else:
+#                 fullpath = os.path.join(path, f)
+#                 fw.write(fullpath)    
+#                 fw.write('\n')
 
 
 # def string_keyword_remove(_str, keyword):
@@ -139,8 +171,6 @@ def thrsholding(filename, threshold):
     data = data.to_numpy()
     data = np.int32(data)
 
-
-
     for i in data:
         if isinstance(i, int):
             if i >= threshold:
@@ -182,7 +212,10 @@ if __name__ == '__main__':
     # Snoring_data_analysis()
     # save_audio_fig()
     # peak_analysis()
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset1\1')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset1\1')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword=None, filtering_mode='in', shuffle=False, is_fullpath=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 

@@ -143,7 +143,7 @@ def eval():
         precision = metrics.precision(evaluator.total_tp, evaluator.total_fp)
         recall = metrics.recall(evaluator.total_tp, evaluator.total_fn)
         specificity = metrics.specificity(evaluator.total_tn, evaluator.total_fp)
-        accuracy = metrics.accuracy(np.sum(evaluator.total_tp), np.sum(evaluator.total_fp), np.sum(evaluator.total_fn))
+        accuracy = metrics.accuracy(np.sum(evaluator.total_tp), np.sum(evaluator.total_fp), np.sum(evaluator.total_fn), np.sum(evaluator.total_tn))
         mean_precision = np.mean(precision)
         mean_recall = np.mean(recall)
         mean_specificity = np.mean(specificity)

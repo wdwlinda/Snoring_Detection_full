@@ -11,6 +11,14 @@ import numpy as np
 
 
 
+def replace_item(obj, key, replace_value):
+    for k, v in obj.items():
+        if isinstance(v, dict):
+            obj[k] = replace_item(v, key, replace_value)
+    if key in obj:
+        obj[key] = replace_value
+    return obj
+
 
 def get_optimizer(name, net, config):
     if name == 'Adam':

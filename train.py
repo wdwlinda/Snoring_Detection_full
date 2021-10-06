@@ -23,11 +23,29 @@ CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_c
 logger = train_utils.get_logger('TrainingSetup')
 
 
-def main():
+def main(config_reference):
     # Configuration
-    config = configuration.load_config(CONFIG_PATH)
+    if isinstance(config_reference, str):
+        config = configuration.load_config(config_reference)
+    elif isinstance(config_reference, dict):
+        config = config_reference
+
+    # Get a device to train on
+    device_str = config.get('device', None)
+    if device_str is not None:
+        logger.info(f"Device specified in config: '{device_str}'")
+        if device_str.startswith('cuda') and not torch.cuda.is_available():
+            logger.warn('CUDA not available, using CPU')
+            device_str = 'cpu'
+    else:
+        device_str = "cuda:0" if torch.cuda.is_available() else 'cpu'
+        logger.info(f"Using '{device_str}' device")
+
+    device = torch.device(device_str)
+    config['device'] = device
+    config = train_utils.DictAsMember(config)
     logger.info(config)
-    
+
     # Select device
 
     # Load and log experiment configuration
@@ -126,7 +144,7 @@ def main():
                 prediction = prediction.cpu().detach().numpy()
                 evals = eval_tool(labels, prediction)
             avg_test_acc = metrics.accuracy(
-                np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn))
+                np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn))
             total_test_acc.append(avg_test_acc)
             avg_test_loss = test_loss / testing_steps
             total_test_loss.append(avg_test_loss)
@@ -188,7 +206,7 @@ def main():
             ax.grid()
             plt.savefig(os.path.join(checkpoint_path, f'{experiment}_accuracy.png'))
         print(60*"=")    
-
+        plt.close()
 
 
     # # create trainer
@@ -201,4 +219,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(CONFIG_PATH)
