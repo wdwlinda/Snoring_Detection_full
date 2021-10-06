@@ -49,13 +49,13 @@ def recall(tp, fn):
 
 
 # TODO: correct
-def accuracy(tp, fp, fn):
-    denominator = tp + fp
+def accuracy(tp, fp, fn, tn):
+    denominator = tp + fp + tn + fn
     denominator = np.where(
         denominator > 0,
         denominator,
         np.ones_like(denominator))
-    return tp / denominator
+    return (tp + tn) / denominator
 
 
 def f1(tp, fp, fn):
@@ -140,7 +140,7 @@ class SegmentationMetrics():
             elif m == 'recall':
                 eval_result[m] = recall(self.tp, self.fn)
             elif m == 'accuracy':
-                eval_result[m] = accuracy(self.tp, self.fp, self.fn)
+                eval_result[m] = accuracy(self.tp, self.fp, self.fn, self.tn)
             elif m == 'f1':
                 eval_result[m] = f1(self.tp, self.fp, self.fn)
             elif m == 'iou':
@@ -161,10 +161,10 @@ class SegmentationMetrics():
         # print(self.label.shape, self.pred.shape)
         # self.pred = np.int32(self.pred)
         cm = confusion_matrix(self.label, self.pred, labels=np.arange(0, num_class))
-        tp = np.diagonal(cm)
-        fp = np.sum(cm, axis=0) - tp
-        fn = np.sum(cm, axis=1) - tp
-        tn = np.sum(cm) - (tp + fp + fn)
+        tp = np.diagonal(cm)[0]
+        fp = cm[0,1]
+        fn = cm[1,0]
+        tn = np.diagonal(cm)[1]
         
         # tp = ((self.pred.data == 1) & (self.label.data == 1)).sum()
         # tn = ((self.pred.data == 0) & (self.label.data == 0)).sum()

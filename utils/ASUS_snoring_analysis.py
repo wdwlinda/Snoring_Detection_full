@@ -10,12 +10,13 @@ import numpy as np
 import datetime
 import time
 import csv
+import pydub
 from pydub import AudioSegment
 import matplotlib.pyplot as plt
 import os
 from scipy import signal
 import random
-
+from scipy.io.wavfile import read
 
 
 def enframe(x, win, inc):
@@ -55,7 +56,7 @@ def show_volume():
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1606921286802_sargo\1606921286802_sargo_15.m4a'
     waveform, sr = get_audio_waveform(filename)
     waveform = waveform.get_array_of_samples()
-    waveform = np.float32(np.array(waveform))
+    waveform = np.array(waveform)
     waveform = get_audio_clip(waveform, [162, 165], 44100)
     get_audio_volume(waveform, frame_size=512)
 
@@ -79,21 +80,140 @@ def get_audio_clip(signal, time_interval, sample_rate):
     return signal[signal_interval[0]:signal_interval[1]]
 
 
+def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit):
+    # Initialize text file
+    with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
+        fw.write('')
+
+    
+    for f in filelist:
+        idx = 0
+        # Get peaks
+        print(f)
+        y, sr = get_audio_waveform(f)
+        waveform = y.get_array_of_samples()
+        waveform = np.array(waveform)
+        # waveform = waveform * np.abs(waveform) * np.abs(waveform)
+
+        ae = amplitude_envelope(waveform, frame_size, hop_length)
+        # f = os.path.basename(f).split('.')[0]
+        peak_times = pick_peak(
+            waveform, sr, os.path.basename(f).split('.')[0], hop_length, pre_max, post_max, pre_avg, post_avg, 
+            delta=2*np.mean(ae), wait=wait, save_path=None)
+        peak_times = np.unique(np.int32(peak_times))
+        # print(len(peak_times))
+
+        # Save audio clips
+        # save_dir = f.split('_')[0]
+        save_dir = os.path.split(os.path.split(f)[0])[1]
+        name = os.path.basename(f).split('.')[0]
+        for p in peak_times:
+            # Handle boundary value
+            # print(p, y.duration_seconds, offset, clip_range_time)
+            if p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time:
+                singal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
+                
+                # Save file name
+                path = os.path.join(save_path, save_dir, f'{name}_{idx+1:03d}.wav')
+                with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
+                    fw.write(path)
+                    fw.write('\n')
+
+                # Save audio clip
+                print(f'saving {path}')
+                singal_clip.export(path, format='wav')
+                idx += 1
+
+
+def check_audio_sample_rate():
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
+    filelist = []
+    check = []
+    for root, dirs, files in os.walk(data_path):
+        for f in files:
+            if 'm4a' in f:
+                filelist.append(os.path.join(data_path, root, f))
+    
+    with open('non-441000-samples.txt', 'w+') as fw:
+        for idx, filename in enumerate(filelist):
+            print(f'{idx+1}/{len(filelist)} {filename}')
+            if AudioSegment.from_file(filename, format='m4a').frame_rate != 44100:
+                fw.write(filename)
+                fw.write('\n')
+
+
+def audio_loading_exp():
+    # They are all same
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_12.m4a'
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1598482996718_NA\1598482996718_8.m4a'
+    save_path = rf'C:\Users\test\Downloads\1007'
+    y1 = AudioSegment.from_file(filename, format='m4a')
+    y2 = AudioSegment.from_file(filename, format='m4a', frame_rate=44100, channels=2, sample_width=2)
+    y5 = AudioSegment.from_file(filename, format='raw', frame_rate=44100, channels=2, sample_width=2)
+
+    w1 = np.array(y1.get_array_of_samples())
+    w2 = np.array(y2.get_array_of_samples())
+    w5 = np.array(y5.get_array_of_samples())
+
+    c1 = y1[1000:5000]
+    c2 = y2[1000:5000]
+
+    y3 = pydub.AudioSegment(
+        w1.tobytes(), 
+        frame_rate=44100,
+        sample_width=w1.dtype.itemsize, 
+        channels=1
+    )
+    c3 = y3[1000:5000]
+
+    c4 = w1[int(1*44100):int(5*44100)]
+    c4 = pydub.AudioSegment(
+        c4.tobytes(), 
+        frame_rate=44100,
+        sample_width=c4.dtype.itemsize, 
+        channels=1
+    )
+    
+    c5 = w2[int(1*y2.frame_rate):int(5*y2.frame_rate)]
+    c5 = pydub.AudioSegment(
+        c5.tobytes(), 
+        frame_rate=y2.frame_rate,
+        sample_width=c5.dtype.itemsize, 
+        channels=1
+    )
+
+    c1.export(os.path.join(save_path, 'c1.wav'), format='wav')
+    c1.export(os.path.join(save_path, 'c1.m4a'), format='mp4')
+    c2.export(os.path.join(save_path, 'c2.wav'), format='wav')
+    c2.export(os.path.join(save_path, 'c2.m4a'), format='mp4')
+    c3.export(os.path.join(save_path, 'c3.m4a'), format='mp4')
+    c3.export(os.path.join(save_path, 'c3.wav'), format='wav')
+    c4.export(os.path.join(save_path, 'c4.m4a'), format='mp4')
+    c4.export(os.path.join(save_path, 'c4.wav'), format='wav')
+    c5.export(os.path.join(save_path, 'c5.m4a'), format='mp4')
+    c5.export(os.path.join(save_path, 'c5.wav'), format='wav')
+    y3 = 'a'
+
+
 def split_audio():
-    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\1'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     filelist = [
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_12.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_13.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_14.m4a',
+
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_33.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_34.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_35.m4a',
+
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_12.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_13.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_14.m4a',
+
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_73.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_74.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_75.m4a',
+
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_32.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_33.m4a',
         rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_34.m4a',
@@ -104,40 +224,19 @@ def split_audio():
     clip_range_time = 0.5
     offset = 0.5
     time_unit = 1000
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
 
-    # Initialize text file
-    with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
-        fw.write('')
-
-    idx = 0
-    for f in filelist:
-        # Get peaks
-        y, sr = get_audio_waveform(f)
-        waveform = y.get_array_of_samples()
-        waveform = np.float32(np.array(waveform))
-        ae = amplitude_envelope(waveform, frame_size, hop_length)
-        f = os.path.basename(f).split('.')[0]
-        peak_times = pick_peak(
-            waveform, sr, f, hop_length, pre_max, post_max, pre_avg, post_avg, 
-            delta=2*np.mean(ae), wait=wait, save_path=None)
-        peak_times = np.unique(np.int32(peak_times))
-
-        # Save audio clips
-        for p in peak_times:
-            # Handle boundary value
-            if p > clip_range_time-offset and p < y.duration_seconds-offset+clip_range_time:
-                singal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
-                
-                # Save file name
-                path = os.path.join(save_path, f'1_{idx}.wav')
-                with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
-                    fw.write(path)
-                    fw.write('\n')
-
-                # Save audio clip
-                print(f'saving {path}')
-                singal_clip.export(path, format='wav')
-                idx += 1
+    filelist = []
+    for root, dirs, files in os.walk(data_path):
+        for f in files:
+            if 'm4a' in f:
+                filelist.append(os.path.join(data_path, root, f))
+            if len(dirs) == 0:
+                save_dir = os.path.join(save_path, os.path.basename(root))
+                if not os.path.isdir(save_dir):
+                    os.mkdir(save_dir)
+    save_audio_clips(
+        filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit)
 
 
 def amplitude_envelope(signal, frame_size, hop_length):
@@ -398,6 +497,8 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    split_audio()
+    # split_audio()
     # show_volume()
+    # audio_loading_exp()
+    check_audio_sample_rate()
     pass
