@@ -1,46 +1,44 @@
 # TODO: mutiple vars in one exp
-# exp1:
-#   dataset:
-#     transform_methods:
-#       - fbank
-#       - mel-spec
-#     transform_methods:
-#       - fbank
-#     transform_methods:
-#       - mel-spec
-
-
-# experiment 1
-exp1:
-  # factor 1
-  model:
-    name:
-      - resnet18
-      - resnet50
-      - efficientnet_b0
-
 # experiment 2
-exp2:
-  # factor 1
-  dataset:
-    index_path:
-      - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_snoring
-      - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
-      - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
+# exp2:
+#   # factor 1
+#   dataset:
+#     index_path:
+#       - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_snoring
+#       - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
+#       - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
 
-  # factor 2
-  model:
-    name:
-      - resnet18
-      - resnet50
-      - efficientnet_b0
+# # experiment 1
+# exp1:
+#   # factor 1
+#   model:
+#     name:
+#       - resnet18
+#       - resnet50
+#       - efficientnet_b0
 
-  # factor 3
-  dataset:
-    data_split: 
-      -
-        - 0.7
-        - 0.3
-      -
-        - 0.8
-        - 0.2
+# # experiment 2
+# exp2:
+#   # factor 1
+#   dataset:
+#     index_path:
+#       - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_snoring
+#       - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
+#       - C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
+
+#   # factor 2
+#   model:
+#     name:
+#       - resnet18
+#       - resnet50
+#       - efficientnet_b0
+
+#   # factor 3
+#   dataset:
+#     data_split: 
+#       -
+#         - 0.7
+#         - 0.3
+#       -
+#         - 0.8
+#         - 0.2

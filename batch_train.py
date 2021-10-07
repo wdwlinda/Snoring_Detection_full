@@ -38,21 +38,23 @@ def main():
 
     exp_config = copy.deepcopy(base_exp_config)
     
+    if base_exp_config is not None:
+        for exp, params in exp_config.items():
+            # modify configuration
+            var1 = list(params.keys())[0]
+            var2 = list(params[var1].keys())[0]
+            for var3 in params[var1][var2]:
+                print(f'Running {exp} {var3}')
+                train_config = copy.deepcopy(base_train_config)
+                train_config[var1][var2] = var3
+                
+                # train
+                train.main(train_config)
 
-    for exp, params in exp_config.items():
-        # modify configuration
-        var1 = list(params.keys())[0]
-        var2 = list(params[var1].keys())[0]
-        for var3 in params[var1][var2]:
-            print(f'Running {exp} {var3}')
-            train_config = copy.deepcopy(base_train_config)
-            train_config[var1][var2] = var3
-            
-            # train
-            train.main(train_config)
-
-            # # evaluation
-            # eval.main(eval_config)
+                # # evaluation
+                # eval.main(eval_config)
+    else:
+        train.main(base_train_config)
 
 
 if __name__ == '__main__':

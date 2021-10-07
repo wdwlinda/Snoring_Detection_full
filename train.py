@@ -72,10 +72,10 @@ def main(config_reference):
     # Dataloader
     train_dataset = AudioDataset(config, mode='train')
     train_dataloader = DataLoader(
-        train_dataset, batch_size=config.dataset.train.batch_size, shuffle=config.dataset.train.shuffle, pin_memory=True)
+        train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=True)
     test_dataset = AudioDataset(config, mode='valid')
     test_dataloader = DataLoader(
-        test_dataset, batch_size=config.dataset.val.batch_size, shuffle=config.dataset.val.shuffle, pin_memory=True)
+        test_dataset, batch_size=1, shuffle=False, pin_memory=True)
 
 
     # Start training
@@ -85,8 +85,8 @@ def main(config_reference):
     min_loss = 1e5
     max_acc = -1
     saving_steps = config.train.checkpoint_saving_steps
-    training_steps = int(training_samples/config.dataset.train.batch_size)
-    if training_samples%config.dataset.train.batch_size != 0:
+    training_steps = int(training_samples/config.dataset.batch_size)
+    if training_samples%config.dataset.batch_size != 0:
         training_steps += 1
     testing_steps = len(test_dataloader.dataset)
     experiment = [s for s in checkpoint_path.split('\\') if 'run' in s][0]
@@ -100,7 +100,7 @@ def main(config_reference):
     level = round(level / 10**(length-1)) * 10**(length-1)
     print("Start Training!!")
     print("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
-            format(config.train.epoch, config.dataset.train.batch_size, config.dataset.train.shuffle, training_samples))
+            format(config.train.epoch, config.dataset.batch_size, config.dataset.shuffle, training_samples))
     print(60*"-")
     
     train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')

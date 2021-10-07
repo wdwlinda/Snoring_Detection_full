@@ -46,7 +46,7 @@ def create_kaggle_snoring_dataloader():
 class AbstractDastaset(Dataset):
     def __init__(self, config, mode):
         assert (mode=='train' or mode=='valid'), f'Unknown executing mode [{mode}].'
-        self.dataset_config = config.dataset.train if mode == 'train' else config.dataset.val
+        self.dataset_config = config.dataset
         self.model_config = config.model
         self.preprocess_config = self.dataset_config.preprocess_config
         self.is_data_augmentation = self.dataset_config.is_data_augmentation
@@ -96,6 +96,7 @@ class AbstractDastaset(Dataset):
     # def generate_index_func(self):
     #     return dataset_utils.generate_kaggle_breast_ultrasound_index
 
+# TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode):
         super().__init__(config, mode)
@@ -106,6 +107,7 @@ class AudioDataset(AbstractDastaset):
         # self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
         self.transform_methods = config.dataset.transform_methods
         print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
+        self.transform = transforms.Compose([transforms.ToTensor()])
 
     def data_loading_function(self, filename):
         return torchaudio.load(filename)
@@ -116,6 +118,8 @@ class AudioDataset(AbstractDastaset):
             audio_feature = self.merge_audio_features(features)
         else:
             audio_feature = list(features.values())[0]
+        if self.is_data_augmentation:
+            audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
         return audio_feature
 
     def audio_trasform(self, data):
