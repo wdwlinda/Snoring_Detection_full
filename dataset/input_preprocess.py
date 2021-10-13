@@ -4,7 +4,7 @@ import numpy as np
 
 
 
-
+# TODO: time stratch valueerror
 def spectrogram_augmentation(spec, is_freq_masking, is_time_masking, is_time_strech, freq_mask_param, time_mask_param, min_rate, max_rate):
     # SpecAug
     if is_freq_masking:

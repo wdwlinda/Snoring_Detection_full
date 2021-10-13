@@ -127,19 +127,25 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
 
 def check_audio_sample_rate():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     filelist = []
     check = []
+    audio_foemat = 'm4a'
+    save_name = 'ASUS_snoring_sr'
     for root, dirs, files in os.walk(data_path):
         for f in files:
-            if 'm4a' in f:
+            if audio_foemat in f:
                 filelist.append(os.path.join(data_path, root, f))
-    
-    with open('non-441000-samples.txt', 'w+') as fw:
+                break
+
+    with open(f'{save_name}.txt', 'w+') as fw:
         for idx, filename in enumerate(filelist):
             print(f'{idx+1}/{len(filelist)} {filename}')
-            if AudioSegment.from_file(filename, format='m4a').frame_rate != 44100:
-                fw.write(filename)
-                fw.write('\n')
+            audio = AudioSegment.from_file(filename, format=audio_foemat)
+            sr = audio.frame_rate
+            channels = audio.channels
+            fw.write(f'{filename} sr: {sr} channels: {channels}')
+            fw.write('\n')
 
 
 def audio_loading_exp():

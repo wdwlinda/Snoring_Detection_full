@@ -23,6 +23,12 @@ CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_c
 logger = train_utils.get_logger('TrainingSetup')
 
 
+def min_max_norm(inputs):
+    # inputs -= inputs.min(1, keepdim=True)[0]
+    # inputs /= inputs.max(1, keepdim=True)[0]
+    return inputs
+
+
 def main(config_reference):
     # Configuration
     if isinstance(config_reference, str):
@@ -30,21 +36,21 @@ def main(config_reference):
     elif isinstance(config_reference, dict):
         config = config_reference
 
-    # Get a device to train on
-    device_str = config.get('device', None)
-    if device_str is not None:
-        logger.info(f"Device specified in config: '{device_str}'")
-        if device_str.startswith('cuda') and not torch.cuda.is_available():
-            logger.warn('CUDA not available, using CPU')
-            device_str = 'cpu'
-    else:
-        device_str = "cuda:0" if torch.cuda.is_available() else 'cpu'
-        logger.info(f"Using '{device_str}' device")
+        # Get a device to train on
+        device_str = config.get('device', None)
+        if device_str is not None:
+            logger.info(f"Device specified in config: '{device_str}'")
+            if device_str.startswith('cuda') and not torch.cuda.is_available():
+                logger.warn('CUDA not available, using CPU')
+                device_str = 'cpu'
+        else:
+            device_str = "cuda:0" if torch.cuda.is_available() else 'cpu'
+            logger.info(f"Using '{device_str}' device")
 
-    device = torch.device(device_str)
-    config['device'] = device
-    config = train_utils.DictAsMember(config)
-    logger.info(config)
+        device = torch.device(device_str)
+        config['device'] = device
+        config = train_utils.DictAsMember(config)
+        logger.info(config)
 
     # Select device
 
@@ -106,7 +112,10 @@ def main(config_reference):
     train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
     # TODO: train_logging
     config['experiment'] = experiment
-    train_utils.train_logging(os.path.join(config.train.project_path, 'checkpoints', 'train_logging.txt'), config)
+    ckpt_dir = os.path.join(config.train.project_path, 'checkpoints')
+    if not os.path.isdir(ckpt_dir):
+        os.mkdir(ckpt_dir)
+    train_utils.train_logging(os.path.join(ckpt_dir, 'train_logging.txt'), config)
     loss_func = nn.CrossEntropyLoss()
     
     for epoch in range(1, config.train.epoch+1):
@@ -114,6 +123,7 @@ def main(config_reference):
         for i, data in enumerate(train_dataloader):
             net.train()
             inputs, labels = data['input'], data['gt']
+            inputs = min_max_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)
@@ -135,6 +145,7 @@ def main(config_reference):
             eval_tool = metrics.SegmentationMetrics(config.model.out_channels, ['accuracy'])
             for _, data in enumerate(test_dataloader):
                 inputs, labels = data['input'], data['gt']
+                inputs = min_max_norm(inputs)
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
                 test_loss += loss_func(outputs, labels)

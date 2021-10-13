@@ -1,4 +1,14 @@
 # TODO: mutiple vars in one exp
+
+# experiment 2
+exp2:
+  # factor 1
+  dataset:
+    is_data_augmentation:
+        # - True
+        - False
+
+
 # experiment 2
 # exp2:
 #   # factor 1

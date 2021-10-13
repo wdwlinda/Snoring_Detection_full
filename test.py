@@ -165,7 +165,7 @@ def data_analysis(path, threshold, single_length, data_format, test_amplitude):
         fw.write(f'\nTotal: {total_person}')
 
 
-def thrsholding(filename, threshold):
+def thresholding(filename, threshold):
     df = pd.read_csv(filename)
     data = df[df.columns[1]]
     data = data.to_numpy()
@@ -180,7 +180,7 @@ def thrsholding(filename, threshold):
 
 def peak_analysis():
     filename = rf'C:\Users\test\Downloads\total_peak2.csv'
-    thrsholding(filename, threshold=25)
+    thresholding(filename, threshold=25)
 
 
 def save_audio_fig():
@@ -214,8 +214,9 @@ if __name__ == '__main__':
     # peak_analysis()
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset1\1')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword=None, filtering_mode='in', shuffle=False, is_fullpath=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1620055140118_ASUS_I002D\1', keyword='wav', name='1')
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 

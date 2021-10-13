@@ -42,12 +42,16 @@ class PytorchResnetBuilder(nn.Module):
 
         # Modify first convolution layer to accept different input channels
         if self.in_channels != 3:
-            conv1 = model[0]
+            model_list = list(model.children())
+            conv1 = model_list[0]
             conv1_out_c = conv1.out_channels
             conv1_ks = conv1.kernel_size
             conv1_stride = conv1.stride
             conv1_padding = conv1.padding
-            model[0] = torch.nn.Conv1d(
+            # model_list[0] = torch.nn.Conv1d(
+            #     self.in_channels, conv1_out_c, conv1_ks, conv1_stride, conv1_padding, bias=False)
+            # model = nn.Sequential(*model_list)
+            model.conv1 = torch.nn.Conv1d(
                 self.in_channels, conv1_out_c, conv1_ks, conv1_stride, conv1_padding, bias=False)
         return model
 

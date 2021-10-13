@@ -1,16 +1,24 @@
 dataset:
   # data_path: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset
   # index_path: C:\Users\test\Downloads\0930\model_test2
-  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_train_ASUS_test
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_train_ASUS_test
   data_split: 
     - 0.7
     - 0.3
-  # data_name: BU
+
   transform_methods:
-    - fbank
+    - mel-spec
+  transform_config:
+    n_fft: 1024
+    win_length: null
+    hop_length: null
+    n_mels: 128
+    n_mfcc: 128
+
   batch_size: 14
   shuffle: True
-  is_data_augmentation: True
+  is_data_augmentation: False
   preprocess_config:
     is_freq_masking: True
     is_time_masking: True
@@ -26,7 +34,7 @@ model:
   # model class, e.g. UNet3D, ResidualUNet3D
   name: resnet50
   # number of input channels to the model
-  in_channels: 3
+  in_channels: 2
   # number of output channels
   out_channels: 2
   # determines the order of operators in a single layer (gcr - GroupNorm+Conv3d+ReLU)
@@ -46,7 +54,7 @@ model:
 train:
   loss: CrossEntropy
   optimizer: Adam
-  epoch: 200
-  learning_rate: 0.000005
+  epoch: 300
+  learning_rate: 0.0000005
   project_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection
   checkpoint_saving_steps: 50
