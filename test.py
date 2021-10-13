@@ -13,7 +13,7 @@ def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, sh
     files.sort(key=len)
     file_names = []
     for f in files:
-        if keyword is not None:
+        if keyword:
             if filtering_mode == 'in':
                 if keyword not in f: continue
             elif filtering_mode == 'out':
@@ -44,7 +44,7 @@ def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='i
 
 #     with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
 #         for f in files:
-#             if keyword is not None:
+#             if keyword:
 #                 if keyword not in f:
 #                     fullpath = os.path.join(path, f)
 #                     fw.write(fullpath)    
@@ -216,7 +216,8 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword=None, filtering_mode='in', shuffle=False, is_fullpath=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1620055140118_ASUS_I002D\1', keyword='wav', name='1')
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_resample_16k\1', keyword='wav', name='1')
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_resample_16k\0', keyword='wav', name='0')
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 

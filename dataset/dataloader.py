@@ -75,7 +75,7 @@ class AbstractDastaset(Dataset):
         input_data = self.data_loading_function(self.input_data_indices[idx])
         input_data = self.preprocess(input_data)
         input_data = self.transform(input_data)
-        if self.ground_truth_indices is not None:
+        if self.ground_truth_indices:
             ground_truth = self.data_loading_function(self.ground_truth_indices[idx])
             ground_truth = self.preprocess(ground_truth)
             ground_truth = self.transform(ground_truth)
@@ -135,7 +135,7 @@ class AudioDataset(AbstractDastaset):
         # print('waveform sr', input_data[0].size(), input_data[1])
         input_data = self.preprocess(input_data)
         # input_data = self.transform(input_data)
-        if self.ground_truth_indices is not None:
+        if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
         else:
             ground_truth = None
@@ -153,10 +153,14 @@ class AudioDataset(AbstractDastaset):
         reshape_f = []
         for f in features.values():
             # Average of channel
-            # reshape_f.append(torch.mean(f, dim=0, keepdim=True))
+            # print(f.size())
+            f = preprocess_utils.channel_fusion(
+                f, method=self.dataset_config.fuse_method, dim=0, reapeat_times=self.model_config.in_channels)
             reshape_f.append(f)
+            # reshape_f.append(f)
                 
         audio_feature = torch.cat(reshape_f, axis=0)
+        # self.model_config.in_channels = self.model_config.in_channels * len(features)
         return audio_feature
 
 

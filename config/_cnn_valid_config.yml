@@ -7,14 +7,14 @@ dataset:
     - 0.3
     
   transform_methods:
-    - mel-spec
+    - MFCC
   transform_config:
     n_fft: 1024
     win_length: null
     hop_length: null
     n_mels: 128
     n_mfcc: 128
-
+  fuse_method: mean
   batch_size: 1
   shuffle: False
   is_data_augmentation: False
@@ -49,7 +49,7 @@ eval:
   save_segmentation_result: False
   save_prediciton_only: False
   running_mode: valid
-  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_028
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_035
   checkpoint_name: ckpt_best.pth
   eval_dir_key:
   

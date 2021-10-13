@@ -127,16 +127,17 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
 
 def check_audio_sample_rate():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
+    data_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\_sample_data\resample_test\resample'
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     filelist = []
     check = []
-    audio_foemat = 'm4a'
-    save_name = 'ASUS_snoring_sr'
+    audio_foemat = 'wav'
+    save_name = 'resample_sr'
     for root, dirs, files in os.walk(data_path):
         for f in files:
             if audio_foemat in f:
                 filelist.append(os.path.join(data_path, root, f))
-                break
+                # break
 
     with open(f'{save_name}.txt', 'w+') as fw:
         for idx, filename in enumerate(filelist):
@@ -327,7 +328,7 @@ def peak_plot(signal, peaks, sample_rate, save_path=None):
     librosa.display.waveplot(signal, sample_rate, x_axis='s')
     # plt.show()
 
-    if save_path is not None:
+    if save_path:
         plt.savefig(save_path)
     plt.close()
 
@@ -337,7 +338,7 @@ def pick_peak(signal, sample_rate, filename, hop_length, pre_max, post_max, pre_
     # TODO: Is this divide correct?
     peak_times = np.array(peaks) / sample_rate
 
-    if save_path is not None:
+    if save_path:
         save_path = os.path.join(save_path, f'{filename}_peak.png')
     peak_plot(signal, peaks, sample_rate, save_path)
     return peak_times
@@ -350,15 +351,15 @@ def f_high(y,sr):
 
 
 def main():
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
-    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak5_4'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak6'
     hop_length = 5120
     frame_size = 10240
     file_number_threshold = 82
     csv_filename_programming = os.path.join(save_path, 'total_peak_programming.csv')
     csv_filename_reading = os.path.join(save_path, 'total_peak_reading.csv')
-    peak_th1 = 20
-    peak_th2 = 25
+    peak_th1 = 10
+    peak_th2 = 15
     effective_audio_th = 25
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
 
@@ -375,10 +376,6 @@ def main():
         if os.path.isdir(folder_path):
             if len(os.listdir(folder_path)) > file_number_threshold:
                 effective.append(f)
-    # effective = effective[9:11] # TODO
-    # ppp = [effective[0], effective[9], effective[12], effective[14], effective[20], effective[23], effective[24], effective[27]]
-    # effective = list(set(effective)-set(ppp))
-    # effective.sort(key=len)
     
     with open(csv_filename_programming, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -410,9 +407,10 @@ def main():
         os.chdir(abs_data_path)
         # file_list = file_list[:10] # TODO
         for file_idx, f in enumerate(file_list):
-            waveform, sr = get_audio_waveform(f)
+            y, sr = get_audio_waveform(f)
             # TODO: high pass filtering
             # waveform = f_high(waveform, sr)
+            waveform = np.float32(np.array(y.get_array_of_samples()))
             waveform = waveform * np.abs(waveform) * np.abs(waveform)
 
             ae = amplitude_envelope(waveform, frame_size, hop_length)
@@ -468,20 +466,6 @@ def main():
             total_peak_count += one_peak_count
             total_count_th1 += one_sample_count_th1
             total_count_th2 += one_sample_count_th2
-
-
-        # with open(os.path.join(save_path, 'total_peak.csv'), 'a', newline='') as csvfile:
-        #     writer = csv.writer(csvfile)
-        #     writer.writerow(['average', np.mean(np.array(peak_count))])
-
-        # def save_peak_statistics_for_programming(save_path, mode):
-        #     with open(csv_filename_programming, 'a', newline='') as csvfile:
-        #         writer = csv.writer(csvfile)
-        #         writer.writerow([])
-        #         writer.writerow([_dir, f'[{idx+1}] / [{len(effective)}]'])
-                
-        # save_peak_statistics_for_reading()
-        # save_peak_statistics_for_programming()
         
         end_ = time.time()
         build_time = end_ - start_
@@ -501,6 +485,138 @@ def main():
 
 
 
+    def main2():
+        data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+        save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak6'
+        hop_length = 5120
+        frame_size = 10240
+        file_number_threshold = 82
+        csv_filename_programming = os.path.join(save_path, 'total_peak_programming.csv')
+        csv_filename_reading = os.path.join(save_path, 'total_peak_reading.csv')
+        peak_th1 = 10
+        peak_th2 = 15
+        peak_th = [20, 25]
+        effective_audio_th = 25
+        pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
+
+        # Select folder with enough number of files
+        effective = []
+        acc_time = 0
+        total_file_count, total_sleeping_time, total_peak_count = 0, 0, 0
+        total_count_th1, total_count_th2 = 0, 0
+        total_effective_sample1, total_effective_sample2 = 0, 0
+        
+        programming_properties = ['Number', 'Name', 'Peak count']
+        for th in peak_th:
+            programming_properties.append(f'Thresholding count (>{th})')
+        reading_properties = ['Number', 'Name', 'File count', 'Sleeping time (hours)', 'Total peak count']
+        for idx, th in enumerate(peak_th):
+            reading_properties.extend([
+                f'Effective audio {idx+1} (>{peak_th1} peak)', 
+                f'Effective audio {idx+1} (>{peak_th1} peak) (%)', 
+                f'Effective sample {idx+1} (>{effective_audio_th} % effective audio)'])
+
+        for f in os.listdir(data_path):
+            folder_path = os.path.join(data_path, f)
+            if os.path.isdir(folder_path):
+                if len(os.listdir(folder_path)) > file_number_threshold:
+                    effective.append(f)
+                    get_effective_cases()
+                else:
+                    pass
+        
+        def get_effective_cases():
+            num_sample = len(effective)
+            for dir_idx, _dir in enumerate(effective):
+                start_ = time.time()
+                abs_data_path = os.path.join(data_path, _dir)
+                abs_save_path = os.path.join(save_path, _dir)
+                if not os.path.exists(abs_save_path):
+                    os.mkdir(abs_save_path)
+                file_list = [f for f in os.listdir(abs_data_path) if f.endswith('m4a')]
+                file_list.sort(key=len)
+
+                peak_counts, content = [], []
+                one_sample_count_th1, one_sample_count_th2 = 0, 0
+                effective_sample1, effective_sample2 = 0, 0
+                os.chdir(abs_data_path)
+                # file_list = file_list[:10] # TODO
+                for file_idx, f in enumerate(file_list):
+                    y, sr = get_audio_waveform(f)
+                    # TODO: high pass filtering
+                    # waveform = f_high(waveform, sr)
+                    waveform = np.float32(np.array(y.get_array_of_samples()))
+                    waveform = waveform * np.abs(waveform) * np.abs(waveform)
+
+                    ae = amplitude_envelope(waveform, frame_size, hop_length)
+                    f = os.path.basename(f).split('.')[0]
+                    peak_times = pick_peak(
+                        waveform, sr, f, hop_length, pre_max, post_max, pre_avg, post_avg, 
+                        delta=2*np.mean(ae), wait=wait, save_path=abs_save_path)
+                    peak_times = np.unique(np.int32(peak_times))
+
+                    print(f'{dir_idx+1}/{len(effective)}', _dir, '||', f'{file_idx+1}/{len(file_list)}', f)
+                    print(4*'-', peak_times)
+
+                    # Save peak information of single audio file
+                    save_single_audio_info(f, peak_times, save_path=abs_save_path)
+                    
+
+                    # TODO: simplify 
+                    # +++
+                    audio_peak_count = len(peak_times)
+                    count_th1 = 1 if audio_peak_count > peak_th1 else 0
+                    count_th2 = 1 if audio_peak_count > peak_th2 else 0
+                    one_sample_count_th1 += count_th1
+                    one_sample_count_th2 += count_th2
+                    peak_counts.append(audio_peak_count)
+                    content.append([file_idx+1, f, audio_peak_count, count_th1, count_th2])
+
+                with open(csv_filename_programming, 'a', newline='') as csvfile:
+                    effective_audio_percentage1 = one_sample_count_th1/len(file_list)*100
+                    effective_audio_percentage2 = one_sample_count_th2/len(file_list)*100
+                    writer = csv.writer(csvfile)
+                    writer.writerows(content)
+                    writer.writerow(['', 'mean/sum/sum', np.mean(peak_counts), one_sample_count_th1, one_sample_count_th2])
+                    writer.writerow(['', 'std/percentage/percentage', np.std(peak_counts), 
+                                    effective_audio_percentage1, effective_audio_percentage2])
+                    writer.writerow([])
+                    # ---
+
+                with open(csv_filename_reading, 'a', newline='') as csvfile:
+                    if effective_audio_percentage1 > effective_audio_th: effective_sample1 = 1
+                    if effective_audio_percentage2 > effective_audio_th: effective_sample2 = 1
+                    total_effective_sample1 += effective_sample1
+                    total_effective_sample2 += effective_sample2
+                    file_count = len(file_list)
+                    one_peak_count = np.sum(peak_counts)
+                    sleeping_time = len(file_list)/20
+                    writer = csv.writer(csvfile)
+                    writer.writerow(
+                        [dir_idx+1, _dir, file_count, sleeping_time, one_peak_count, 
+                        one_sample_count_th1, effective_audio_percentage1, effective_sample1, 
+                        one_sample_count_th2, effective_audio_percentage2, effective_sample2])
+                    total_file_count += file_count
+                    total_sleeping_time += sleeping_time
+                    total_peak_count += one_peak_count
+                    total_count_th1 += one_sample_count_th1
+                    total_count_th2 += one_sample_count_th2
+                
+                end_ = time.time()
+                build_time = end_ - start_
+                acc_time += build_time
+                print(f'  (Spending time)  This round: {build_time} sec || Total: {acc_time} sec' )
+            
+            with open(csv_filename_reading, 'a', newline='') as csvfile:
+                total_file_using_th1 = total_count_th1/total_file_count*100
+                total_file_using_th2 = total_count_th2/total_file_count*100
+                # if total_file_using_th1 > effective_audio_th: effective_audio_count1 += 1
+                # if total_file_using_th2 > effective_audio_th: effective_audio_count2 += 1
+                writer = csv.writer(csvfile)
+                writer.writerow(
+                    ['', '', total_file_count, total_sleeping_time/num_sample, total_peak_count,
+                    f'{total_file_using_th1} %', '', total_effective_sample1, 
+                    f'{total_file_using_th2} %', '', total_effective_sample2])
 if __name__ == '__main__':
     # main()
     # split_audio()

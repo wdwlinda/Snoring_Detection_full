@@ -38,7 +38,7 @@ def main(config_reference):
 
         # Get a device to train on
         device_str = config.get('device', None)
-        if device_str is not None:
+        if device_str:
             logger.info(f"Device specified in config: '{device_str}'")
             if device_str.startswith('cuda') and not torch.cuda.is_available():
                 logger.warn('CUDA not available, using CPU')
@@ -56,7 +56,7 @@ def main(config_reference):
 
     # Load and log experiment configuration
     manual_seed = config.get('manual_seed', None)
-    if manual_seed is not None:
+    if manual_seed:
         logger.info(f'Seed the RNG for all devices with {manual_seed}')
         torch.manual_seed(manual_seed)
         # see https://pytorch.org/docs/stable/notes/randomness.html
@@ -104,8 +104,8 @@ def main(config_reference):
         temp = temp // 10
         length += 1
     level = round(level / 10**(length-1)) * 10**(length-1)
-    print("Start Training!!")
-    print("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
+    logger.info("Start Training!!")
+    logger.info("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
             format(config.train.epoch, config.dataset.batch_size, config.dataset.shuffle, training_samples))
     print(60*"-")
     
@@ -134,10 +134,10 @@ def main(config_reference):
             step_loss.append(loss)
             
             if i%level == 0:
-                print('Step {}  Step loss {}'.format(i, loss))
+                logger.info('Step {}  Step loss {}'.format(i, loss))
         total_train_loss.append(total_loss/training_steps)
         # TODO: check Epoch loss correctness
-        print(f'**Epoch {epoch}/{config.train.epoch}  Training Loss {total_train_loss[-1]}')
+        logger.info(f'**Epoch {epoch}/{config.train.epoch}  Training Loss {total_train_loss[-1]}')
         with torch.no_grad():
             net.eval()
             # loss_list = []
@@ -159,7 +159,7 @@ def main(config_reference):
             total_test_acc.append(avg_test_acc)
             avg_test_loss = test_loss / testing_steps
             total_test_loss.append(avg_test_loss)
-            print("**Testing Loss:{:.3f}".format(avg_test_loss))
+            logger.info("**Testing Loss:{:.3f}".format(avg_test_loss))
 
 
             #     total_tp += tp
@@ -185,13 +185,13 @@ def main(config_reference):
                 }
                 
             if epoch%saving_steps == 0:
-                print("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_loss, epoch))
+                logger.info("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_loss, epoch))
                 checkpoint_name = 'ckpt_best_{:04d}.pth'.format(epoch)
                 torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
 
             if avg_test_acc > max_acc:
                 max_acc = avg_test_acc
-                print("Saving best model with testing accuracy {:.3f}".format(max_acc))
+                logger.info("Saving best model with testing accuracy {:.3f}".format(max_acc))
                 checkpoint_name = 'ckpt_best.pth'
                 pp = os.path.join(checkpoint_path, checkpoint_name)
                 print(pp)

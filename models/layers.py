@@ -366,10 +366,10 @@ class MultiLayerPerceptron(nn.Module):
         for idx in range(len(structure)-1):
             in_channels, out_channels = structure[idx], structure[idx+1]
             self.mlp.add_module(f"fc{idx+1}", torch.nn.Linear(in_channels, out_channels))
-            if self.activation is not None and idx+1 < len(structure)-1:
+            if self.activation and idx+1 < len(structure)-1:
                 self.mlp.add_module(f"{self.activation}{idx+1}", get_activation(self.activation))
 
-        if self.out_activation is not None:
+        if self.out_activation:
             out_dix = idx + 2 if self.out_activation == self.activation else 1
             self.mlp.add_module(f"{self.out_activation}{out_dix}", get_activation(self.out_activation))
 
@@ -395,7 +395,7 @@ class MultiLayerPerceptron(nn.Module):
 #                                          num_groups=num_groups,
 #                                          padding=padding)
 #     def forward(self, x):
-#         if self.pooling is not None:
+#         if self.pooling:
 #             x = self.pooling(x)
 #         x = self.basic_module(x)
 #         return x

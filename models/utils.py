@@ -12,7 +12,7 @@ def get_model(model_config):
         for module in modules:
             m = importlib.import_module(module)
             clazz = getattr(m, class_name, None)
-            if clazz is not None:
+            if clazz:
                 return clazz
 
     model_class = _model_class(model_config['name'])

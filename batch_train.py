@@ -38,7 +38,7 @@ def main():
 
     exp_config = copy.deepcopy(base_exp_config)
     
-    if base_exp_config is not None:
+    if base_exp_config:
         for exp, params in exp_config.items():
             # modify configuration
             var1 = list(params.keys())[0]

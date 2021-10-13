@@ -29,21 +29,21 @@ def generate_filenames(path, keys=None, include_or_exclude=None, is_fullpath=Tru
     # TODO: index error when keys=['a','a','a'] include_or_exclude=['include', 'exclude', 'exclude']
     if len(keys) == 0: keys = None
     if len(include_or_exclude) == 0: include_or_exclude = None
-    if keys is not None and include_or_exclude is not None:
+    if keys and include_or_exclude:
         assert len(keys) == len(include_or_exclude)
         full_keys = [f'{condition}_{k}' for k, condition in zip(keys, include_or_exclude)]
         # TODO: logging instead of print for repeat key (think about raise error or not)
         if len(full_keys) != len(list(set(full_keys))):
             print('Warning: Repeat keys')
             full_keys = list(set(full_keys))
-    if keys is not None:
+    if keys:
         filenames = {k: [] for k in full_keys}
     else:
         filenames = []
 
     for root, dirs, files in os.walk(path):
         for f in files:
-            if loading_formats is not None:
+            if loading_formats:
                 process = False
                 for format in loading_formats:
                     if format in f:
@@ -57,7 +57,7 @@ def generate_filenames(path, keys=None, include_or_exclude=None, is_fullpath=Tru
                     final_path = os.path.join(root, f)
                 else:
                     final_path = f
-                if keys is not None:
+                if keys:
                     for idx, k in enumerate(keys):
                         if include_or_exclude[idx] == 'include':
                             if k in final_path:
@@ -76,7 +76,7 @@ def get_class(class_name, modules):
     for module in modules:
         m = importlib.import_module(module)
         clazz = getattr(m, class_name, None)
-        if clazz is not None:
+        if clazz:
             return clazz
     raise RuntimeError(f'Unsupported dataset class: {class_name}')
 
@@ -136,9 +136,9 @@ def save_input_and_label_index(data_path, save_path, data_split, data_keys=None,
     class_name = os.listdir(data_path)
     os.chdir(save_path)
     include_or_exclude, keys = [], []
-    if data_keys is not None:
+    if data_keys:
         for v in data_keys.values():
-            if v is not None:
+            if v:
                 include_or_exclude.append(v.split('_')[0])
                 keys.append(v.split('_')[1]) 
     data_dict = generate_filenames(
@@ -153,20 +153,20 @@ def save_input_and_label_index(data_path, save_path, data_split, data_keys=None,
         save_content_in_txt(val_input_data, valid_name, filter_bank=class_name, access_mode="w+", dir=save_path)
 
 
-    # if data_keys['input'] is not None:    
+    # if data_keys['input']:    
     #     input_data = data_dict[data_keys['input']]
     # else:
     #     input_data = data_dict
     
-    if data_keys is not None:
+    if data_keys:
         if 'input' in data_keys:
-            if data_keys['input'] is not None:
+            if data_keys['input']:
                 input_data = data_dict[data_keys['input']]
             else:
                 input_data = data_dict
             save_content_ops(input_data, 'train.txt', 'valid.txt')
         if 'ground_truth' in data_keys:
-            if data_keys['ground_truth'] is not None:
+            if data_keys['ground_truth']:
                 ground_truth = data_dict[data_keys['ground_truth']]
             else:
                 ground_truth = data_dict
@@ -208,13 +208,13 @@ def save_content_in_txt(content, path, filter_bank, access_mode='a+', dir=None):
             return os.path.join(dir, list(pair.keys())[0], list(pair.values())[0])
 
         if isinstance(content, str):
-            if dir is not None:
+            if dir:
                 content = string_ops(content, dir, filter=filter_bank)
                 # content = os.path.join(dir, content)
             fw.write(content)
         else:
             for c in content:
-                if dir is not None:
+                if dir:
                     c = string_ops(c, dir, filter=filter_bank)
                     # c = os.path.join(dir, c)
                 fw.write(f'{c}\n')
