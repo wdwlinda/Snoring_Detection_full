@@ -17,6 +17,7 @@ import os
 from scipy import signal
 import random
 from scipy.io.wavfile import read
+from analysis import data_splitting
 
 
 def enframe(x, win, inc):
@@ -114,7 +115,9 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                 singal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
                 
                 # Save file name
-                path = os.path.join(save_path, save_dir, f'{name}_{idx+1:03d}.wav')
+                if not os.path.isdir(os.path.join(save_path, save_dir)):
+                    os.mkdir(os.path.join(save_path, save_dir))
+                path = os.path.join(save_path, save_dir, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.wav')
                 with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
                     fw.write(path)
                     fw.write('\n')
@@ -203,45 +206,26 @@ def audio_loading_exp():
 
 
 def split_audio():
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
-    filelist = [
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_12.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_13.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_14.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_33.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_34.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_35.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_12.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_13.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_14.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_73.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_74.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_75.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_32.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_33.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_34.m4a',
-    ]
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2'
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
     clip_range_time = 0.5
     offset = 0.5
     time_unit = 1000
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
 
-    filelist = []
-    for root, dirs, files in os.walk(data_path):
-        for f in files:
-            if 'm4a' in f:
-                filelist.append(os.path.join(data_path, root, f))
-            if len(dirs) == 0:
-                save_dir = os.path.join(save_path, os.path.basename(root))
-                if not os.path.isdir(save_dir):
-                    os.mkdir(save_dir)
+    filelist = data_splitting.get_files(data_path, 'm4a')
+    # filelist = []
+    # for root, dirs, files in os.walk(data_path):
+    #     for f in files:
+    #         if 'm4a' in f:
+    #             filelist.append(os.path.join(data_path, root, f))
+    #         if len(dirs) == 0:
+    #             save_dir = os.path.join(save_path, os.path.basename(root))
+    #             if not os.path.isdir(save_dir):
+    #                 os.mkdir(save_dir)
+    
     save_audio_clips(
         filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit)
 
@@ -318,6 +302,7 @@ def save_audio_info(filename, data):
 def peak_plot(signal, peaks, sample_rate, save_path=None):
     # TODO: plot method for better visualization
     # duration = librosa.get_duration(y)
+    signal = np.float32(np.array(signal))
     peaks_in_sec = peaks/sample_rate
     plt.figure(figsize=(14, 5))
     plt.vlines(peaks_in_sec, 0,
@@ -619,8 +604,8 @@ def main():
                     f'{total_file_using_th2} %', '', total_effective_sample2])
 if __name__ == '__main__':
     # main()
-    # split_audio()
+    split_audio()
     # show_volume()
     # audio_loading_exp()
-    check_audio_sample_rate()
+    # check_audio_sample_rate()
     pass

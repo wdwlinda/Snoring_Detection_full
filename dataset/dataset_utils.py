@@ -1,6 +1,7 @@
 
 import importlib
 import os
+import logging
 
 
 
@@ -22,6 +23,41 @@ def generate_filename_list(path, file_key, dir_key='', only_filename=False):
                 else:
                     input_paths.append(fullpath)
     return input_paths, gt_paths
+
+
+def get_files(path, keys=[], is_fullpath=True, sort=True):
+    """Get all the file name under the given path with assigned keys"""
+    file_list = []
+    assert isinstance(keys, (list, str))
+    if isinstance(keys, str): keys = [keys]
+    # Rmove repeated key
+    keys = list(set(keys))
+
+    def func(root, f, file_list, is_fullpath):
+        if is_fullpath:
+            file_list.append(os.path.join(root, f))
+        else:
+            file_list.append(f)
+
+    for i, (root, dirs, files) in enumerate(os.walk(path)):
+        for j, f in enumerate(files):
+            if keys:
+                for key in keys:
+                    if key in f:
+                        func(root, f, file_list, is_fullpath)
+            else:
+                func(root, f, file_list, is_fullpath)
+
+    if file_list:
+        if sort: file_list.sort(key=len)
+    else:
+        if keys: 
+            logging.warning(f'No file exist with key {keys}.') 
+        else: 
+            logging.warning(f'No file exist.') 
+            
+    return file_list
+
 
 
 def generate_filenames(path, keys=None, include_or_exclude=None, is_fullpath=True, loading_formats=None):
@@ -119,7 +155,6 @@ def get_data_indices(data_name, data_path, save_path, data_split, mode, generate
 def generate_kaggle_breast_ultrasound_index(data_path, save_path, data_split):
     data_keys = {'input': 'exclude_mask', 'ground_truth': 'include_mask'}
     save_input_and_label_index(data_path, save_path, data_split, data_keys, loading_format=['png', 'jpg'])
-
 
 
 def generate_kaggle_snoring_index(data_path, save_path, data_split):

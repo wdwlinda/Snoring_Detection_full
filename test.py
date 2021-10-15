@@ -7,10 +7,10 @@ import librosa.display
 import pandas as pd
 import random
 
-
+# TODO: input soring function, condition
 def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
     files = os.listdir(path)
-    files.sort(key=len)
+    # files.sort(key=len)
     file_names = []
     for f in files:
         if keyword:
@@ -216,8 +216,8 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword=None, filtering_mode='in', shuffle=False, is_fullpath=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_resample_16k\1', keyword='wav', name='1')
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_resample_16k\0', keyword='wav', name='0')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1630949188143_NA\0', keyword='wav', name='0', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 

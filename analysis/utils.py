@@ -30,64 +30,6 @@ import torchaudio.transforms as T
 import numpy as np
 
 
-# [width, height] = matplotlib.rcParams['figure.figsize']
-# if width < 10:
-#   matplotlib.rcParams['figure.figsize'] = [width * 2.5, height]
-
-# _SAMPLE_DIR = "_sample_data"
-# SAMPLE_WAV_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/steam-train-whistle-daniel_simon.wav"
-# SAMPLE_WAV_PATH = os.path.join(_SAMPLE_DIR, "steam.wav")
-
-# SAMPLE_WAV_SPEECH_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/VOiCES_devkit/source-16k/train/sp0307/Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav"
-# SAMPLE_WAV_SPEECH_PATH = os.path.join(_SAMPLE_DIR, "speech.wav")
-
-# SAMPLE_RIR_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/VOiCES_devkit/distant-16k/room-response/rm1/impulse/Lab41-SRI-VOiCES-rm1-impulse-mc01-stu-clo.wav"
-# SAMPLE_RIR_PATH = os.path.join(_SAMPLE_DIR, "rir.wav")
-
-# SAMPLE_NOISE_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/VOiCES_devkit/distant-16k/distractors/rm1/babb/Lab41-SRI-VOiCES-rm1-babb-mc01-stu-clo.wav"
-# SAMPLE_NOISE_PATH = os.path.join(_SAMPLE_DIR, "bg.wav")
-
-# SAMPLE_MP3_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/steam-train-whistle-daniel_simon.mp3"
-# SAMPLE_MP3_PATH = os.path.join(_SAMPLE_DIR, "steam.mp3")
-
-# SAMPLE_GSM_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/steam-train-whistle-daniel_simon.gsm"
-# SAMPLE_GSM_PATH = os.path.join(_SAMPLE_DIR, "steam.gsm")
-
-# SAMPLE_TAR_URL = "https://pytorch-tutorial-assets.s3.amazonaws.com/VOiCES_devkit.tar.gz"
-# SAMPLE_TAR_PATH = os.path.join(_SAMPLE_DIR, "sample.tar.gz")
-# SAMPLE_TAR_ITEM = "VOiCES_devkit/source-16k/train/sp0307/Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav"
-
-# S3_BUCKET = "pytorch-tutorial-assets"
-# S3_KEY = "VOiCES_devkit/source-16k/train/sp0307/Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav"
-
-# YESNO_DATASET_PATH = os.path.join(_SAMPLE_DIR, "yes_no")
-# os.makedirs(YESNO_DATASET_PATH, exist_ok=True)
-# os.makedirs(_SAMPLE_DIR, exist_ok=True)
-
-# def _fetch_data():
-#   uri = [
-#     (SAMPLE_WAV_URL, SAMPLE_WAV_PATH),
-#     (SAMPLE_WAV_SPEECH_URL, SAMPLE_WAV_SPEECH_PATH),
-#     (SAMPLE_RIR_URL, SAMPLE_RIR_PATH),
-#     (SAMPLE_NOISE_URL, SAMPLE_NOISE_PATH),
-#     (SAMPLE_MP3_URL, SAMPLE_MP3_PATH),
-#     (SAMPLE_GSM_URL, SAMPLE_GSM_PATH),
-#     (SAMPLE_TAR_URL, SAMPLE_TAR_PATH),
-#   ]
-#   for url, path in uri:
-#     with open(path, 'wb') as file_:
-#       file_.write(requests.get(url).content)
-
-# _fetch_data()
-
-# def _download_yesno():
-#   if os.path.exists(os.path.join(YESNO_DATASET_PATH, "waves_yesno.tar.gz")):
-#     return
-#   torchaudio.datasets.YESNO(root=YESNO_DATASET_PATH, download=True)
-
-# YESNO_DOWNLOAD_PROCESS = multiprocessing.Process(target=_download_yesno)
-
-
 def _get_sample(path, resample=None):
   effects = [
     ["remix", "1"]
