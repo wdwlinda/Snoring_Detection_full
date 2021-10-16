@@ -4,12 +4,14 @@ dataset:
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_train_ASUS_test
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_16k_train_ASUS_test
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_de
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test
   data_split: 
     - 0.7
     - 0.3
-
+  sample_rate: null
   transform_methods:
-    - MFCC
+    - fbank
   transform_config:
     n_fft: 1024
     win_length: null
