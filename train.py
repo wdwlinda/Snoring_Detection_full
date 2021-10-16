@@ -191,7 +191,7 @@ def main(config_reference):
 
             if avg_test_acc > max_acc:
                 max_acc = avg_test_acc
-                logger.info(20*"-", f"Saving best model with testing accuracy {max_acc:.3f}", 20*"-")
+                logger.info(f"--- Saving best model with testing accuracy {max_acc:.3f} ---")
                 checkpoint_name = 'ckpt_best.pth'
                 pp = os.path.join(checkpoint_path, checkpoint_name)
                 print(pp)

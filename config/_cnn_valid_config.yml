@@ -1,6 +1,7 @@
 dataset:
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_de
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\cases\1620055140118_ASUS_I002D
   data_split: 
     - 0.7
@@ -49,7 +50,7 @@ eval:
   save_segmentation_result: False
   save_prediciton_only: False
   running_mode: valid
-  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_035
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_037
   checkpoint_name: ckpt_best.pth
   eval_dir_key:
   
