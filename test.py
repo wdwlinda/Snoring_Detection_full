@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import librosa.display
 import pandas as pd
 import random
+from analysis import data_splitting
 
 # TODO: input soring function, condition
 def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
@@ -28,7 +29,8 @@ def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, sh
 
 
 def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
-    file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
+    # file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
+    file_names = data_splitting.get_files(path, keys=keyword, is_fullpath=True, sort=True)
     with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
         for f in file_names:
             fw.write(f)    
@@ -217,7 +219,8 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1630949188143_NA\0', keyword='wav', name='0', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1630949188143_NA\0', keyword='wav', name='0', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 

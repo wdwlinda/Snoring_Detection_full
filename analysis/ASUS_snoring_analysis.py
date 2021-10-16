@@ -5,6 +5,7 @@ from __future__ import print_function
 import librosa
 from librosa.core import audio
 import librosa.display
+from numpy.core.numeric import _outer_dispatcher
 import soundfile as sf
 import numpy as np
 import datetime
@@ -18,6 +19,54 @@ from scipy import signal
 import random
 from scipy.io.wavfile import read
 from analysis import data_splitting
+import pandas as pd
+import test
+
+
+def get_audio_sample_with_hospital():
+    audio_sample_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2'
+    annotation_path = rf'C:\Users\test\Downloads\annotations'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_hospital'
+
+    # subject_list = [f.split('_')[0] for f in os.listdir(audio_sample_path)]
+    subject_list = os.listdir(audio_sample_path)
+    ori_annotation_file_list = os.listdir(annotation_path)
+    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
+
+    # TODO:
+    subject_list = subject_list[:1]
+    i = 0
+    for subject in subject_list:
+        if subject.split('_')[0] in annotation_file_list:
+            i += 1
+            # print(i, subject)
+            samples = os.listdir(os.path.join(audio_sample_path, subject))
+            in_range = []
+            for j, f in enumerate(samples):
+                subject = f.split('_')[0]
+                code = f.split('_')[1]
+                mapping_f = subject + '_' + code + '.m4a'
+                annotation = ori_annotation_file_list[annotation_file_list.index(subject)]
+                df = pd.read_csv(os.path.join(annotation_path, annotation))
+                x = df.index[df['File'] == mapping_f].tolist()
+                # print(f, x)
+                # TODO: Not General
+                peak_time = float(f.split('_')[2])
+                for k in x:
+                    start_time, end_time = df['Start time'][k], df['End time'][k]
+                    print(f, k, start_time, end_time)
+                    if peak_time >= start_time and peak_time <= end_time:
+                        print('selected!')
+                        in_range.append(1)
+                    else:
+                        print('xxxxxxxxxxxx')
+                        in_range.append(0)
+            # df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]), columns=['#', 'audio clip', 'in range (hospital)'])
+            # df2.to_csv(save_path)
+    # Get an audio sample
+
+    # Check is sample in time range
+    # def check_sample_in_time_range(audio_peak_time, time_range):
 
 
 def enframe(x, win, inc):
@@ -81,14 +130,39 @@ def get_audio_clip(signal, time_interval, sample_rate):
     return signal[signal_interval[0]:signal_interval[1]]
 
 
-def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit):
+def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, 
+                     wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition):
     # Initialize text file
     with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
         fw.write('')
 
-    
+    if output_type == 'mono':
+        mode = 1
+    elif output_type == 'stereo':
+        mode = 2
+    else:
+        mode = None
+
+    annotation_path = rf'C:\Users\test\Downloads\annotations'
+    ori_annotation_file_list = os.listdir(annotation_path)
+    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
+    sub_dir = ''
+
+    df_dict = {}
+    if use_hospital_condition:
+        for f in filelist:
+            subject = os.path.basename(f).split('_')[0]
+            if subject in annotation_file_list:
+                if  subject in df_dict:
+                    continue
+                else:                
+                    annotation = ori_annotation_file_list[annotation_file_list.index(subject)]
+                    df = pd.read_csv(os.path.join(annotation_path, annotation))
+                    df_dict[subject] = df
+
     for f in filelist:
         idx = 0
+        subject = os.path.basename(f).split('_')[0]
         # Get peaks
         print(f)
         y, sr = get_audio_waveform(f)
@@ -111,19 +185,41 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         for p in peak_times:
             # Handle boundary value
             # print(p, y.duration_seconds, offset, clip_range_time)
-            if p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time:
+            peak_condition = (p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time)
+            if use_hospital_condition:
+                hospital_condition = False
+                if subject in df_dict:
+                    df = df_dict[subject]
+                    x = df.index[df['File'] == os.path.basename(f)].tolist()
+                    if x:
+                        for k in x:
+                            start_time, end_time, snoring_label = df['Start time'][k], df['End time'][k], df['Label'][k]
+                            if p >= start_time and p <= end_time:
+                                hospital_condition = True
+                                if snoring_label == 'snoring':
+                                    sub_dir = '1'
+                                elif snoring_label == 'non-snoring':
+                                    sub_dir = '0'
+                                print(snoring_label, save_dir)
+                                break
+                peak_condition = (peak_condition and hospital_condition)
+
+                    
+            # print(60*'+', peak_condition, hospital_condition, subject)
+            if peak_condition:
                 singal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
                 
                 # Save file name
-                if not os.path.isdir(os.path.join(save_path, save_dir)):
-                    os.mkdir(os.path.join(save_path, save_dir))
-                path = os.path.join(save_path, save_dir, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.wav')
-                with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
-                    fw.write(path)
-                    fw.write('\n')
+                if not os.path.isdir(os.path.join(save_path, save_dir, sub_dir)):
+                    os.makedirs(os.path.join(save_path, save_dir, sub_dir))
+                path = os.path.join(save_path, save_dir, sub_dir, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.wav')
+                # with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
+                #     fw.write(path)
+                #     fw.write('\n')
 
                 # Save audio clip
                 print(f'saving {path}')
+                if mode: singal_clip = singal_clip.set_channels(mode)
                 singal_clip.export(path, format='wav')
                 idx += 1
 
@@ -206,7 +302,9 @@ def audio_loading_exp():
 
 
 def split_audio():
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2'
+    # TODO: record picking parameters in csv 
+    # (reason: won't forget every splitting. Can split again very fast in any time any where)
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
@@ -214,20 +312,15 @@ def split_audio():
     offset = 0.5
     time_unit = 1000
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+    format = 'm4a'
+    mono_or_stereo = 'mono'
+    use_hospital_condition = True
 
-    filelist = data_splitting.get_files(data_path, 'm4a')
-    # filelist = []
-    # for root, dirs, files in os.walk(data_path):
-    #     for f in files:
-    #         if 'm4a' in f:
-    #             filelist.append(os.path.join(data_path, root, f))
-    #         if len(dirs) == 0:
-    #             save_dir = os.path.join(save_path, os.path.basename(root))
-    #             if not os.path.isdir(save_dir):
-    #                 os.mkdir(save_dir)
-    
+    filelist = data_splitting.get_files(data_path, format)
     save_audio_clips(
-        filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit)
+        filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, 
+        clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition)
+    test.save_aLL_files_name(data_path, keyword='wav', name='file_name', shuffle=False)
 
 
 def amplitude_envelope(signal, frame_size, hop_length):
@@ -608,4 +701,5 @@ if __name__ == '__main__':
     # show_volume()
     # audio_loading_exp()
     # check_audio_sample_rate()
+    # get_audio_sample_with_hospital()
     pass
