@@ -5,7 +5,7 @@ dataset:
   data_split: 
     - 0.7
     - 0.3
-    
+  sample_rate: 16000  
   transform_methods:
     - MFCC
   transform_config:
