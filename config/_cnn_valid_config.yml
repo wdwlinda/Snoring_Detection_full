@@ -1,60 +1,25 @@
 dataset:
-  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\cases\1620055140118_ASUS_I002D
   data_split: 
     - 0.7
     - 0.3
+    
   transform_methods:
-    - fbank
-  train:
-    batch_size: 14
-    shuffle: True
-    is_data_augmentation: False
-    preprocess_config:
-      # crop_size: 
-      #   - 128
-      #   - 128
-      # # PadToSquare: False
-      # RandFlip: True
-      # RandCrop: True
-      # RandScale: True
-      # # ScaleToSize: False
-      # # ScaleLimitSize: False
-      # RandRotate: True
-      # RandGamma: False
-      # # GaussianBlur: True
-      # RandGaussian: False
-      # padding_value: 0.0
-      # flip_prob: 0.5
-      # min_scale_factor: 1.0
-      # max_scale_factor: 1.25
-      # step_size: 0.125
-      # min_resize_value: 384
-      # max_resize_value: 512
-      # scale_factor_step_size: 32
-      # resize_method: Bilinear
-      # flip_prob: 0.5
-      # flip_mode: _HV
-      # min_angle: -45
-      # max_angle: 45
-      # min_gamma_factor: 0.9
-      # max_gamma_factor: 1.1
-      # gamma_factor_step_size: 0.01
-      # min_std_factor: 0.0
-      # max_std_factor: 2.0
-      # std_step_size: 0.1
-      # show_preprocess: False
-  val:
-    batch_size: 1
-    shuffle: False
-    is_data_augmentation: False
-    preprocess_config:
-      # crop_size: 
-      #   - 128
-      #   - 128
-      # min_resize_value: 384
-      # max_resize_value: 512
-      # scale_factor_step_size: 32
+    - MFCC
+  transform_config:
+    n_fft: 1024
+    win_length: null
+    hop_length: null
+    n_mels: 128
+    n_mfcc: 128
+  fuse_method: mean
+  batch_size: 1
+  shuffle: False
+  is_data_augmentation: False
+  preprocess_config:
+    
 
 # use a fixed random seed to guarantee that when you run the code twice you will get the same outcome
 manual_seed: 0
@@ -63,7 +28,7 @@ model:
   # model class, e.g. UNet3D, ResidualUNet3D
   name: resnet50
   # number of input channels to the model
-  in_channels: 3
+  in_channels: 1
   # number of output channels
   out_channels: 2
   # determines the order of operators in a single layer (gcr - GroupNorm+Conv3d+ReLU)
@@ -84,7 +49,7 @@ eval:
   save_segmentation_result: False
   save_prediciton_only: False
   running_mode: valid
-  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_015
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_035
   checkpoint_name: ckpt_best.pth
   eval_dir_key:
   

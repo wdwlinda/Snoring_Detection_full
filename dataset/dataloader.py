@@ -16,6 +16,7 @@ from dataset import input_preprocess
 from dataset import dataset_utils
 from dataset import transformations
 from utils import configuration
+from analysis.utils import resample
 
 
 def minmax_normalization(image):
@@ -46,7 +47,7 @@ def create_kaggle_snoring_dataloader():
 class AbstractDastaset(Dataset):
     def __init__(self, config, mode):
         assert (mode=='train' or mode=='valid'), f'Unknown executing mode [{mode}].'
-        self.dataset_config = config.dataset.train if mode == 'train' else config.dataset.val
+        self.dataset_config = config.dataset
         self.model_config = config.model
         self.preprocess_config = self.dataset_config.preprocess_config
         self.is_data_augmentation = self.dataset_config.is_data_augmentation
@@ -75,7 +76,7 @@ class AbstractDastaset(Dataset):
         input_data = self.data_loading_function(self.input_data_indices[idx])
         input_data = self.preprocess(input_data)
         input_data = self.transform(input_data)
-        if self.ground_truth_indices is not None:
+        if self.ground_truth_indices:
             ground_truth = self.data_loading_function(self.ground_truth_indices[idx])
             ground_truth = self.preprocess(ground_truth)
             ground_truth = self.transform(ground_truth)
@@ -96,63 +97,76 @@ class AbstractDastaset(Dataset):
     # def generate_index_func(self):
     #     return dataset_utils.generate_kaggle_breast_ultrasound_index
 
+# TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode):
         super().__init__(config, mode)
-        # self.preprocess_method = config.dataset_config.preprocess_config
         self.input_data_indices = dataset_utils.load_content_from_txt(
                 os.path.join(config.dataset.index_path, f'{mode}.txt'))
         self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
         # self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
         self.transform_methods = config.dataset.transform_methods
+        self.transform_config = self.dataset_config.transform_config
         print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
+        self.transform = transforms.Compose([transforms.ToTensor()])
 
     def data_loading_function(self, filename):
-        return torchaudio.load(filename)
+        waveform, sr = torchaudio.load(filename)
+        if self.dataset_config.sample_rate:
+            waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
+            sr = self.dataset_config.sample_rate
+        return waveform, sr
 
     def preprocess(self, data):
         features = self.audio_trasform(data)
-        if len(features) > 1:
-            audio_feature = self.merge_audio_features(features)
-        else:
-            audio_feature = list(features.values())[0]
+        audio_feature = self.merge_audio_features(features)
+        
+        # print('feats', audio_feature.max(), audio_feature.min())
+        
+        if self.is_data_augmentation:
+            audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
         return audio_feature
 
     def audio_trasform(self, data):
         # TODO: different method, e.g., mel-spectogram, MFCC, time-domain
-        waveform, sample_rate = data
         # TODO: how to use time-domain data, split to clips?
-        # if len(self.transform_methods) == 0:
-        #     return waveform
-        features = {}
-        for method in self.transform_methods:
-            if method == 'fbank':
-                features[method] = transformations.fbank(waveform, sample_rate)
-            elif method == 'spectrogram':
-                features[method] = transformations.spectrogram(waveform, sample_rate)
-            elif method == 'mel-spectrogram':
-                features[method] = transformations.mel_spec(waveform, sample_rate)
-            elif method == 'MFCC':
-                features[method] = transformations.MFCC(waveform, sample_rate)
-            else:
-                raise ValueError('Unknown audio transformations')
-        return features
+        waveform, sample_rate = data
+        # TODO: optional sample rate or preprocess data to get same sr
+        # sample_rate = 16000
+        return transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
 
     def __getitem__(self, idx):
         input_data = self.data_loading_function(self.input_data_indices[idx])
+        # print('waveform sr', input_data[0].size(), input_data[1])
         input_data = self.preprocess(input_data)
         # input_data = self.transform(input_data)
-        if self.ground_truth_indices is not None:
+        if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
         else:
             ground_truth = None
         # TODO: general solution for channel issue
-        input_data = torch.unsqueeze(input_data, 0)
-        input_data = input_data.repeat(3, 1, 1)
+        # input_data = torch.unsqueeze(input_data, 0)
+        # input_data = input_data.repeat(3, 1, 1)
+
+        # input_data = input_data.repeat(2, 1, 1)
+        # input_data = input_data[:2]
+        # # input_data = input_data[:, :98, :128]
+        # print('input size', input_data.size())
         return {'input': input_data, 'gt': ground_truth}
 
-    def merge_audio_features(self):
-        pass
+    def merge_audio_features(self, features):
+        reshape_f = []
+        for f in features.values():
+            # Average of channel
+            # print(f.size())
+            f = preprocess_utils.channel_fusion(
+                f, method=self.dataset_config.fuse_method, dim=0, reapeat_times=self.model_config.in_channels)
+            reshape_f.append(f)
+            # reshape_f.append(f)
+                
+        audio_feature = torch.cat(reshape_f, axis=0)
+        # self.model_config.in_channels = self.model_config.in_channels * len(features)
+        return audio_feature
 
 
 class KaggleSnoringDataset(AudioDataset):

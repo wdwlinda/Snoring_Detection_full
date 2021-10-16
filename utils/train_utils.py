@@ -9,7 +9,7 @@ import importlib
 import torch.optim as optim
 import numpy as np
 
-
+    
 
 def replace_item(obj, key, replace_value):
     for k, v in obj.items():
@@ -79,8 +79,6 @@ def get_logger(name, level=logging.INFO):
         return logger
 
 
-
-
 # def load_config_yaml(config_file):
 #     return yaml.safe_load(open(config_file, 'r'))
 
@@ -113,6 +111,9 @@ def _logging(path, config, access_mode):
 # TODO: train config
 # TODO: python logging
 def train_logging(path, config):
+    if not os.path.isfile((path)):
+        with open(path, 'w+') as fw:
+            fw.write('')
     with open(path, 'r+') as fw:
         if os.stat(path).st_size == 0:
             number = 0

@@ -26,20 +26,20 @@ class ImageClassifier(nn.Module):
 
         module = list(self.encoder.children())[0]
         encoder_out_node = list(module.children())[-1].out_features
-        if output_structure is not None:
+        if output_structure:
             output_structure = [encoder_out_node] + output_structure + [out_channels]
             self.mlp = MultiLayerPerceptron(output_structure, 'relu', out_activation=activation)
         else:
             self.mlp = MultiLayerPerceptron([encoder_out_node, out_channels], 'relu', out_activation=activation)
 
         # self.fc1 = nn.Linear(encoder_out_node, out_channels)
-        # self.activation_func = get_activation(activation, *args, **kwargs) if activation is not None else None
+        # self.activation_func = get_activation(activation, *args, **kwargs) if activation else None
         
     def forward(self, x):
         x = self.encoder(x)
         x = self.mlp(x)
         
         # x = self.fc1(x)
-        # if self.activation_func is not None:
+        # if self.activation_func:
         #     x = self.activation_func(x)
         return x

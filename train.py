@@ -23,6 +23,12 @@ CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_c
 logger = train_utils.get_logger('TrainingSetup')
 
 
+def min_max_norm(inputs):
+    # inputs -= inputs.min(1, keepdim=True)[0]
+    # inputs /= inputs.max(1, keepdim=True)[0]
+    return inputs
+
+
 def main(config_reference):
     # Configuration
     if isinstance(config_reference, str):
@@ -30,27 +36,27 @@ def main(config_reference):
     elif isinstance(config_reference, dict):
         config = config_reference
 
-    # Get a device to train on
-    device_str = config.get('device', None)
-    if device_str is not None:
-        logger.info(f"Device specified in config: '{device_str}'")
-        if device_str.startswith('cuda') and not torch.cuda.is_available():
-            logger.warn('CUDA not available, using CPU')
-            device_str = 'cpu'
-    else:
-        device_str = "cuda:0" if torch.cuda.is_available() else 'cpu'
-        logger.info(f"Using '{device_str}' device")
+        # Get a device to train on
+        device_str = config.get('device', None)
+        if device_str:
+            logger.info(f"Device specified in config: '{device_str}'")
+            if device_str.startswith('cuda') and not torch.cuda.is_available():
+                logger.warn('CUDA not available, using CPU')
+                device_str = 'cpu'
+        else:
+            device_str = "cuda:0" if torch.cuda.is_available() else 'cpu'
+            logger.info(f"Using '{device_str}' device")
 
-    device = torch.device(device_str)
-    config['device'] = device
-    config = train_utils.DictAsMember(config)
-    logger.info(config)
+        device = torch.device(device_str)
+        config['device'] = device
+        config = train_utils.DictAsMember(config)
+        logger.info(config)
 
     # Select device
 
     # Load and log experiment configuration
     manual_seed = config.get('manual_seed', None)
-    if manual_seed is not None:
+    if manual_seed:
         logger.info(f'Seed the RNG for all devices with {manual_seed}')
         torch.manual_seed(manual_seed)
         # see https://pytorch.org/docs/stable/notes/randomness.html
@@ -72,10 +78,10 @@ def main(config_reference):
     # Dataloader
     train_dataset = AudioDataset(config, mode='train')
     train_dataloader = DataLoader(
-        train_dataset, batch_size=config.dataset.train.batch_size, shuffle=config.dataset.train.shuffle, pin_memory=True)
+        train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=True)
     test_dataset = AudioDataset(config, mode='valid')
     test_dataloader = DataLoader(
-        test_dataset, batch_size=config.dataset.val.batch_size, shuffle=config.dataset.val.shuffle, pin_memory=True)
+        test_dataset, batch_size=1, shuffle=False, pin_memory=True)
 
 
     # Start training
@@ -85,8 +91,8 @@ def main(config_reference):
     min_loss = 1e5
     max_acc = -1
     saving_steps = config.train.checkpoint_saving_steps
-    training_steps = int(training_samples/config.dataset.train.batch_size)
-    if training_samples%config.dataset.train.batch_size != 0:
+    training_steps = int(training_samples/config.dataset.batch_size)
+    if training_samples%config.dataset.batch_size != 0:
         training_steps += 1
     testing_steps = len(test_dataloader.dataset)
     experiment = [s for s in checkpoint_path.split('\\') if 'run' in s][0]
@@ -98,15 +104,18 @@ def main(config_reference):
         temp = temp // 10
         length += 1
     level = round(level / 10**(length-1)) * 10**(length-1)
-    print("Start Training!!")
-    print("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
-            format(config.train.epoch, config.dataset.train.batch_size, config.dataset.train.shuffle, training_samples))
+    logger.info("Start Training!!")
+    logger.info("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
+            format(config.train.epoch, config.dataset.batch_size, config.dataset.shuffle, training_samples))
     print(60*"-")
     
     train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
     # TODO: train_logging
     config['experiment'] = experiment
-    train_utils.train_logging(os.path.join(config.train.project_path, 'checkpoints', 'train_logging.txt'), config)
+    ckpt_dir = os.path.join(config.train.project_path, 'checkpoints')
+    if not os.path.isdir(ckpt_dir):
+        os.mkdir(ckpt_dir)
+    train_utils.train_logging(os.path.join(ckpt_dir, 'train_logging.txt'), config)
     loss_func = nn.CrossEntropyLoss()
     
     for epoch in range(1, config.train.epoch+1):
@@ -114,6 +123,7 @@ def main(config_reference):
         for i, data in enumerate(train_dataloader):
             net.train()
             inputs, labels = data['input'], data['gt']
+            inputs = min_max_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)
@@ -124,10 +134,10 @@ def main(config_reference):
             step_loss.append(loss)
             
             if i%level == 0:
-                print('Step {}  Step loss {}'.format(i, loss))
+                logger.info('Step {}  Step loss {}'.format(i, loss))
         total_train_loss.append(total_loss/training_steps)
         # TODO: check Epoch loss correctness
-        print(f'**Epoch {epoch}/{config.train.epoch}  Training Loss {total_train_loss[-1]}')
+        logger.info(f'**Epoch {epoch}/{config.train.epoch}  Training Loss {total_train_loss[-1]}')
         with torch.no_grad():
             net.eval()
             # loss_list = []
@@ -135,6 +145,7 @@ def main(config_reference):
             eval_tool = metrics.SegmentationMetrics(config.model.out_channels, ['accuracy'])
             for _, data in enumerate(test_dataloader):
                 inputs, labels = data['input'], data['gt']
+                inputs = min_max_norm(inputs)
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
                 test_loss += loss_func(outputs, labels)
@@ -148,7 +159,7 @@ def main(config_reference):
             total_test_acc.append(avg_test_acc)
             avg_test_loss = test_loss / testing_steps
             total_test_loss.append(avg_test_loss)
-            print("**Testing Loss:{:.3f}".format(avg_test_loss))
+            logger.info("**Testing Loss:{:.3f}".format(avg_test_loss))
 
 
             #     total_tp += tp
@@ -174,13 +185,13 @@ def main(config_reference):
                 }
                 
             if epoch%saving_steps == 0:
-                print("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_loss, epoch))
+                logger.info("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_loss, epoch))
                 checkpoint_name = 'ckpt_best_{:04d}.pth'.format(epoch)
                 torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
 
             if avg_test_acc > max_acc:
                 max_acc = avg_test_acc
-                print("Saving best model with testing accuracy {:.3f}".format(max_acc))
+                logger.info(20*"-", f"Saving best model with testing accuracy {max_acc:.3f}", 20*"-")
                 checkpoint_name = 'ckpt_best.pth'
                 pp = os.path.join(checkpoint_path, checkpoint_name)
                 print(pp)

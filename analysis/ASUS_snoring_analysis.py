@@ -5,6 +5,7 @@ from __future__ import print_function
 import librosa
 from librosa.core import audio
 import librosa.display
+from numpy.core.numeric import _outer_dispatcher
 import soundfile as sf
 import numpy as np
 import datetime
@@ -17,6 +18,55 @@ import os
 from scipy import signal
 import random
 from scipy.io.wavfile import read
+from analysis import data_splitting
+import pandas as pd
+import test
+
+
+def get_audio_sample_with_hospital():
+    audio_sample_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2'
+    annotation_path = rf'C:\Users\test\Downloads\annotations'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_hospital'
+
+    # subject_list = [f.split('_')[0] for f in os.listdir(audio_sample_path)]
+    subject_list = os.listdir(audio_sample_path)
+    ori_annotation_file_list = os.listdir(annotation_path)
+    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
+
+    # TODO:
+    subject_list = subject_list[:1]
+    i = 0
+    for subject in subject_list:
+        if subject.split('_')[0] in annotation_file_list:
+            i += 1
+            # print(i, subject)
+            samples = os.listdir(os.path.join(audio_sample_path, subject))
+            in_range = []
+            for j, f in enumerate(samples):
+                subject = f.split('_')[0]
+                code = f.split('_')[1]
+                mapping_f = subject + '_' + code + '.m4a'
+                annotation = ori_annotation_file_list[annotation_file_list.index(subject)]
+                df = pd.read_csv(os.path.join(annotation_path, annotation))
+                x = df.index[df['File'] == mapping_f].tolist()
+                # print(f, x)
+                # TODO: Not General
+                peak_time = float(f.split('_')[2])
+                for k in x:
+                    start_time, end_time = df['Start time'][k], df['End time'][k]
+                    print(f, k, start_time, end_time)
+                    if peak_time >= start_time and peak_time <= end_time:
+                        print('selected!')
+                        in_range.append(1)
+                    else:
+                        print('xxxxxxxxxxxx')
+                        in_range.append(0)
+            # df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]), columns=['#', 'audio clip', 'in range (hospital)'])
+            # df2.to_csv(save_path)
+    # Get an audio sample
+
+    # Check is sample in time range
+    # def check_sample_in_time_range(audio_peak_time, time_range):
 
 
 def enframe(x, win, inc):
@@ -80,14 +130,39 @@ def get_audio_clip(signal, time_interval, sample_rate):
     return signal[signal_interval[0]:signal_interval[1]]
 
 
-def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit):
+def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, 
+                     wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition):
     # Initialize text file
     with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
         fw.write('')
 
-    
+    if output_type == 'mono':
+        mode = 1
+    elif output_type == 'stereo':
+        mode = 2
+    else:
+        mode = None
+
+    annotation_path = rf'C:\Users\test\Downloads\annotations'
+    ori_annotation_file_list = os.listdir(annotation_path)
+    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
+    sub_dir = ''
+
+    df_dict = {}
+    if use_hospital_condition:
+        for f in filelist:
+            subject = os.path.basename(f).split('_')[0]
+            if subject in annotation_file_list:
+                if  subject in df_dict:
+                    continue
+                else:                
+                    annotation = ori_annotation_file_list[annotation_file_list.index(subject)]
+                    df = pd.read_csv(os.path.join(annotation_path, annotation))
+                    df_dict[subject] = df
+
     for f in filelist:
         idx = 0
+        subject = os.path.basename(f).split('_')[0]
         # Get peaks
         print(f)
         y, sr = get_audio_waveform(f)
@@ -110,36 +185,67 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         for p in peak_times:
             # Handle boundary value
             # print(p, y.duration_seconds, offset, clip_range_time)
-            if p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time:
+            peak_condition = (p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time)
+            if use_hospital_condition:
+                hospital_condition = False
+                if subject in df_dict:
+                    df = df_dict[subject]
+                    x = df.index[df['File'] == os.path.basename(f)].tolist()
+                    if x:
+                        for k in x:
+                            start_time, end_time, snoring_label = df['Start time'][k], df['End time'][k], df['Label'][k]
+                            if p >= start_time and p <= end_time:
+                                hospital_condition = True
+                                if snoring_label == 'snoring':
+                                    sub_dir = '1'
+                                elif snoring_label == 'non-snoring':
+                                    sub_dir = '0'
+                                print(snoring_label, save_dir)
+                                break
+                peak_condition = (peak_condition and hospital_condition)
+
+                    
+            # print(60*'+', peak_condition, hospital_condition, subject)
+            if peak_condition:
                 singal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
                 
                 # Save file name
-                path = os.path.join(save_path, save_dir, f'{name}_{idx+1:03d}.wav')
-                with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
-                    fw.write(path)
-                    fw.write('\n')
+                if not os.path.isdir(os.path.join(save_path, save_dir, sub_dir)):
+                    os.makedirs(os.path.join(save_path, save_dir, sub_dir))
+                path = os.path.join(save_path, save_dir, sub_dir, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.wav')
+                # with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
+                #     fw.write(path)
+                #     fw.write('\n')
 
                 # Save audio clip
                 print(f'saving {path}')
+                if mode: singal_clip = singal_clip.set_channels(mode)
                 singal_clip.export(path, format='wav')
                 idx += 1
 
 
 def check_audio_sample_rate():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
+    data_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\_sample_data\resample_test\resample'
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     filelist = []
     check = []
+    audio_foemat = 'wav'
+    save_name = 'resample_sr'
     for root, dirs, files in os.walk(data_path):
         for f in files:
-            if 'm4a' in f:
+            if audio_foemat in f:
                 filelist.append(os.path.join(data_path, root, f))
-    
-    with open('non-441000-samples.txt', 'w+') as fw:
+                # break
+
+    with open(f'{save_name}.txt', 'w+') as fw:
         for idx, filename in enumerate(filelist):
             print(f'{idx+1}/{len(filelist)} {filename}')
-            if AudioSegment.from_file(filename, format='m4a').frame_rate != 44100:
-                fw.write(filename)
-                fw.write('\n')
+            audio = AudioSegment.from_file(filename, format=audio_foemat)
+            sr = audio.frame_rate
+            channels = audio.channels
+            fw.write(f'{filename} sr: {sr} channels: {channels}')
+            fw.write('\n')
 
 
 def audio_loading_exp():
@@ -196,47 +302,25 @@ def audio_loading_exp():
 
 
 def split_audio():
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
-    filelist = [
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_12.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_13.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_14.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_33.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_34.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630345236867_AA0801160\1630345236867_35.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_12.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_13.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630866536302_NA\1630866536302_14.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_73.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_74.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1630949188143_NA\1630949188143_75.m4a',
-
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_32.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_33.m4a',
-        rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1631119510605_NA\1631119510605_34.m4a',
-    ]
+    # TODO: record picking parameters in csv 
+    # (reason: won't forget every splitting. Can split again very fast in any time any where)
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
     clip_range_time = 0.5
     offset = 0.5
     time_unit = 1000
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+    format = 'm4a'
+    mono_or_stereo = 'mono'
+    use_hospital_condition = True
 
-    filelist = []
-    for root, dirs, files in os.walk(data_path):
-        for f in files:
-            if 'm4a' in f:
-                filelist.append(os.path.join(data_path, root, f))
-            if len(dirs) == 0:
-                save_dir = os.path.join(save_path, os.path.basename(root))
-                if not os.path.isdir(save_dir):
-                    os.mkdir(save_dir)
+    filelist = data_splitting.get_files(data_path, format)
     save_audio_clips(
-        filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, clip_range_time, offset, time_unit)
+        filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, 
+        clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition)
+    test.save_aLL_files_name(data_path, keyword='wav', name='file_name', shuffle=False)
 
 
 def amplitude_envelope(signal, frame_size, hop_length):
@@ -311,6 +395,7 @@ def save_audio_info(filename, data):
 def peak_plot(signal, peaks, sample_rate, save_path=None):
     # TODO: plot method for better visualization
     # duration = librosa.get_duration(y)
+    signal = np.float32(np.array(signal))
     peaks_in_sec = peaks/sample_rate
     plt.figure(figsize=(14, 5))
     plt.vlines(peaks_in_sec, 0,
@@ -321,7 +406,7 @@ def peak_plot(signal, peaks, sample_rate, save_path=None):
     librosa.display.waveplot(signal, sample_rate, x_axis='s')
     # plt.show()
 
-    if save_path is not None:
+    if save_path:
         plt.savefig(save_path)
     plt.close()
 
@@ -331,7 +416,7 @@ def pick_peak(signal, sample_rate, filename, hop_length, pre_max, post_max, pre_
     # TODO: Is this divide correct?
     peak_times = np.array(peaks) / sample_rate
 
-    if save_path is not None:
+    if save_path:
         save_path = os.path.join(save_path, f'{filename}_peak.png')
     peak_plot(signal, peaks, sample_rate, save_path)
     return peak_times
@@ -344,15 +429,15 @@ def f_high(y,sr):
 
 
 def main():
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
-    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak5_4'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak6'
     hop_length = 5120
     frame_size = 10240
     file_number_threshold = 82
     csv_filename_programming = os.path.join(save_path, 'total_peak_programming.csv')
     csv_filename_reading = os.path.join(save_path, 'total_peak_reading.csv')
-    peak_th1 = 20
-    peak_th2 = 25
+    peak_th1 = 10
+    peak_th2 = 15
     effective_audio_th = 25
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
 
@@ -369,10 +454,6 @@ def main():
         if os.path.isdir(folder_path):
             if len(os.listdir(folder_path)) > file_number_threshold:
                 effective.append(f)
-    # effective = effective[9:11] # TODO
-    # ppp = [effective[0], effective[9], effective[12], effective[14], effective[20], effective[23], effective[24], effective[27]]
-    # effective = list(set(effective)-set(ppp))
-    # effective.sort(key=len)
     
     with open(csv_filename_programming, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -404,9 +485,10 @@ def main():
         os.chdir(abs_data_path)
         # file_list = file_list[:10] # TODO
         for file_idx, f in enumerate(file_list):
-            waveform, sr = get_audio_waveform(f)
+            y, sr = get_audio_waveform(f)
             # TODO: high pass filtering
             # waveform = f_high(waveform, sr)
+            waveform = np.float32(np.array(y.get_array_of_samples()))
             waveform = waveform * np.abs(waveform) * np.abs(waveform)
 
             ae = amplitude_envelope(waveform, frame_size, hop_length)
@@ -462,20 +544,6 @@ def main():
             total_peak_count += one_peak_count
             total_count_th1 += one_sample_count_th1
             total_count_th2 += one_sample_count_th2
-
-
-        # with open(os.path.join(save_path, 'total_peak.csv'), 'a', newline='') as csvfile:
-        #     writer = csv.writer(csvfile)
-        #     writer.writerow(['average', np.mean(np.array(peak_count))])
-
-        # def save_peak_statistics_for_programming(save_path, mode):
-        #     with open(csv_filename_programming, 'a', newline='') as csvfile:
-        #         writer = csv.writer(csvfile)
-        #         writer.writerow([])
-        #         writer.writerow([_dir, f'[{idx+1}] / [{len(effective)}]'])
-                
-        # save_peak_statistics_for_reading()
-        # save_peak_statistics_for_programming()
         
         end_ = time.time()
         build_time = end_ - start_
@@ -495,10 +563,143 @@ def main():
 
 
 
+    def main2():
+        data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+        save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak6'
+        hop_length = 5120
+        frame_size = 10240
+        file_number_threshold = 82
+        csv_filename_programming = os.path.join(save_path, 'total_peak_programming.csv')
+        csv_filename_reading = os.path.join(save_path, 'total_peak_reading.csv')
+        peak_th1 = 10
+        peak_th2 = 15
+        peak_th = [20, 25]
+        effective_audio_th = 25
+        pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
+
+        # Select folder with enough number of files
+        effective = []
+        acc_time = 0
+        total_file_count, total_sleeping_time, total_peak_count = 0, 0, 0
+        total_count_th1, total_count_th2 = 0, 0
+        total_effective_sample1, total_effective_sample2 = 0, 0
+        
+        programming_properties = ['Number', 'Name', 'Peak count']
+        for th in peak_th:
+            programming_properties.append(f'Thresholding count (>{th})')
+        reading_properties = ['Number', 'Name', 'File count', 'Sleeping time (hours)', 'Total peak count']
+        for idx, th in enumerate(peak_th):
+            reading_properties.extend([
+                f'Effective audio {idx+1} (>{peak_th1} peak)', 
+                f'Effective audio {idx+1} (>{peak_th1} peak) (%)', 
+                f'Effective sample {idx+1} (>{effective_audio_th} % effective audio)'])
+
+        for f in os.listdir(data_path):
+            folder_path = os.path.join(data_path, f)
+            if os.path.isdir(folder_path):
+                if len(os.listdir(folder_path)) > file_number_threshold:
+                    effective.append(f)
+                    get_effective_cases()
+                else:
+                    pass
+        
+        def get_effective_cases():
+            num_sample = len(effective)
+            for dir_idx, _dir in enumerate(effective):
+                start_ = time.time()
+                abs_data_path = os.path.join(data_path, _dir)
+                abs_save_path = os.path.join(save_path, _dir)
+                if not os.path.exists(abs_save_path):
+                    os.mkdir(abs_save_path)
+                file_list = [f for f in os.listdir(abs_data_path) if f.endswith('m4a')]
+                file_list.sort(key=len)
+
+                peak_counts, content = [], []
+                one_sample_count_th1, one_sample_count_th2 = 0, 0
+                effective_sample1, effective_sample2 = 0, 0
+                os.chdir(abs_data_path)
+                # file_list = file_list[:10] # TODO
+                for file_idx, f in enumerate(file_list):
+                    y, sr = get_audio_waveform(f)
+                    # TODO: high pass filtering
+                    # waveform = f_high(waveform, sr)
+                    waveform = np.float32(np.array(y.get_array_of_samples()))
+                    waveform = waveform * np.abs(waveform) * np.abs(waveform)
+
+                    ae = amplitude_envelope(waveform, frame_size, hop_length)
+                    f = os.path.basename(f).split('.')[0]
+                    peak_times = pick_peak(
+                        waveform, sr, f, hop_length, pre_max, post_max, pre_avg, post_avg, 
+                        delta=2*np.mean(ae), wait=wait, save_path=abs_save_path)
+                    peak_times = np.unique(np.int32(peak_times))
+
+                    print(f'{dir_idx+1}/{len(effective)}', _dir, '||', f'{file_idx+1}/{len(file_list)}', f)
+                    print(4*'-', peak_times)
+
+                    # Save peak information of single audio file
+                    save_single_audio_info(f, peak_times, save_path=abs_save_path)
+                    
+
+                    # TODO: simplify 
+                    # +++
+                    audio_peak_count = len(peak_times)
+                    count_th1 = 1 if audio_peak_count > peak_th1 else 0
+                    count_th2 = 1 if audio_peak_count > peak_th2 else 0
+                    one_sample_count_th1 += count_th1
+                    one_sample_count_th2 += count_th2
+                    peak_counts.append(audio_peak_count)
+                    content.append([file_idx+1, f, audio_peak_count, count_th1, count_th2])
+
+                with open(csv_filename_programming, 'a', newline='') as csvfile:
+                    effective_audio_percentage1 = one_sample_count_th1/len(file_list)*100
+                    effective_audio_percentage2 = one_sample_count_th2/len(file_list)*100
+                    writer = csv.writer(csvfile)
+                    writer.writerows(content)
+                    writer.writerow(['', 'mean/sum/sum', np.mean(peak_counts), one_sample_count_th1, one_sample_count_th2])
+                    writer.writerow(['', 'std/percentage/percentage', np.std(peak_counts), 
+                                    effective_audio_percentage1, effective_audio_percentage2])
+                    writer.writerow([])
+                    # ---
+
+                with open(csv_filename_reading, 'a', newline='') as csvfile:
+                    if effective_audio_percentage1 > effective_audio_th: effective_sample1 = 1
+                    if effective_audio_percentage2 > effective_audio_th: effective_sample2 = 1
+                    total_effective_sample1 += effective_sample1
+                    total_effective_sample2 += effective_sample2
+                    file_count = len(file_list)
+                    one_peak_count = np.sum(peak_counts)
+                    sleeping_time = len(file_list)/20
+                    writer = csv.writer(csvfile)
+                    writer.writerow(
+                        [dir_idx+1, _dir, file_count, sleeping_time, one_peak_count, 
+                        one_sample_count_th1, effective_audio_percentage1, effective_sample1, 
+                        one_sample_count_th2, effective_audio_percentage2, effective_sample2])
+                    total_file_count += file_count
+                    total_sleeping_time += sleeping_time
+                    total_peak_count += one_peak_count
+                    total_count_th1 += one_sample_count_th1
+                    total_count_th2 += one_sample_count_th2
+                
+                end_ = time.time()
+                build_time = end_ - start_
+                acc_time += build_time
+                print(f'  (Spending time)  This round: {build_time} sec || Total: {acc_time} sec' )
+            
+            with open(csv_filename_reading, 'a', newline='') as csvfile:
+                total_file_using_th1 = total_count_th1/total_file_count*100
+                total_file_using_th2 = total_count_th2/total_file_count*100
+                # if total_file_using_th1 > effective_audio_th: effective_audio_count1 += 1
+                # if total_file_using_th2 > effective_audio_th: effective_audio_count2 += 1
+                writer = csv.writer(csvfile)
+                writer.writerow(
+                    ['', '', total_file_count, total_sleeping_time/num_sample, total_peak_count,
+                    f'{total_file_using_th1} %', '', total_effective_sample1, 
+                    f'{total_file_using_th2} %', '', total_effective_sample2])
 if __name__ == '__main__':
     # main()
-    # split_audio()
+    split_audio()
     # show_volume()
     # audio_loading_exp()
-    check_audio_sample_rate()
+    # check_audio_sample_rate()
+    # get_audio_sample_with_hospital()
     pass

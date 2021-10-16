@@ -6,14 +6,15 @@ import matplotlib.pyplot as plt
 import librosa.display
 import pandas as pd
 import random
+from analysis import data_splitting
 
-
+# TODO: input soring function, condition
 def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
     files = os.listdir(path)
-    files.sort(key=len)
+    # files.sort(key=len)
     file_names = []
     for f in files:
-        if keyword is not None:
+        if keyword:
             if filtering_mode == 'in':
                 if keyword not in f: continue
             elif filtering_mode == 'out':
@@ -28,7 +29,8 @@ def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, sh
 
 
 def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
-    file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
+    # file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
+    file_names = data_splitting.get_files(path, keys=keyword, is_fullpath=True, sort=True)
     with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
         for f in file_names:
             fw.write(f)    
@@ -44,7 +46,7 @@ def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='i
 
 #     with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
 #         for f in files:
-#             if keyword is not None:
+#             if keyword:
 #                 if keyword not in f:
 #                     fullpath = os.path.join(path, f)
 #                     fw.write(fullpath)    
@@ -165,7 +167,7 @@ def data_analysis(path, threshold, single_length, data_format, test_amplitude):
         fw.write(f'\nTotal: {total_person}')
 
 
-def thrsholding(filename, threshold):
+def thresholding(filename, threshold):
     df = pd.read_csv(filename)
     data = df[df.columns[1]]
     data = data.to_numpy()
@@ -180,7 +182,7 @@ def thrsholding(filename, threshold):
 
 def peak_analysis():
     filename = rf'C:\Users\test\Downloads\total_peak2.csv'
-    thrsholding(filename, threshold=25)
+    thresholding(filename, threshold=25)
 
 
 def save_audio_fig():
@@ -214,8 +216,11 @@ if __name__ == '__main__':
     # peak_analysis()
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset1\1')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword=None, filtering_mode='in', shuffle=False, is_fullpath=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1630949188143_NA\0', keyword='wav', name='0', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 
