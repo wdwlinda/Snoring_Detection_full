@@ -4,6 +4,8 @@ import numpy as np
 import logging
 
 # TODO: recursively get the files should be a option
+# TODO: input soring function, condition
+# TODO: think about the design of shuffling and sorting, in-function or separated
 def get_files(path, keys=[], is_fullpath=True, sort=True):
     """Get all the file name under the given path with assigned keys"""
     file_list = []

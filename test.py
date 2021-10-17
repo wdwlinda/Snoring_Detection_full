@@ -7,55 +7,53 @@ import librosa.display
 import pandas as pd
 import random
 from analysis import data_splitting
-
-# TODO: input soring function, condition
-def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
-    files = os.listdir(path)
-    # files.sort(key=len)
-    file_names = []
-    for f in files:
-        if keyword:
-            if filtering_mode == 'in':
-                if keyword not in f: continue
-            elif filtering_mode == 'out':
-                if keyword in f: continue
-
-        if is_fullpath:
-            file_names.append(os.path.join(path, f))
-        else:
-            file_names.append(f)
-    if shuffle: random.shuffle(file_names)
-    return file_names
+from dataset import dataset_utils
 
 
-def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
+# def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
+#     files = os.listdir(path)
+#     # files.sort(key=len)
+#     file_names = []
+#     for f in files:
+#         if keyword:
+#             if filtering_mode == 'in':
+#                 if keyword not in f: continue
+#             elif filtering_mode == 'out':
+#                 if keyword in f: continue
+
+#         if is_fullpath:
+#             file_names.append(os.path.join(path, f))
+#         else:
+#             file_names.append(f)
+#     if shuffle: random.shuffle(file_names)
+#     return file_names
+
+
+def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True, save_path=None):
     # file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
     file_names = data_splitting.get_files(path, keys=keyword, is_fullpath=True, sort=True)
-    with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
-        for f in file_names:
-            fw.write(f)    
-            fw.write('\n')
+    if not save_path: save_path = path
+    dataset_utils.save_content_in_txt(
+        file_names, os.path.join(save_path, f'{name}.txt'), filter_bank=[], access_mode='w+', dir=None)
+    # with open(os.path.join(save_path, f'{name}.txt'), 'w+') as fw:
+    #     for f in file_names:
+    #         fw.write(f)    
+    #         fw.write('\n')
 
 
-# def save_aLL_files_name(path, name=None, keyword=None, filtering_mode='in', is_fullpath=True):
-#     files = os.listdir(path)
-#     files.sort(key=len)
-#     if name is None:
-#         name = 'file_names'
-#     for root, dirs, f in os.walk(path):
+def generate_index_for_subject():
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
+    path = rf'./models'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
+    train_split = 0.7
+    dir_list = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
 
-#     with open(os.path.join(path, f'{name}.txt'), 'w+') as fw:
-#         for f in files:
-#             if keyword:
-#                 if keyword not in f:
-#                     fullpath = os.path.join(path, f)
-#                     fw.write(fullpath)    
-#                     fw.write('\n')
-#             else:
-#                 fullpath = os.path.join(path, f)
-#                 fw.write(fullpath)    
-#                 fw.write('\n')
+    for d in dir_list:
+        print(f'[INFO] Generating training index for subject {d}')
+        save_aLL_files_name(
+            os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
 
+    # print(dir_list)
 
 # def string_keyword_remove(_str, keyword):
 #     if keyword in _str:
@@ -219,10 +217,11 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw\1630949188143_NA\0', keyword='wav', name='0', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 
     #                       recode=True)
+    generate_index_for_subject()
     pass

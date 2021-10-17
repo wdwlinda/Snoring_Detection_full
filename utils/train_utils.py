@@ -8,6 +8,7 @@ import sys
 import importlib
 import torch.optim as optim
 import numpy as np
+from pprint import pprint
 
     
 
@@ -125,7 +126,7 @@ def train_logging(path, config):
         local_time = time.ctime(time.time())
         experiment = config['experiment']
         cur_logging = f'#{number+1} {local_time} {experiment}'
-        print(cur_logging)
+        pprint(cur_logging)
         fw.write(cur_logging)
 
 
