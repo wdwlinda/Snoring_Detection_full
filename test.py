@@ -43,10 +43,10 @@ def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='i
 
 def generate_index_for_subject():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
-    path = rf'./models'
     save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
-    train_split = 0.7
+    valid_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test\valid.txt'
     dir_list = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+    val_content = dataset_utils.load_content_from_txt(valid_path)
 
     for d in dir_list:
         print(f'[INFO] Generating training index for subject {d}')
@@ -55,6 +55,8 @@ def generate_index_for_subject():
         save_aLL_files_name(
             os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
 
+        dataset_utils.save_content_in_txt(
+            val_content, os.path.join(save_path, 'valid.txt'), filter_bank=[], access_mode='w+', dir=None)
     # print(dir_list)
 
 # def string_keyword_remove(_str, keyword):
