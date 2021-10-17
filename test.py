@@ -50,6 +50,8 @@ def generate_index_for_subject():
 
     for d in dir_list:
         print(f'[INFO] Generating training index for subject {d}')
+        if not os.path.isdir(os.path.join(save_path, d)):
+            os.mkdir(os.path.join(save_path, d))
         save_aLL_files_name(
             os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
 

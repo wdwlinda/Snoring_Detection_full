@@ -233,7 +233,7 @@ def string_filtering(s, filter):
     else:
         return None
 
-
+# TODO: mkdir?
 def save_content_in_txt(content, path, filter_bank, access_mode='a+', dir=None):
     assert isinstance(content, (str, list, tuple, dict))
     # TODO: overwrite warning
