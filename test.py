@@ -54,17 +54,22 @@ def generate_index_for_subject():
             os.mkdir(os.path.join(save_path, d))
         # save_aLL_files_name(
         #     os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
-        file_names = data_splitting.get_files(d, keys='wav', is_fullpath=True, sort=True)
+        file_names = data_splitting.get_files(os.path.join(path, d), keys='wav', is_fullpath=True, sort=True)
+        # TODO: redundency code, change it ASAP
         for f in file_names:
             for valid_f in val_content:
                 v_f = os.path.basename(valid_f).split('_')[0] + '_' + os.path.basename(valid_f).split('_')[1]
                 if v_f in f:
-                    file_names.remove(f)
                     print(f'remove {f}')
+                    if f in file_names:
+                        file_names.remove(f)
         dataset_utils.save_content_in_txt(
             file_names, os.path.join(os.path.join(save_path, d), f'train.txt'), filter_bank=[], access_mode='w+', dir=None)
         dataset_utils.save_content_in_txt(
             val_content, os.path.join(os.path.join(save_path, d), 'valid.txt'), filter_bank=[], access_mode='w+', dir=None)
+    dir_list_full = [os.path.join(save_path, f) for f in dir_list]
+    dataset_utils.save_content_in_txt(
+        dir_list_full, os.path.join(save_path, 'dir_name.txt'), filter_bank=[], access_mode='w+', dir=None)
     # print(dir_list)
 
 # def string_keyword_remove(_str, keyword):
