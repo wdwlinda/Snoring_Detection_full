@@ -52,11 +52,19 @@ def generate_index_for_subject():
         print(f'[INFO] Generating training index for subject {d}')
         if not os.path.isdir(os.path.join(save_path, d)):
             os.mkdir(os.path.join(save_path, d))
-        save_aLL_files_name(
-            os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
-
+        # save_aLL_files_name(
+        #     os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
+        file_names = data_splitting.get_files(d, keys='wav', is_fullpath=True, sort=True)
+        for f in file_names:
+            for valid_f in val_content:
+                v_f = os.path.basename(valid_f).split('_')[0] + '_' + os.path.basename(valid_f).split('_')[1]
+                if v_f in f:
+                    file_names.remove(f)
+                    print(f'remove {f}')
         dataset_utils.save_content_in_txt(
-            val_content, os.path.join(save_path, 'valid.txt'), filter_bank=[], access_mode='w+', dir=None)
+            file_names, os.path.join(os.path.join(save_path, d), f'train.txt'), filter_bank=[], access_mode='w+', dir=None)
+        dataset_utils.save_content_in_txt(
+            val_content, os.path.join(os.path.join(save_path, d), 'valid.txt'), filter_bank=[], access_mode='w+', dir=None)
     # print(dir_list)
 
 # def string_keyword_remove(_str, keyword):
