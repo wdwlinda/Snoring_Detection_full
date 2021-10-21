@@ -16,7 +16,7 @@ from dataset import input_preprocess
 from dataset import dataset_utils
 from dataset import transformations
 from utils import configuration
-from analysis.utils import resample
+from analysis.resample_test import resample
 
 
 def minmax_normalization(image):
@@ -137,9 +137,7 @@ class AudioDataset(AbstractDastaset):
 
     def __getitem__(self, idx):
         input_data = self.data_loading_function(self.input_data_indices[idx])
-        # print('waveform sr', input_data[0].size(), input_data[1])
         input_data = self.preprocess(input_data)
-        # input_data = self.transform(input_data)
         if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
         else:
