@@ -8,9 +8,11 @@
 #-------------------------------------------------------------------------------
 # Preparation of data and helper functions.
 #-------------------------------------------------------------------------------
+from genericpath import isdir
 import io
 import os
 import math
+from re import sub
 import tarfile
 import multiprocessing
 from librosa.core.audio import load
@@ -28,6 +30,8 @@ import torchaudio
 import torchaudio.functional as F
 import torchaudio.transforms as T
 import numpy as np
+from pprint import pprint
+from dataset.dataset_utils import load_content_from_txt
 
 
 def _get_sample(path, resample=None):
@@ -214,6 +218,32 @@ SWEEP_MAX_SAMPLE_RATE = 48000
 DEFAULT_LOWPASS_FILTER_WIDTH = 6
 DEFAULT_ROLLOFF = 0.99
 DEFAULT_RESAMPLING_METHOD = 'sinc_interpolation'
+
+def show_dir_info():
+  path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital_2'
+  path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
+  dir_list = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+  acc, acc_p, acc_n, acc_balance = 0, 0, 0, 0
+  for d in dir_list:
+    if os.path.isdir(os.path.join(path, d, '1')):
+      p = len(os.listdir(os.path.join(path, d, '1')))
+    else:
+      p = 0
+    if os.path.isdir(os.path.join(path, d, '0')):
+      n = len(os.listdir(os.path.join(path, d, '0')))
+    else:
+      n = 0
+    
+    acc = acc + p + n
+    acc_p += p
+    acc_n += n
+    acc_balance += 2*min(p, n)
+    if p+n == 0:
+      balancing = 0
+    else:
+      balancing = min(p,n) / (p+n) * 100
+    print(f'{d:<30} p: {p:<10} n: {n:<10} p+n: {p+n:<10} balancing: {balancing:0.2f} %')
+  print(acc, acc_p, acc_n, acc_balance)
 
 def _get_log_freq(sample_rate, max_sweep_rate, offset):
   """Get freqs evenly spaced out in log-scale, between [0, max_sweep_rate // 2]
@@ -446,7 +476,42 @@ def pytorch_resample_example():
         display(df.round(2))
 
 
+def get_unconflicted_index():
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test2_2'
+    train_idx = load_content_from_txt(os.path.join(path, 'train.txt'))
+    train_idx.sort()
+    valid_idx = load_content_from_txt(os.path.join(path, 'valid.txt'))
+    valid_idx.sort()
+    subject_list = []
+    new_train_idx = []
+
+    for f in valid_idx:
+      subject = os.path.basename(f).split('_')[0]
+      if subject not in subject_list:
+        subject_list.append(subject)
+      
+    count = 0
+    for f in train_idx:
+      for s in subject_list:
+        if s in f:
+          new_train_idx.append(f)
+          count += 1
+          print(count, s, f)
+          break
+        
+    new_train_idx = list(set(train_idx)-set(new_train_idx))
+    with open(os.path.join(path, 'train_new.txt'), 'w+') as fw:
+      for f in new_train_idx:
+        fw.write(f)
+        fw.write('\n')
+
+    # pprint(new_train_idx)
+    pprint(subject_list)
+
+
 if __name__ == '__main__':
     # pytorch_resample_example()
-    reample_test()
+    # reample_test()
+    # show_dir_info()
+    get_unconflicted_index()
     pass

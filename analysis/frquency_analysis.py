@@ -23,7 +23,7 @@ def get_audio_waveform(filename):
 def get_frquency(signal, sr, n_fft):
     # short time fourier transform
     # (n_fft and hop length determine frequency/time resolution)
-    S = librosa.stft(signal, n_fft=n_fft, hop_length=n_fft//2)
+    # S = librosa.stft(signal, n_fft=n_fft, hop_length=n_fft//2)
     # print(S.shape)
     # convert to db
     # (for your CNN you might want to skip this and rather ensure zero mean and unit variance)
@@ -93,6 +93,7 @@ def plot_freq_histogram():
     freq_histogram(snoring_path, n_fft, color='b')
     freq_histogram(non_snoring_path, n_fft, color='g')
     plt.show()
+
 
 def frequency_analysis():
     n_fft = 2048

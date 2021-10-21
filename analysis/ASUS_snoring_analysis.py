@@ -6,6 +6,7 @@ import librosa
 from librosa.core import audio
 import librosa.display
 from numpy.core.numeric import _outer_dispatcher
+from numpy.lib.npyio import save
 import soundfile as sf
 import numpy as np
 import datetime
@@ -104,25 +105,182 @@ def enframe(x, win, inc):
 
 def show_volume():
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1606921286802_sargo\1606921286802_sargo_15.m4a'
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_5.m4a'
     waveform, sr = get_audio_waveform(filename)
     waveform = waveform.get_array_of_samples()
     waveform = np.array(waveform)
-    waveform = get_audio_clip(waveform, [162, 165], 44100)
+    waveform = get_audio_clip(waveform, [82, 85], sr)
     get_audio_volume(waveform, frame_size=512)
 
 
 def get_audio_volume(signal, frame_size):
     volume = []
-    for i in range(len(signal)):
-        if i % 100:
+    for i in range(0, len(signal), frame_size):
+        if i%100 == 0:
             print(f'{i}/{len(signal)}')
         if i+frame_size < len(signal):
             clip = signal[i:i+frame_size]
         else:
             clip = signal[i:]
-        volume.append(np.sum(np.abs(clip)))
-    plt.plot(volume)
+        volume.append(np.abs(np.sum(clip)))
+    fig, ax = plt.subplots(2,1)
+    ax[0].plot(signal)
+    ax[0].set_title('Singal')
+    ax[1].plot(volume)
+    ax[1].set_title('Volume')
     plt.show()
+
+
+def show_median_filter():
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1606921286802_sargo\1606921286802_sargo_15.m4a'
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_5.m4a'
+    waveform, sr = get_audio_waveform(filename)
+    waveform = waveform.get_array_of_samples()
+    waveform = np.array(waveform)
+    waveform = get_audio_clip(waveform, [82, 85], sr)
+    _1d_median_filtering(waveform, frame_size=4096)
+
+
+def _1d_median_filtering(signal, frame_size):
+    proceesed_signal = []
+    for i in range(len(signal)):
+        if i%1000 == 0:
+            print(f'{i}/{len(signal)}')
+        if i+frame_size < len(signal):
+            med_val = np.median(signal[i:i+frame_size])
+        else:
+            med_val = np.median(signal[i:])
+        proceesed_signal.append(med_val)
+    # fig, ax = plt.subplots(2,1)
+    # ax[0].plot(signal)
+    # ax[0].set_title('Singal')
+    # ax[1].plot(proceesed_signal)
+    # ax[1].set_title(f'Median filter (frame_size={frame_size})')
+    # plt.show()
+    return proceesed_signal
+
+
+def _1d_mean_filtering(signal, frame_size):
+    proceesed_signal = []
+    for i in range(len(signal)):
+        if i%1000 == 0:
+            print(f'{i}/{len(signal)}')
+        if i+frame_size < len(signal):
+            med_val = np.mean(signal[i:i+frame_size])
+        else:
+            med_val = np.mean(signal[i:])
+        proceesed_signal.append(med_val)
+    return proceesed_signal
+
+
+def check_two_channels():
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631033725248_AA1600174\1631033725248_28.m4a'
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631385387541_NA\1631385387541_17.m4a'
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631456400568_AA2001038\1631456400568_8.m4a' # mono
+    filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631468777871_NA\1631468777871_8.m4a'
+    save_path = rf'C:\Users\test\Downloads\1018\test\result'
+    time_range = [2, 11]
+    y, sr = get_audio_waveform(filename)
+    print(f'Sample rate: {y.frame_rate} Channel: {y.channels}')
+    left, right = y.split_to_mono()
+    left = np.float32(np.array(left.get_array_of_samples()))
+    right = np.float32(np.array(right.get_array_of_samples()))
+
+    # librosa.display.waveplot(left, sr, x_axis='s')
+    # plt.show()
+    fig, ax = plt.subplots(2,1, figsize=(16, 12))
+    # ax[0].plot(left)
+    ax[0].set_title('Left')
+    ax[0].xaxis.grid()
+    librosa.display.waveplot(left, sr, x_axis='s', ax=ax[0], color='b')
+    # ax[1].plot(right, 'g')
+    ax[1].set_title('Right')
+    ax[1].xaxis.grid()
+    librosa.display.waveplot(right, sr, x_axis='s', ax=ax[1], color='g')
+    fig_name = os.path.basename(filename).split('.')[0] + f'_left_and_right_{time_range[0]}_{time_range[1]}' 
+    plt.savefig(os.path.join(save_path, fig_name))
+    # plt.show()
+
+
+def show_frequency():
+    filenames = [
+                 rf'C:\Users\test\Downloads\1018\test\1620055140118_ASUS_I002D_5.m4a',
+                 rf'C:\Users\test\Downloads\1018\test\1620144382079_ASUS_I002D_117.m4a',
+                 rf'C:\Users\test\Downloads\1018\test\1620231545598_ASUS_I002D_30.m4a',
+                 rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620231545598_ASUS_I002D\1620231545598_ASUS_I002D_25.m4a',
+                 rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620231545598_ASUS_I002D\1620231545598_ASUS_I002D_25.m4a',
+                 rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620231545598_ASUS_I002D\1620231545598_ASUS_I002D_1.m4a',
+                ]
+
+    time_ranges = [
+                   [82, 91],
+                   [38, 47],
+                   [115, 120],
+                   [101, 110],
+                   [14, 18],
+                   [2, 6],
+                  ]
+
+    save_path = rf'C:\Users\test\Downloads\1018\test\result\mean_spec'
+    frame_size = 8
+
+    for filename, time_range in zip(filenames, time_ranges):
+        y, sr = get_audio_waveform(filename)
+        y = get_audio_clip(y, time_range, 1000)
+        waveform = y.get_array_of_samples()
+        waveform = np.array(waveform)
+        # waveform = get_audio_clip(waveform, time_range, sr)
+        # waveform = _1d_median_filtering(waveform, frame_size)
+        duration = time_range[1] - time_range[0]
+        get_audio_frequency(waveform, sr, duration, frame_size, filename, save_path, time_range)
+
+
+def get_audio_frequency(signal, sr, duration, frame_size, filename, save_path, time_range):
+    signal = np.float32(signal)
+    spec = np.abs(librosa.stft(signal))
+    mean_spec = np.mean(spec, axis=0)
+    melspec = librosa.feature.melspectrogram(signal, sr)
+    mean_melspec = np.mean(melspec, axis=0)
+
+    print(f'Shape of Spectrogram: {np.shape(spec)} Shape of Mel-Spectrogram: {np.shape(melspec)}', 
+          f'Duration: {time_range[1]-time_range[0]+1} sec',
+          f'Sample rate: {sr}')
+
+    
+    hop_length = 512
+    n_fft = 2048
+    
+    # D = np.abs(librosa.stft(signal, n_fft=n_fft,  hop_length=hop_length))
+    # librosa.display.specshow(D, sr=sr, x_axis='time', y_axis='linear')
+    # plt.colorbar()
+
+    fig = plt.figure(figsize=(16, 12))
+    S = librosa.feature.melspectrogram(np.float32(signal), sr=sr, n_fft=n_fft, hop_length=hop_length)
+    S_DB = librosa.power_to_db(S, ref=np.max)
+    librosa.display.specshow(S_DB, sr=sr, hop_length=hop_length, x_axis='time', y_axis='mel')
+    plt.title('Mel-Spectrogram')
+    plt.colorbar(format='%+2.0f dB')
+    fig_name = os.path.basename(filename).split('.')[0] + f'_melspec.png' 
+    fig.savefig(os.path.join(save_path, fig_name))
+    plt.close(fig)
+    # plt.show()
+
+    # figure(figsize=(8, 6), dpi=80)
+    fig, ax = plt.subplots(3,1, figsize=(16, 12))
+    ax[0].plot(signal)
+    ax[0].set_title('Singal')
+    # ax[1].specgram(spec)
+    ax[1].set_title('Average of Spectrogram')
+    ax[1].plot(mean_spec)
+    # ax[1].set_title(f'Frequency')
+    # spec_med_filter = _1d_median_filtering(spec, frame_size)
+    # ax[2].plot(spec_med_filter)
+    ax[2].plot(mean_melspec)
+    ax[2].set_title('Average of Mel-Spectrogram')
+    # plt.show()
+    fig_name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
+    plt.savefig(os.path.join(save_path, fig_name))
+
 
 
 def get_audio_clip(signal, time_interval, sample_rate):
@@ -133,8 +291,8 @@ def get_audio_clip(signal, time_interval, sample_rate):
 def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, 
                      wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition):
     # Initialize text file
-    with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
-        fw.write('')
+    # with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
+    #     fw.write('')
 
     if output_type == 'mono':
         mode = 1
@@ -142,7 +300,7 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         mode = 2
     else:
         mode = None
-
+    
     annotation_path = rf'C:\Users\test\Downloads\annotations'
     ori_annotation_file_list = os.listdir(annotation_path)
     annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
@@ -165,18 +323,20 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         subject = os.path.basename(f).split('_')[0]
         # Get peaks
         print(f)
-        y, sr = get_audio_waveform(f)
-        waveform = y.get_array_of_samples()
-        waveform = np.array(waveform)
-        # waveform = waveform * np.abs(waveform) * np.abs(waveform)
+        y, peak_times = get_peaks(f, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, None)
 
-        ae = amplitude_envelope(waveform, frame_size, hop_length)
-        # f = os.path.basename(f).split('.')[0]
-        peak_times = pick_peak(
-            waveform, sr, os.path.basename(f).split('.')[0], hop_length, pre_max, post_max, pre_avg, post_avg, 
-            delta=2*np.mean(ae), wait=wait, save_path=None)
-        peak_times = np.unique(np.int32(peak_times))
-        # print(len(peak_times))
+        # y, sr = get_audio_waveform(f)
+        # waveform = y.get_array_of_samples()
+        # waveform = np.array(waveform)
+        # # waveform = waveform * np.abs(waveform) * np.abs(waveform)
+
+        # ae = amplitude_envelope(waveform, frame_size, hop_length)
+        # # f = os.path.basename(f).split('.')[0]
+        # peak_times = pick_peak(
+        #     waveform, sr, os.path.basename(f).split('.')[0], hop_length, pre_max, post_max, pre_avg, post_avg, 
+        #     delta=2*np.mean(ae), wait=wait, save_path=None)
+        # peak_times = np.unique(np.int32(peak_times))
+        # # print(len(peak_times))
 
         # Save audio clips
         # save_dir = f.split('_')[0]
@@ -207,7 +367,7 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                     
             # print(60*'+', peak_condition, hospital_condition, subject)
             if peak_condition:
-                singal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
+                signal_clip = get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
                 
                 # Save file name
                 if not os.path.isdir(os.path.join(save_path, save_dir, sub_dir)):
@@ -219,8 +379,8 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
 
                 # Save audio clip
                 print(f'saving {path}')
-                if mode: singal_clip = singal_clip.set_channels(mode)
-                singal_clip.export(path, format='wav')
+                if mode: signal_clip = signal_clip.set_channels(mode)
+                signal_clip.export(path, format='wav')
                 idx += 1
 
 
@@ -304,23 +464,24 @@ def audio_loading_exp():
 def split_audio():
     # TODO: record picking parameters in csv 
     # (reason: won't forget every splitting. Can split again very fast in any time any where)
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+    data_path = rf'C:\Users\test\Downloads\AA'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono'
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
     clip_range_time = 0.5
     offset = 0.5
     time_unit = 1000
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     format = 'm4a'
     mono_or_stereo = 'mono'
-    use_hospital_condition = True
+    use_hospital_condition = False
 
     filelist = data_splitting.get_files(data_path, format)
     save_audio_clips(
         filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, 
         clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition)
-    test.save_aLL_files_name(data_path, keyword='wav', name='file_name', shuffle=False)
+    test.save_aLL_files_name(save_path, keyword='wav', name='file_name', shuffle=False)
 
 
 def amplitude_envelope(signal, frame_size, hop_length):
@@ -396,14 +557,21 @@ def peak_plot(signal, peaks, sample_rate, save_path=None):
     # TODO: plot method for better visualization
     # duration = librosa.get_duration(y)
     signal = np.float32(np.array(signal))
-    peaks_in_sec = peaks/sample_rate
-    plt.figure(figsize=(14, 5))
-    plt.vlines(peaks_in_sec, 0,
+    peaks_in_sec = peaks / sample_rate
+    # plt.figure(figsize=(12, 6))
+    fig, ax = plt.subplots(1,1, figsize=(12, 6))
+    ax.vlines(peaks_in_sec, 0,
                signal.max()*1.5, color='r', alpha=0.6,
                label='Selected peaks')
     for sec in peaks_in_sec:
-        plt.text(sec, signal.max()*1.5+1, f'{int(sec)}',fontsize=10)
-    librosa.display.waveplot(signal, sample_rate, x_axis='s')
+        ax.text(sec, signal.max()*1.5+1, f'{int(sec)}',fontsize=10)
+    if save_path:
+        filename = os.path.basename(save_path).split('.')[0]
+    else:
+        filename = 'peak'
+    ax.set_title(filename)
+    ax.xaxis.grid()
+    librosa.display.waveplot(signal, sample_rate, x_axis='s', ax=ax)
     # plt.show()
 
     if save_path:
@@ -413,12 +581,11 @@ def peak_plot(signal, peaks, sample_rate, save_path=None):
 
 def pick_peak(signal, sample_rate, filename, hop_length, pre_max, post_max, pre_avg, post_avg, delta, wait, save_path=None):
     peaks = librosa.util.peak_pick(signal, pre_max, post_max, pre_avg, post_avg, delta, wait)
-    # TODO: Is this divide correct?
     peak_times = np.array(peaks) / sample_rate
 
     if save_path:
         save_path = os.path.join(save_path, f'{filename}_peak.png')
-    peak_plot(signal, peaks, sample_rate, save_path)
+        peak_plot(signal, peaks, sample_rate, save_path)
     return peak_times
 
 
@@ -428,9 +595,29 @@ def f_high(y,sr):
     return yf
 
 
+def get_peaks(f, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, abs_save_path):
+    y, sr = get_audio_waveform(f)
+    if y.channels == 1:
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+    elif y.channels == 2:
+        left, right = y.split_to_mono()
+        waveform = np.array(left.get_array_of_samples()) + np.array(right.get_array_of_samples())
+        waveform = np.float32(waveform//2)
+    else:
+        raise ValueError(f'Unknown Audio channel: {y.channels}')
+    
+    waveform = waveform * np.abs(waveform) * np.abs(waveform)
+    ae = amplitude_envelope(waveform, frame_size, hop_length)
+    f = os.path.basename(f).split('.')[0]
+    peak_times = pick_peak(
+        waveform, sr, f, hop_length, pre_max, post_max, pre_avg, post_avg, 
+        delta=2*np.mean(ae), wait=wait, save_path=abs_save_path)
+    peak_times = np.unique(np.int32(peak_times))
+    return y, peak_times
+
 def main():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
-    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak6'
+    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak7'
     hop_length = 5120
     frame_size = 10240
     file_number_threshold = 82
@@ -469,6 +656,8 @@ def main():
                 f'Effective audio 2 (>{peak_th2} peak)', f'Effective audio 2 (>{peak_th2} peak) (%)',
                 f'Effective sample 2 (>{effective_audio_th} % effective audio)'])
 
+    # TODO:
+    # effective = effective[:3]
     num_sample = len(effective)
     for dir_idx, _dir in enumerate(effective):
         start_ = time.time()
@@ -485,18 +674,24 @@ def main():
         os.chdir(abs_data_path)
         # file_list = file_list[:10] # TODO
         for file_idx, f in enumerate(file_list):
-            y, sr = get_audio_waveform(f)
-            # TODO: high pass filtering
-            # waveform = f_high(waveform, sr)
-            waveform = np.float32(np.array(y.get_array_of_samples()))
-            waveform = waveform * np.abs(waveform) * np.abs(waveform)
-
-            ae = amplitude_envelope(waveform, frame_size, hop_length)
-            f = os.path.basename(f).split('.')[0]
-            peak_times = pick_peak(
-                waveform, sr, f, hop_length, pre_max, post_max, pre_avg, post_avg, 
-                delta=2*np.mean(ae), wait=wait, save_path=abs_save_path)
-            peak_times = np.unique(np.int32(peak_times))
+            _, peak_times = get_peaks(f, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, abs_save_path)
+            # y, sr = get_audio_waveform(f)
+            # if y.channels == 1:
+            #     waveform = np.float32(np.array(y.get_array_of_samples()))
+            # elif y.channels == 2:
+            #     left, right = y.split_to_mono()
+            #     waveform = np.array(left.get_array_of_samples()) + np.array(right.get_array_of_samples())
+            #     waveform = np.float32(waveform//2)
+            # else:
+            #     raise ValueError(f'Unknown Audio channel: {y.channels}')
+            
+            # waveform = waveform * np.abs(waveform) * np.abs(waveform)
+            # ae = amplitude_envelope(waveform, frame_size, hop_length)
+            # f = os.path.basename(f).split('.')[0]
+            # peak_times = pick_peak(
+            #     waveform, sr, f, hop_length, pre_max, post_max, pre_avg, post_avg, 
+            #     delta=2*np.mean(ae), wait=wait, save_path=abs_save_path)
+            # peak_times = np.unique(np.int32(peak_times))
 
             print(f'{dir_idx+1}/{len(effective)}', _dir, '||', f'{file_idx+1}/{len(file_list)}', f)
             print(4*'-', peak_times)
@@ -699,6 +894,9 @@ if __name__ == '__main__':
     # main()
     split_audio()
     # show_volume()
+    # show_median_filter()
+    # show_frequency()
+    # check_two_channels()
     # audio_loading_exp()
     # check_audio_sample_rate()
     # get_audio_sample_with_hospital()

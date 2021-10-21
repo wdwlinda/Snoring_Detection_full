@@ -91,6 +91,7 @@ def main(config_reference):
     min_loss = 1e5
     max_acc = -1
     saving_steps = config.train.checkpoint_saving_steps
+    # TODO: go wrong when data sample smaller than batch size.
     training_steps = int(training_samples/config.dataset.batch_size)
     if training_samples%config.dataset.batch_size != 0:
         training_steps += 1

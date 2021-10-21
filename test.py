@@ -72,13 +72,28 @@ def generate_index_for_subject():
         dir_list_full, os.path.join(save_path, 'dir_name.txt'), filter_bank=[], access_mode='w+', dir=None)
     # print(dir_list)
 
-# def string_keyword_remove(_str, keyword):
-#     if keyword in _str:
-#         return _str.remove(keyword)
-#     else:
-#         return _str
-    
-    
+
+def save_files_in_csv():
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
+    valid_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test\valid.txt'
+    dir_list = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+
+    dir_list = dir_list[:4]
+    for d in dir_list:
+        print(f'[INFO] Saving file name for subject {d}')
+        if not os.path.isdir(os.path.join(save_path, d)):
+            os.mkdir(os.path.join(save_path, d))
+
+        file_names = dataset_utils.load_content_from_txt(os.path.join(path, d, 'train.txt'))
+        file_names.sort()
+        pred_label = [int(os.path.split(os.path.split(f)[0])[1]) for f in file_names]
+        df = pd.DataFrame({'file_name': file_names})
+        df.index += 1
+        df['predict_label'] = pred_label
+        df.to_csv(os.path.join(save_path, d, f'{d}_label.csv'))
+
+
 def string_process(_str, keyword_pair, keep_remain=True):
     assert isinstance(keyword_pair, (list, tuple))
     if keep_remain:
@@ -102,6 +117,18 @@ def change_all_file_names(path, keyword_pair, keep_remain=False, recode=True):
             new_name = f'{new_name}_{i+1:03d}.{suffix}'
         print(f'Changing file name from {f} to {new_name}')
         os.rename(f, new_name)
+
+
+def try_noisereduce():
+    from scipy.io import wavfile
+    import noisereduce as nr
+    
+    # load data
+    file = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital\1630513297437_AA1700268\1\1630513297437_16_141.0_142.0_002.wav'
+    rate, data = wavfile.read(file)
+    # perform noise reduction
+    reduced_noise = nr.reduce_noise(y=data, sr=rate)
+    wavfile.write('noisereduce_test.wav', rate, reduced_noise)
 
 
 def Snoring_data_analysis():
@@ -240,5 +267,7 @@ if __name__ == '__main__':
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 
     #                       recode=True)
-    generate_index_for_subject()
+    # generate_index_for_subject()
+    # save_files_in_csv()
+    try_noisereduce()
     pass
