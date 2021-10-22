@@ -55,7 +55,7 @@ def plot_confusion_matrix(cm, classes,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
-
+# TODO: separate checkpoint and evaluation result. (can keep new evaluation while using new dataset)
 def eval():
     config = configuration.load_config(CONFIG_PATH)
     dataset_config = config['dataset']

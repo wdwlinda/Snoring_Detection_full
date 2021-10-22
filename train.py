@@ -125,6 +125,7 @@ def main(config_reference):
             net.train()
             inputs, labels = data['input'], data['gt']
             inputs = min_max_norm(inputs)
+            print(inputs.size())
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)

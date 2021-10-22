@@ -36,6 +36,11 @@ def f_high(y, sr):
     yf = signal.lfilter(b,a,y)
     return yf
 
+def load_audio_waveform(filename, format, sr=None, channels=None):
+    y = AudioSegment.from_file(filename, format)
+    if sr: y = y.set_frame_rate(sr)
+    if channels: y = y.set_channels(channels)
+    return y
 
 if __name__ == '__main__':
     pass

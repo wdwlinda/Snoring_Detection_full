@@ -315,6 +315,9 @@ def resample(
     resampling_method='sinc_interpolation',
     librosa_type=None,
 ):
+    if sample_rate == resample_rate:
+        return waveform
+        
     if method == "functional":
         resampled_waveform = F.resample(waveform, sample_rate, resample_rate, lowpass_filter_width=lowpass_filter_width,
                     rolloff=rolloff, resampling_method=resampling_method)

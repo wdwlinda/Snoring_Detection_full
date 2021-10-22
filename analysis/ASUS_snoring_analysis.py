@@ -71,24 +71,16 @@ def get_audio_sample_with_hospital():
 
 
 
-
-
-
-
 def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, 
-                     wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition):
-    # Initialize text file
-    # with open(os.path.join(save_path, 'valid.txt'), 'w+') as fw:
-    #     fw.write('')
-
+                     wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition, save_path_h, save_peak_path, 
+                     annotation_path, load_format, save_format, sample_rate):
     if output_type == 'mono':
-        mode = 1
+        channels = 1
     elif output_type == 'stereo':
-        mode = 2
+        channels = 2
     else:
-        mode = None
+        channels = None
     
-    annotation_path = rf'C:\Users\test\Downloads\annotations'
     ori_annotation_file_list = os.listdir(annotation_path)
     annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
     sub_dir = ''
@@ -108,14 +100,19 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
     for f in filelist:
         idx = 0
         subject = os.path.basename(f).split('_')[0]
-        # Get peaks
-        print(f)
-        y, peak_times = get_peaks(f, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, None)
-
-        # Save audio clips
-        # save_dir = f.split('_')[0]
         save_dir = os.path.split(os.path.split(f)[0])[1]
         name = os.path.basename(f).split('.')[0]
+        print(f)
+        
+        # Get peaks
+        y = utils.load_audio_waveform(f, load_format, sample_rate, channels)
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        path = os.path.join(save_peak_path, save_dir)
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        peak_times = get_peaks(waveform, f, sample_rate, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, path)
+
+        # Save audio clips
         for p in peak_times:
             # Handle boundary value
             # print(p, y.duration_seconds, offset, clip_range_time)
@@ -138,24 +135,32 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                                 break
                 peak_condition = (peak_condition and hospital_condition)
 
-                    
-            # print(60*'+', peak_condition, hospital_condition, subject)
             if peak_condition:
                 signal_clip = utils.get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
                 
                 # Save file name
-                if not os.path.isdir(os.path.join(save_path, save_dir, sub_dir)):
-                    os.makedirs(os.path.join(save_path, save_dir, sub_dir))
-                path = os.path.join(save_path, save_dir, sub_dir, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.wav')
-                # with open(os.path.join(save_path, 'valid.txt'), 'a') as fw:
-                #     fw.write(path)
-                #     fw.write('\n')
+                path = os.path.join(save_path, save_dir, sub_dir)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join(path, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.{save_format}')
 
                 # Save audio clip
                 print(f'saving {path}')
-                if mode: signal_clip = signal_clip.set_channels(mode)
-                signal_clip.export(path, format='wav')
+                signal_clip.export(path, format=save_format)
                 idx += 1
+
+            if use_hospital_condition:
+                if peak_condition and hospital_condition:
+                    # Save file name
+                    path = os.path.join(save_path_h, save_dir, sub_dir)
+                    if not os.path.isdir(path):
+                        os.makedirs(path)
+                    path = os.path.join(path, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.{save_format}')
+
+                    # Save audio clip
+                    print(f'saving {path}')
+                    signal_clip.export(path, format=save_format)
+                    idx += 1
 
 
 def split_audio():
@@ -164,21 +169,33 @@ def split_audio():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     # data_path = rf'C:\Users\test\Downloads\AA'
     save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono'
+    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
+    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw2_mono_peak'
+    annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
     clip_range_time = 0.5
     offset = 0.5
     time_unit = 1000
-    format = 'm4a'
     mono_or_stereo = 'mono'
+    sample_rate = 16000
     use_hospital_condition = False
+    load_format = 'm4a'
+    save_format = 'wav'
+    filelist = data_splitting.get_files(data_path, load_format)
+    start_time = time.time()
 
-    filelist = data_splitting.get_files(data_path, format)
     save_audio_clips(
         filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, 
-        clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition)
-    test.save_aLL_files_name(save_path, keyword='wav', name='file_name', shuffle=False)
+        clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition, save_path_h, save_peak_path, 
+        annotation_path, load_format, save_format, sample_rate)
+    test.save_aLL_files_name(save_path, keyword=save_format, name='file_name', shuffle=False)
+
+    end_time = time.time()
+    build_time = end_time - start_time
+    print(f'  (Spending time)  This round: {build_time//3600} hours {build_time%3600//60} minutes' )
+
 
 
 def amplitude_envelope(signal, frame_size, hop_length):
@@ -227,22 +244,23 @@ def save_single_audio_info(filename, data, save_path):
 def peak_plot(signal, peaks, sample_rate, save_path=None):
     # TODO: plot method for better visualization
     # duration = librosa.get_duration(y)
-    signal = np.float32(np.array(signal))
-    peaks_in_sec = peaks / sample_rate
+    # signal = np.float32(np.array(signal))
+    # peaks_in_sec = peaks / sample_rate
     # plt.figure(figsize=(12, 6))
-    fig, ax = plt.subplots(1,1, figsize=(12, 6))
-    ax.vlines(peaks_in_sec, 0,
-               signal.max()*1.5, color='r', alpha=0.6,
+    print(signal.max(), np.max(signal))
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.vlines(peaks, 0,
+               signal.max()*1.1, color='r', alpha=0.6,
                label='Selected peaks')
-    for sec in peaks_in_sec:
-        ax.text(sec, signal.max()*1.5+1, f'{int(sec)}',fontsize=10)
+    for sec in peaks:
+        ax.text(sec, signal.max()*1.1+1, f'{int(sec)}',fontsize=10)
     if save_path:
         filename = os.path.basename(save_path).split('.')[0]
     else:
         filename = 'peak'
     ax.set_title(filename)
     ax.xaxis.grid()
-    librosa.display.waveplot(signal, sample_rate, x_axis='s', ax=ax)
+    librosa.display.waveshow(signal, sample_rate, x_axis='s', ax=ax)
     # plt.show()
 
     if save_path:
@@ -250,33 +268,36 @@ def peak_plot(signal, peaks, sample_rate, save_path=None):
     plt.close()
 
 
-def get_peaks(filename, audio_format, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, save_path=None):
+def get_peaks(waveform, filename, sample_rate, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, save_path=None):
     """Get peaks from audio waveform"""
-    # load audio
-    y = AudioSegment.from_file(filename, format=audio_format)
-    sample_rate = y.frame_rate
-    if y.channels == 1:
-        waveform = np.float32(np.array(y.get_array_of_samples()))
-    elif y.channels == 2:
-        left, right = y.split_to_mono()
-        waveform = np.array(left.get_array_of_samples()) + np.array(right.get_array_of_samples())
-        waveform = np.float32(waveform//2)
-    else:
-        raise ValueError(f'Unknown Audio channel: {y.channels}')
+    # # load audio
+    # y = AudioSegment.from_file(filename, format=audio_format)
+    # y = utils.load_audio_waveform(filename, audio_format, sample_rate, channels)
+    # sample_rate = y.frame_rate
+    # if y.channels == 1:
+    #     waveform = np.float32(np.array(y.get_array_of_samples()))
+    # elif y.channels == 2:
+    #     left, right = y.split_to_mono()
+    #     waveform = np.array(left.get_array_of_samples()) + np.array(right.get_array_of_samples())
+    #     waveform = np.float32(waveform//2)
+    # else:
+    #     raise ValueError(f'Unknown Audio channel: {y.channels}')
     
     # peak picking
-    waveform_square = waveform * np.abs(waveform) * np.abs(waveform)
-    ae = amplitude_envelope(waveform_square, frame_size, hop_length)
-    peaks = librosa.util.peak_pick(waveform_square, pre_max, post_max, pre_avg, post_avg, delta=2*np.mean(ae), wait=wait)
+    # waveform_processed = waveform * np.abs(waveform) * np.abs(waveform)
+    waveform_processed = np.power(np.abs(waveform), 3)
+    ae = amplitude_envelope(waveform_processed, frame_size, hop_length)
+    peaks = librosa.util.peak_pick(waveform_processed, pre_max, post_max, pre_avg, post_avg, delta=2*np.mean(ae), wait=wait)
     peak_times = np.array(peaks) / sample_rate
-    peak_times = np.unique(np.int32(peak_times))
+    peak_times = np.unique(peak_times)
+    # peak_times = np.unique(np.int32(peak_times))
 
     # Save peak plot
     if save_path:
         filename = os.path.basename(filename).split('.')[0]
         save_path = os.path.join(save_path, f'{filename}_peak.png')
-        peak_plot(waveform, peak_times, sample_rate, save_path)
-    return y, peak_times
+        peak_plot(waveform_processed, peak_times, sample_rate, save_path)
+    return peak_times
 
 
 def ASUS_snoring_audio_preprocessing():
