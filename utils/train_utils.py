@@ -64,7 +64,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None,
 def get_logger(name, level=logging.INFO):
     global loggers
     if loggers.get(name) is not None:
-        return loggers[name]
+        return loggers.get(name)
     else:
         logger = logging.getLogger(name)
         logger.setLevel(level)
@@ -75,8 +75,9 @@ def get_logger(name, level=logging.INFO):
         stream_handler.setFormatter(formatter)
         logger.addHandler(stream_handler)
 
+        # TODO: Understand why "logger.propagate = False" can prevent duplicate logging inforamtion
+        logger.propagate = False
         loggers[name] = logger
-
         return logger
 
 

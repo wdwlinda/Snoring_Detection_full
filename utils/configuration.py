@@ -6,14 +6,7 @@ from utils import train_utils
 logger = train_utils.get_logger('ConfigLoader')
 
 
-def load_config(config_path=None):
-    parser = argparse.ArgumentParser(description='UNet')
-    if config_path is not None:
-        parser.add_argument('--config', type=str, help='Path to the YAML config file', default=config_path)
-    else:
-        parser.add_argument('--config', type=str, help='Path to the YAML config file', required=True)
-    args = parser.parse_args()
-    config = _load_config_yaml(args.config)
+def get_device(config):
     # Get a device to train on
     device_str = config.get('device', None)
     if device_str is not None:
@@ -27,6 +20,22 @@ def load_config(config_path=None):
 
     device = torch.device(device_str)
     config['device'] = device
+    return config
+
+
+def load_config(config_reference=None):
+    if isinstance(config_reference, str):
+        parser = argparse.ArgumentParser(description='DL')
+        if config_reference is not None:
+            parser.add_argument('--config', type=str, help='Path to the YAML config file', default=config_reference)
+        else:
+            parser.add_argument('--config', type=str, help='Path to the YAML config file', required=True)
+        args = parser.parse_args()
+        config = _load_config_yaml(args.config)
+    elif isinstance(config_reference, dict):
+        config = config_reference
+
+    config = get_device(config)
     config = train_utils.DictAsMember(config)
     return config
 

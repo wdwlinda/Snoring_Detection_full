@@ -82,7 +82,7 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         channels = None
     
     ori_annotation_file_list = os.listdir(annotation_path)
-    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list]
+    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list if 'csv' in f]
     sub_dir = ''
 
     df_dict = {}
@@ -133,7 +133,7 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                                     sub_dir = '0'
                                 print(snoring_label, save_dir)
                                 break
-                peak_condition = (peak_condition and hospital_condition)
+                # peak_condition = (peak_condition and hospital_condition)
 
             if peak_condition:
                 signal_clip = utils.get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
@@ -168,9 +168,9 @@ def split_audio():
     # (reason: won't forget every splitting. Can split again very fast in any time any where)
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     # data_path = rf'C:\Users\test\Downloads\AA'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono'
-    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
-    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw2_mono_peak'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_2'
+    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital_2'
+    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw2_mono_peak_2'
     annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
     hop_length = 5120
     frame_size = 10240
@@ -180,7 +180,7 @@ def split_audio():
     time_unit = 1000
     mono_or_stereo = 'mono'
     sample_rate = 16000
-    use_hospital_condition = False
+    use_hospital_condition = True
     load_format = 'm4a'
     save_format = 'wav'
     filelist = data_splitting.get_files(data_path, load_format)
@@ -241,26 +241,25 @@ def save_single_audio_info(filename, data, save_path):
         writer.writerow(['frquency', f'{frquency:.02f}'])
 
 
-def peak_plot(signal, peaks, sample_rate, save_path=None):
+def peak_plot(waveform, peaks, sample_rate, save_path=None):
     # TODO: plot method for better visualization
     # duration = librosa.get_duration(y)
-    # signal = np.float32(np.array(signal))
+    # waveform = np.float32(np.array(waveform))
     # peaks_in_sec = peaks / sample_rate
     # plt.figure(figsize=(12, 6))
-    print(signal.max(), np.max(signal))
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.vlines(peaks, 0,
-               signal.max()*1.1, color='r', alpha=0.6,
+               waveform.max()*1.1, color='r', alpha=0.6,
                label='Selected peaks')
     for sec in peaks:
-        ax.text(sec, signal.max()*1.1+1, f'{int(sec)}',fontsize=10)
+        ax.text(sec, waveform.max()*1.1+1, f'{int(sec)}',fontsize=10)
     if save_path:
         filename = os.path.basename(save_path).split('.')[0]
     else:
         filename = 'peak'
     ax.set_title(filename)
     ax.xaxis.grid()
-    librosa.display.waveshow(signal, sample_rate, x_axis='s', ax=ax)
+    librosa.display.waveshow(waveform, sample_rate, x_axis='s', ax=ax)
     # plt.show()
 
     if save_path:
@@ -290,7 +289,18 @@ def get_peaks(waveform, filename, sample_rate, frame_size, hop_length, pre_max, 
     peaks = librosa.util.peak_pick(waveform_processed, pre_max, post_max, pre_avg, post_avg, delta=2*np.mean(ae), wait=wait)
     peak_times = np.array(peaks) / sample_rate
     peak_times = np.unique(peak_times)
-    # peak_times = np.unique(np.int32(peak_times))
+
+    # +++
+    # waveform_processed = waveform_processed[list(range(0, len(waveform_processed), 10))]
+    # plt.plot(waveform_processed)
+    # plt.show()
+    # xx = np.correlate(waveform_processed, waveform_processed, 'same')
+    # plt.plot(xx)
+    # plt.show()
+    # peak_times, properties = signal.find_peaks(waveform_processed, prominence=1)
+    # peak_times, properties = signal.find_peaks(waveform, threshold=2*np.mean(ae), width=sample_rate*0.5)
+    # save_path = None
+    # +++
 
     # Save peak plot
     if save_path:

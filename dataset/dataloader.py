@@ -67,7 +67,7 @@ class AbstractDastaset(Dataset):
         #     generate_index_func=self.generate_index_func)
 
         # TODO: logger
-        print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
+        # print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
 
     def __len__(self):
         return len(self.input_data_indices)

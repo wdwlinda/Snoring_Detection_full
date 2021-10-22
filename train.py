@@ -13,46 +13,24 @@ from utils import train_utils
 from dataset import dataset_utils
 from utils import configuration
 from utils import metrics
+from pprint import pprint
 ImageClassifier = img_classifier.ImageClassifier
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device = torch.device('cpu')
-print('Using device: {}'.format(device))
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# # device = torch.device('cpu')
+# print('Using device: {}'.format(device))
 CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_train_config.yml'
 
-logger = train_utils.get_logger('TrainingSetup')
-
-
-def min_max_norm(inputs):
-    # inputs -= inputs.min(1, keepdim=True)[0]
-    # inputs /= inputs.max(1, keepdim=True)[0]
-    return inputs
+logger = train_utils.get_logger('train')
 
 
 def main(config_reference):
     # Configuration
-    if isinstance(config_reference, str):
-        config = configuration.load_config(config_reference)
-    elif isinstance(config_reference, dict):
-        config = config_reference
+    config = configuration.load_config(config_reference)
+    pprint(config)
 
-        # Get a device to train on
-        device_str = config.get('device', None)
-        if device_str:
-            logger.info(f"Device specified in config: '{device_str}'")
-            if device_str.startswith('cuda') and not torch.cuda.is_available():
-                logger.warn('CUDA not available, using CPU')
-                device_str = 'cpu'
-        else:
-            device_str = "cuda:0" if torch.cuda.is_available() else 'cpu'
-            logger.info(f"Using '{device_str}' device")
-
-        device = torch.device(device_str)
-        config['device'] = device
-        config = train_utils.DictAsMember(config)
-        logger.info(config)
-
-    # Select device
+    # Device
+    device = config.device
 
     # Load and log experiment configuration
     manual_seed = config.get('manual_seed', None)
@@ -72,7 +50,7 @@ def main(config_reference):
     if torch.cuda.is_available():
         net.cuda()
     optimizer = optim.Adam(net.parameters(), lr=config.train.learning_rate)
-    # print(net)
+
     # Logger
     
     # Dataloader
@@ -83,7 +61,6 @@ def main(config_reference):
     test_dataloader = DataLoader(
         test_dataset, batch_size=1, shuffle=False, pin_memory=True)
 
-
     # Start training
     training_samples = len(train_dataloader.dataset)
     step_loss, total_train_loss= [], []
@@ -91,12 +68,11 @@ def main(config_reference):
     min_loss = 1e5
     max_acc = -1
     saving_steps = config.train.checkpoint_saving_steps
-    # TODO: go wrong when data sample smaller than batch size.
-    training_steps = int(training_samples/config.dataset.batch_size)
+    training_steps = int(training_samples/config.dataset.batch_size) if training_samples > config.dataset.batch_size else 1
     if training_samples%config.dataset.batch_size != 0:
         training_steps += 1
     testing_steps = len(test_dataloader.dataset)
-    experiment = [s for s in checkpoint_path.split('\\') if 'run' in s][0]
+    experiment = os.path.basename(checkpoint_path)
     times = 5
     level = training_steps//times
     length = 0
@@ -108,7 +84,6 @@ def main(config_reference):
     logger.info("Start Training!!")
     logger.info("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
             format(config.train.epoch, config.dataset.batch_size, config.dataset.shuffle, training_samples))
-    print(60*"-")
     
     train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
     # TODO: train_logging
@@ -118,14 +93,15 @@ def main(config_reference):
         os.mkdir(ckpt_dir)
     train_utils.train_logging(os.path.join(ckpt_dir, 'train_logging.txt'), config)
     loss_func = nn.CrossEntropyLoss()
+    print(60*"-")
     
     for epoch in range(1, config.train.epoch+1):
         total_loss = 0.0
+        print(60*"=")
+        logger.info(f'Epoch {epoch}/{config.train.epoch}')
         for i, data in enumerate(train_dataloader):
             net.train()
             inputs, labels = data['input'], data['gt']
-            inputs = min_max_norm(inputs)
-            print(inputs.size())
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)
@@ -139,7 +115,7 @@ def main(config_reference):
                 logger.info('Step {}  Step loss {}'.format(i, loss))
         total_train_loss.append(total_loss/training_steps)
         # TODO: check Epoch loss correctness
-        logger.info(f'**Epoch {epoch}/{config.train.epoch}  Training Loss {total_train_loss[-1]}')
+        logger.info(f'- Training Loss {total_train_loss[-1]}')
         with torch.no_grad():
             net.eval()
             # loss_list = []
@@ -147,7 +123,6 @@ def main(config_reference):
             eval_tool = metrics.SegmentationMetrics(config.model.out_channels, ['accuracy'])
             for _, data in enumerate(test_dataloader):
                 inputs, labels = data['input'], data['gt']
-                inputs = min_max_norm(inputs)
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
                 test_loss += loss_func(outputs, labels)
@@ -161,7 +136,7 @@ def main(config_reference):
             total_test_acc.append(avg_test_acc)
             avg_test_loss = test_loss / testing_steps
             total_test_loss.append(avg_test_loss)
-            logger.info("**Testing Loss:{:.3f}".format(avg_test_loss))
+            logger.info("- Testing Loss:{:.3f}".format(avg_test_loss))
 
 
             #     total_tp += tp
@@ -193,16 +168,23 @@ def main(config_reference):
 
             if avg_test_acc > max_acc:
                 max_acc = avg_test_acc
-                logger.info(f"--- Saving best model with testing accuracy {max_acc:.3f} ---")
+                logger.info(f"-- Saving best model with testing accuracy {max_acc:.3f} --")
                 checkpoint_name = 'ckpt_best.pth'
-                pp = os.path.join(checkpoint_path, checkpoint_name)
-                print(pp)
-                torch.save(checkpoint, pp)
+                print(os.path.join(checkpoint_path, checkpoint_name))
+                torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
 
         if epoch%10 == 0:
             _, ax = plt.subplots()
             ax.plot(list(range(1,len(total_train_loss)+1)), total_train_loss, 'C1', label='train')
-            ax.plot(list(range(1,len(total_train_loss)+1)), total_test_loss, 'C2', label='test')
+            ax.plot(list(range(1,len(total_test_loss)+1)), total_test_loss, 'C2', label='validation')
+
+            min_train_loss = np.min(total_train_loss).item()
+            ax.hlines(min_train_loss, 0, len(total_train_loss)+1, colors='C1', linestyle="dashed")
+            ax.text(total_train_loss.index(min_train_loss), min_train_loss+0.01, f'{min_train_loss:.2f}')
+            min_test_loss = np.min(total_test_loss).item()
+            ax.hlines(min_test_loss, 0, len(total_test_loss)+1, colors='C2', linestyle="dashed")
+            ax.text(total_test_loss.index(min_test_loss), min_test_loss+0.01, f'{min_test_loss:.2f}')
+
             ax.set_xlabel('epoch')
             ax.set_ylabel('loss')
             ax.set_title('Losses')
@@ -211,14 +193,17 @@ def main(config_reference):
             plt.savefig(os.path.join(checkpoint_path, f'{experiment}_loss.png'))
 
             _, ax = plt.subplots()
-            ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C1', label='testing accuracy')
+            ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C1', label='train')
+            # ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C2', label='validation')
+            ax.hlines(max_acc, 0, len(total_test_acc)+1, colors='gray', linestyle="dashed")
+            ax.text(total_test_acc.index(max_acc), max_acc+0.01, f'{max_acc:.2f}')
             ax.set_xlabel('epoch')
             ax.set_ylabel('accuracy')
-            ax.set_title('Testing Accuracy')
+            ax.set_title('Accuracy')
             ax.legend()
             ax.grid()
+        
             plt.savefig(os.path.join(checkpoint_path, f'{experiment}_accuracy.png'))
-        print(60*"=")    
         plt.close()
 
 
