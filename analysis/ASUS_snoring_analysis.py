@@ -105,8 +105,30 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         print(f)
         
         # Get peaks
-        y = utils.load_audio_waveform(f, load_format, sample_rate, channels)
-        waveform = np.float32(np.array(y.get_array_of_samples()))
+        # y = utils.load_audio_waveform(f, load_format, sample_rate, channels)
+        # sample_rate = y.frame_rate
+        # waveform = np.float32(np.array(y.get_array_of_samples()))
+        # TODO: 
+        # pre_max = pre_max * (sample_rate/44100) / 2
+        # post_max = post_max * (sample_rate/44100) / 2
+        # pre_avg = pre_avg * (sample_rate/44100) / 2
+        # post_avg = post_avg * (sample_rate/44100) / 2
+
+        y = AudioSegment.from_file(f, load_format)
+        sample_rate = y.frame_rate
+        # y2 = y.set_frame_rate(sample_rate)
+        # w1 = np.array(y.get_array_of_samples())
+        # w2 = np.array(y2.get_array_of_samples())
+        if y.channels == 1:
+            waveform = np.float32(np.array(y.get_array_of_samples()))
+        elif y.channels == 2:
+            left, right = y.split_to_mono()
+            waveform = np.array(left.get_array_of_samples()) + np.array(right.get_array_of_samples())
+            waveform = np.float32(waveform//2)
+        else:
+            raise ValueError(f'Unknown Audio channel: {y.channels}')
+            
+        
         path = os.path.join(save_peak_path, save_dir)
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -167,10 +189,10 @@ def split_audio():
     # TODO: record picking parameters in csv 
     # (reason: won't forget every splitting. Can split again very fast in any time any where)
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
-    # data_path = rf'C:\Users\test\Downloads\AA'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k'
-    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
-    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw_mono_16k_peak'
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\AA'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_3'
+    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h_3'
+    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw_mono_16k_peak_3'
     annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
     hop_length = 5120
     frame_size = 10240
@@ -289,7 +311,7 @@ def get_peaks(waveform, filename, sample_rate, frame_size, hop_length, pre_max, 
     ae = amplitude_envelope(waveform_processed, frame_size, hop_length)
     peaks = librosa.util.peak_pick(waveform_processed, pre_max, post_max, pre_avg, post_avg, delta=2*np.mean(ae), wait=wait)
     peak_times = np.array(peaks) / sample_rate
-    peak_times = np.unique(peak_times)
+    # peak_times = np.unique(peak_times2)
 
     # +++
     # waveform_processed = waveform_processed[list(range(0, len(waveform_processed), 10))]

@@ -179,10 +179,8 @@ def main(config_reference):
             ax.plot(list(range(1,len(total_test_loss)+1)), total_test_loss, 'C2', label='validation')
 
             min_train_loss = np.min(total_train_loss).item()
-            ax.hlines(min_train_loss, 0, len(total_train_loss)+1, colors='C1', linestyle="dashed")
             ax.text(total_train_loss.index(min_train_loss), min_train_loss+0.01, f'{min_train_loss:.2f}')
             min_test_loss = np.min(total_test_loss).item()
-            ax.hlines(min_test_loss, 0, len(total_test_loss)+1, colors='C2', linestyle="dashed")
             ax.text(total_test_loss.index(min_test_loss), min_test_loss+0.01, f'{min_test_loss:.2f}')
 
             ax.set_xlabel('epoch')
@@ -193,9 +191,7 @@ def main(config_reference):
             plt.savefig(os.path.join(checkpoint_path, f'{experiment}_loss.png'))
 
             _, ax = plt.subplots()
-            ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C1', label='train')
-            # ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C2', label='validation')
-            ax.hlines(max_acc, 0, len(total_test_acc)+1, colors='gray', linestyle="dashed")
+            ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C2', label='validation')
             ax.text(total_test_acc.index(max_acc), max_acc+0.01, f'{max_acc:.2f}')
             ax.set_xlabel('epoch')
             ax.set_ylabel('accuracy')
