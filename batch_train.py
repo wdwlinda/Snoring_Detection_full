@@ -51,6 +51,7 @@ def main():
                 # train
                 train.main(train_config)
 
+
                 # # evaluation
                 # eval.main(eval_config)
     else:

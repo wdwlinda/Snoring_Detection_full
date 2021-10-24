@@ -117,8 +117,8 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
             # Handle boundary value
             # print(p, y.duration_seconds, offset, clip_range_time)
             peak_condition = (p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time)
+            hospital_condition = False
             if use_hospital_condition:
-                hospital_condition = False
                 if subject in df_dict:
                     df = df_dict[subject]
                     x = df.index[df['File'] == os.path.basename(f)].tolist()
@@ -142,25 +142,25 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                 path = os.path.join(save_path, save_dir, sub_dir)
                 if not os.path.isdir(path):
                     os.makedirs(path)
-                path = os.path.join(path, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.{save_format}')
+                path = os.path.join(path, f'{name}_{p+offset-clip_range_time:.2f}_{p+offset+clip_range_time:.2f}_{idx+1:03d}.{save_format}')
 
                 # Save audio clip
                 print(f'saving {path}')
                 signal_clip.export(path, format=save_format)
                 idx += 1
 
-            if use_hospital_condition:
-                if peak_condition and hospital_condition:
-                    # Save file name
-                    path = os.path.join(save_path_h, save_dir, sub_dir)
-                    if not os.path.isdir(path):
-                        os.makedirs(path)
-                    path = os.path.join(path, f'{name}_{p+offset-clip_range_time}_{p+offset+clip_range_time}_{idx+1:03d}.{save_format}')
+            # if use_hospital_condition:
+            if peak_condition and hospital_condition:
+                # Save file name
+                path = os.path.join(save_path_h, save_dir, sub_dir)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                path = os.path.join(path, f'{name}_{p+offset-clip_range_time:.2f}_{p+offset+clip_range_time:.2f}_{idx+1:03d}.{save_format}')
 
-                    # Save audio clip
-                    print(f'saving {path}')
-                    signal_clip.export(path, format=save_format)
-                    idx += 1
+                # Save audio clip
+                print(f'saving {path}')
+                signal_clip.export(path, format=save_format)
+                idx += 1
 
 
 def split_audio():
@@ -168,9 +168,9 @@ def split_audio():
     # (reason: won't forget every splitting. Can split again very fast in any time any where)
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     # data_path = rf'C:\Users\test\Downloads\AA'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_2'
-    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital_2'
-    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw2_mono_peak_2'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k'
+    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
+    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw_mono_16k_peak'
     annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
     hop_length = 5120
     frame_size = 10240
@@ -191,6 +191,7 @@ def split_audio():
         clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition, save_path_h, save_peak_path, 
         annotation_path, load_format, save_format, sample_rate)
     test.save_aLL_files_name(save_path, keyword=save_format, name='file_name', shuffle=False)
+    test.save_aLL_files_name(save_path_h, keyword=save_format, name='file_name', shuffle=False)
 
     end_time = time.time()
     build_time = end_time - start_time
@@ -283,8 +284,8 @@ def get_peaks(waveform, filename, sample_rate, frame_size, hop_length, pre_max, 
     #     raise ValueError(f'Unknown Audio channel: {y.channels}')
     
     # peak picking
-    # waveform_processed = waveform * np.abs(waveform) * np.abs(waveform)
-    waveform_processed = np.power(np.abs(waveform), 3)
+    waveform_processed = waveform * np.abs(waveform) * np.abs(waveform)
+    # waveform_processed = np.power(np.abs(waveform), 3)
     ae = amplitude_envelope(waveform_processed, frame_size, hop_length)
     peaks = librosa.util.peak_pick(waveform_processed, pre_max, post_max, pre_avg, post_avg, delta=2*np.mean(ae), wait=wait)
     peak_times = np.array(peaks) / sample_rate
