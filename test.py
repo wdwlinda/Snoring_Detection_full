@@ -262,8 +262,10 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_2', keyword='wav', name='0', shuffle=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital_2', keyword='wav', name='0', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono', keyword='wav', name='filenames', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h', keyword='wav', name='filenames', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_MFCC', keyword='npy', name='filenames', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 

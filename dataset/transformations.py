@@ -9,6 +9,8 @@ import torchaudio.transforms as T
 
 def get_audio_features(waveform, sample_rate, transform_methods, transform_config):
     features = {}
+    if isinstance(transform_methods, str):
+        transform_methods = [transform_methods]
     for method in transform_methods:
         if method == 'fbank':
             features[method] = fbank(waveform, sample_rate, **transform_config)

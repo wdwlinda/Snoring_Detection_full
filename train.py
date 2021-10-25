@@ -56,15 +56,17 @@ def main(config_reference):
     # Dataloader
     train_dataset = AudioDataset(config, mode='train')
     train_dataloader = DataLoader(
-        train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=True)
+        train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
     test_dataset = AudioDataset(config, mode='valid')
     test_dataloader = DataLoader(
-        test_dataset, batch_size=1, shuffle=False, pin_memory=True)
+        test_dataset, batch_size=1, shuffle=False, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
 
     # Start training
     training_samples = len(train_dataloader.dataset)
-    step_loss, total_train_loss= [], []
-    total_test_acc, total_test_loss  = [], []
+    step_loss, total_train_loss= np.array([], dtype=np.float32), np.array([], dtype=np.float32)
+    total_test_acc, total_test_loss  = np.array([], dtype=np.float32), np.array([], dtype=np.float32)
+    # step_loss, total_train_loss= [], []
+    # total_test_acc, total_test_loss  = [], []
     min_loss = 1e5
     max_acc = -1
     saving_steps = config.train.checkpoint_saving_steps
@@ -108,12 +110,15 @@ def main(config_reference):
             loss = loss_func(outputs, labels)
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
-            step_loss.append(loss)
+            loss = loss.item()
+            total_loss += loss
+            step_loss = np.append(step_loss, loss)
+            # step_loss.append(loss)
             
             if i%level == 0:
                 logger.info('Step {}  Step loss {}'.format(i, loss))
-        total_train_loss.append(total_loss/training_steps)
+        total_train_loss = np.append(total_train_loss, total_loss/training_steps)
+        # total_train_loss.append(total_loss/training_steps)
         # TODO: check Epoch loss correctness
         logger.info(f'- Training Loss {total_train_loss[-1]}')
         with torch.no_grad():
@@ -125,17 +130,19 @@ def main(config_reference):
                 inputs, labels = data['input'], data['gt']
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
-                test_loss += loss_func(outputs, labels)
+                test_loss += loss_func(outputs, labels).item()
                 prediction = torch.argmax(outputs, dim=1)
 
                 labels = labels.cpu().detach().numpy()
                 prediction = prediction.cpu().detach().numpy()
                 evals = eval_tool(labels, prediction)
             avg_test_acc = metrics.accuracy(
-                np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn))
-            total_test_acc.append(avg_test_acc)
+                np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn)).item()
+            total_test_acc = np.append(total_test_acc, avg_test_acc)
+            # total_test_acc.append(avg_test_acc)
             avg_test_loss = test_loss / testing_steps
-            total_test_loss.append(avg_test_loss)
+            total_test_loss = np.append(total_test_loss, avg_test_loss)
+            # total_test_loss.append(avg_test_loss)
             logger.info("- Testing Loss:{:.3f}".format(avg_test_loss))
 
 
@@ -179,9 +186,11 @@ def main(config_reference):
             ax.plot(list(range(1,len(total_test_loss)+1)), total_test_loss, 'C2', label='validation')
 
             min_train_loss = np.min(total_train_loss).item()
-            ax.text(total_train_loss.index(min_train_loss), min_train_loss+0.01, f'{min_train_loss:.2f}')
+            # ax.text(total_train_loss.index(min_train_loss), min_train_loss+0.01, f'{min_train_loss:.2f}')
+            ax.text(np.where(total_train_loss == min_train_loss)[0][0]+1, min_train_loss+0.01, f'{min_train_loss:.2f}')
             min_test_loss = np.min(total_test_loss).item()
-            ax.text(total_test_loss.index(min_test_loss), min_test_loss+0.01, f'{min_test_loss:.2f}')
+            # ax.text(total_test_loss.index(min_test_loss), min_test_loss+0.01, f'{min_test_loss:.2f}')
+            ax.text(np.where(total_test_loss == min_test_loss)[0][0]+1, min_test_loss+0.01, f'{min_test_loss:.2f}')
 
             ax.set_xlabel('epoch')
             ax.set_ylabel('loss')
@@ -192,7 +201,8 @@ def main(config_reference):
 
             _, ax = plt.subplots()
             ax.plot(list(range(1,len(total_test_acc)+1)), total_test_acc, 'C2', label='validation')
-            ax.text(total_test_acc.index(max_acc), max_acc+0.01, f'{max_acc:.2f}')
+            ax.text(np.where(total_test_acc == max_acc)[0][0]+1, max_acc-0.01, f'{max_acc:.2f}')
+            # ax.text(total_test_acc.index(max_acc), max_acc-0.01, f'{max_acc:.2f}')
             ax.set_xlabel('epoch')
             ax.set_ylabel('accuracy')
             ax.set_title('Accuracy')
@@ -214,3 +224,4 @@ def main(config_reference):
 
 if __name__ == '__main__':
     main(CONFIG_PATH)
+    pass

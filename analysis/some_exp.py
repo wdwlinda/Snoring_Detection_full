@@ -313,8 +313,17 @@ def get_audio_frequency(signal, sr, duration, frame_size, filename, save_path, t
     fig_name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
     plt.savefig(os.path.join(save_path, fig_name))
 
+
+def first_order_filter():
+    # TODO: check https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    # f = rf''
+    # utils.load_audio_waveform()
+    pass
+
+
 def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test2_2'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
@@ -421,7 +430,7 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    show_dir_info()
-    # get_unconflicted_index()
+    # show_dir_info()
+    get_unconflicted_index()
     # stacked_bar_graph()
     pass
