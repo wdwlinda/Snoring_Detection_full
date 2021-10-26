@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 # from cfg import DATA_PATH
 from typing import AbstractSet
+import random
 import torch
 import torchaudio
 from torch.utils.data import Dataset, DataLoader
@@ -111,66 +112,64 @@ class AudioDataset(AbstractDastaset):
         print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
     
-    # def data_loading_function(self, filename):
-    #     filename = filename.replace('.wav', '_MFCC.npy')
-    #     filename = filename.replace('raw_mono_16k_h', 'raw_mono_h_MFCC')
-    #     x, y = np.load(filename, allow_pickle=True)
-    #     x = x[np.newaxis,...]
-    #     x = torch.from_numpy(x)
-    #     return x
-    
     def data_loading_function(self, filename):
-        y = utils.load_audio_waveform(filename, 'wav', self.dataset_config.sample_rate, channels=1)
-        sr = y.frame_rate
-        waveform = np.float32(np.array(y.get_array_of_samples()))
-        waveform = torch.from_numpy(waveform)
-        # waveform, sr = torchaudio.load(filename)
+        waveform, sr = torchaudio.load(filename)
         if self.dataset_config.sample_rate:
             waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
             sr = self.dataset_config.sample_rate
         return waveform, sr
+    
+    # def data_loading_function(self, filename):
+    #     y = utils.load_audio_waveform(filename, 'wav', self.dataset_config.sample_rate, channels=1)
+    #     sr = y.frame_rate
+    #     waveform = np.float32(np.array(y.get_array_of_samples()))
+    #     waveform = torch.from_numpy(waveform)
+    #     # waveform, sr = torchaudio.load(filename)
+    #     if self.dataset_config.sample_rate:
+    #         waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
+    #         sr = self.dataset_config.sample_rate
+    #     return waveform, sr
 
-    def preprocess(self, data):
-        features = self.audio_trasform(data)
+    def preprocess(self, waveform, sample_rate, mix_waveform=None):
+        # input_preprocess.audio_preprocess(
+        #     waveform, sample_rate, mix_waveform, self.transform_methods, self.transform_config, **self.preprocess_config)
+        if mix_waveform is not None:
+            waveform = input_preprocess.mix_up(waveform, mix_waveform)
+        features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
-        
-        # print('feats', audio_feature.max(), audio_feature.min())
-        
+
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
         return audio_feature
 
-    # def audio_trasform(self, data):
-    #     return data
-
-    def audio_trasform(self, data):
-        # TODO: different method, e.g., mel-spectogram, MFCC, time-domain
-        # TODO: how to use time-domain data, split to clips?
-        waveform, sample_rate = data
-        # TODO: optional sample rate or preprocess data to get same sr
-        # sample_rate = 16000
-        return transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
-
     def __getitem__(self, idx):
-        # idx = 15
-        input_data = self.data_loading_function(self.input_data_indices[idx])
-        input_data = self.preprocess(input_data)
+        waveform, sr = self.data_loading_function(self.input_data_indices[idx])
+        if self.dataset_config.preprocess_config.mix_up > random.random():
+            mix_idx = random.randint(0, len(self.input_data_indices)-1)
+            mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
+        else:
+            mix_waveform = None
+        input_data = self.preprocess(waveform, sr, mix_waveform)
+
+        # def log(data):
+        #     factor = torch.max(data)
+        #     data = (data - torch.min(data)) / torch.max(data)
+        #     factor /= torch.max(data)
+        #     data *= factor
+        #     # data = torch.where(data == 0, np.finfo(float).eps, data)
+        #     data = 20 * np.log10(data + 1)
+        #     return data
+
         # +++
-        # f = self.input_data_indices[idx]
-        # ff = f.replace('.wav', '_MFCC.npy')
-        # ff = ff.replace('raw_mono_16k_h', 'raw_mono_h_MFCC')
-        # x, y = np.load(ff, allow_pickle=True)
-        # mfcc = torch.from_numpy(x)
-        
         # plt.imshow(mfcc)
         # plt.show()
         # print(self.input_data_indices[idx])
-        factor = torch.max(input_data)
-        input_data = (input_data - torch.min(input_data)) / torch.max(input_data)
-        factor /= torch.max(input_data)
-        input_data *= factor
-        # input_data = torch.where(input_data == 0, np.finfo(float).eps, input_data)
-        input_data = 20 * np.log10(input_data + 1)
+        # factor = torch.max(input_data)
+        # input_data = (input_data - torch.min(input_data)) / torch.max(input_data)
+        # factor /= torch.max(input_data)
+        # input_data *= factor
+        # # input_data = torch.where(input_data == 0, np.finfo(float).eps, input_data)
+        # input_data = 20 * np.log10(input_data + 1)
         # plt.imshow(input_data[0])
         # import librosa.display
         # # librosa.display.specshow(input_data[0].cpu().numpy())
