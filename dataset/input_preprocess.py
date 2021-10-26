@@ -51,7 +51,7 @@ def mix_up(waveform1, waveform2):
     # sample lambda from uniform distribution
     #mix_lambda = random.random()
     # sample lambda from beta distribtion
-    mix_lambda = np.random.beta(10, 10)
+    # mix_lambda = np.random.beta(10, 10)
     mix_lambda = np.random.beta(8, 4)
 
     mix_waveform = mix_lambda * waveform1 + (1 - mix_lambda) * waveform2

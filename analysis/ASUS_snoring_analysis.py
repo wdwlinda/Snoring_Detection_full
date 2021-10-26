@@ -351,11 +351,13 @@ def main():
     audio_format = 'm4a'
     
     # Select subject which have enough file number (file number > file_number_threshold)
-    for f in os.listdir(data_path):
-        folder_path = os.path.join(data_path, f)
-        if os.path.isdir(folder_path):
-            if len(os.listdir(folder_path)) > file_number_threshold:
-                effective.append(f)
+    effective = utils.get_dir_list(data_path)
+    effective = [f for f in effective if len(os.listdir(f)) > file_number_threshold]
+    # for f in os.listdir(data_path):
+    #     folder_path = os.path.join(data_path, f)
+    #     if os.path.isdir(folder_path):
+    #         if len(os.listdir(folder_path)) > file_number_threshold:
+    #             effective.append(f)
     
     # Write peak information header
     with open(csv_filename_programming, 'w', newline='') as csvfile:

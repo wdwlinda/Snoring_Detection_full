@@ -72,19 +72,22 @@ def eval():
     net = net.to(device)
     with torch.no_grad():
         net.eval()
-        total_precision, total_recall, total_dsc, total_iou = [], [], [], []
+        total_precision, total_recall, total_dsc, total_iou = np.array([], dtype=np.float32), np.array([], dtype=np.float32), [], []
         evaluator = metrics.SegmentationMetrics(num_class=config.model.out_channels, 
                                                 metrics=['precision', 'recall', 'accuracy'])
 
         if len(test_dataloader) == 0:
             raise ValueError('No Data Exist. Please check the data path or data_plit.')
         # fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(6, 2))
-        y_true, y_pred, prediction_record = [], [], []
+        y_true, y_pred, prediction_record = np.array([], dtype=np.float32), np.array([], dtype=np.float32), []
+        prob_p = np.array([], dtype=np.float32)
+        prob_n = np.array([], dtype=np.float32)
         for i, data in enumerate(test_dataloader):
             print('Sample: {}'.format(i+1))
             inputs, labels = data['input'], data['gt']
             inputs, labels = inputs.to(device), labels.to(device)
             output = net(inputs)
+            prob = torch.exp(output) / torch.sum(torch.exp(output))
             prediction = torch.argmax(output, dim=1)
             labels = labels.cpu().detach().numpy()
             prediction = prediction.cpu().detach().numpy()
@@ -97,8 +100,8 @@ def eval():
             # if (tp + fp + fn) != 0:
             #     total_dsc.append(evals['f1'])
             #     total_iou.append(evals['iou'])
-            total_precision.append(evals['precision'])
-            total_recall.append(evals['recall'])
+            total_precision = np.append(total_precision, evals['precision'])
+            total_recall = np.append(total_recall, evals['recall'])
 
             if not os.path.exists(os.path.join(config.eval.restore_checkpoint_path, 'images')):
                 os.makedirs(os.path.join(config.eval.restore_checkpoint_path, 'images'))
@@ -119,18 +122,19 @@ def eval():
                 if config.eval.show_segmentation_result:
                     plt.show()
         
-            y_true.append(labels)
-            y_pred.append(prediction)
-        
-            # if labels != prediction:
+            y_true = np.append(y_true, labels)
+            y_pred = np.append(y_pred, prediction)
+
+            prob_p = np.append(prob_p, prob[0][1].item())
+            prob_n = np.append(prob_n, prob[0][0].item())
             prediction_record.append({
                 'label': labels[0],
                 'pred': prediction[0],
+                'prob': prob[0][1].item(),
                 'file_name': os.path.basename(test_dataset.input_data_indices[i])})
-        y_true = np.concatenate(y_true, axis=0)
-        y_pred = np.concatenate(y_pred, axis=0)
+        # y_true = np.concatenate(y_true, axis=0)
+        # y_pred = np.concatenate(y_pred, axis=0)
         cm = confusion_matrix(y_true, y_pred)
-        # print(cm)
         plot_confusion_matrix(cm, [0,1], normalize=False)
         plt.savefig(os.path.join(config.eval.restore_checkpoint_path, 'cm.png'))
         # plt.show()
@@ -150,12 +154,37 @@ def eval():
         print(f'total accuracy: {100*accuracy:.2f} %', '\n')
         print(f'total specificity: {100*mean_specificity:.2f} %', '\n')
         
-        with open(os.path.join(config.eval.restore_checkpoint_path, 'prediction.csv'), 'w', newline='') as csvfile:
+        pred_file = f'{os.path.split(config.eval.restore_checkpoint_path)[1]}_prediction.csv'
+        with open(os.path.join(config.eval.restore_checkpoint_path, pred_file), 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['#', 'file', 'label', 'prediction', 'correctness'])
+            writer.writerow(['#', 'file', 'label', 'prediction', 'positive prob', 'correctness'])
             for i, v in enumerate(prediction_record):
-                writer.writerow([str(i+1), v['file_name'], str(v['label']), str(v['pred']), str(int(v['label']==v['pred']))])
+                writer.writerow(
+                    [str(i+1), v['file_name'], str(v['label']), str(v['pred']), str(v['prob']), str(int(v['label']==v['pred']))])
 
+
+        prob_pp, prob_nn = [], []
+        prob_pp2, prob_nn2 = [], []
+        th = 0.1
+        for i, (p, n) in enumerate(zip(prob_p, prob_n)):
+            if abs(p-n) < th:
+                prob_pp.append(prob_p[i])
+                prob_nn.append(prob_n[i])
+            else:
+                prob_pp2.append(prob_p[i])
+                prob_nn2.append(prob_n[i])
+
+        fig, ax = plt.subplots()
+        # ax.scatter(prob_p, prob_n, alpha=0.4)
+        ax.scatter(prob_pp, prob_nn, alpha=0.4, color='r')
+        ax.scatter(prob_pp2, prob_nn2, alpha=0.4)
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+        ax.set_xlabel('positive')
+        ax.set_ylabel('negative')
+        ax.set_title('Probability distribution')
+        ax.legend([f'diff < {th} ({len(prob_pp)/len(prob_p)*100:.2f} %)', f'diff >= {th} ({len(prob_pp2)/len(prob_p)*100:.2f} %)'])
+        fig.savefig(os.path.join(config.eval.restore_checkpoint_path, 'class_prob_dist.png'))
         # with open(os.path.join(config.eval.restore_checkpoint_path, 'error_samples.txt'), 'w+') as fw:
         #     errors.sort(key=len)
         #     for i, v in enumerate(errors):

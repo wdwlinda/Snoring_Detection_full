@@ -168,16 +168,16 @@ def main(config_reference):
                     "epoch": epoch
                 }
                 
-            if epoch%saving_steps == 0:
-                logger.info("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_loss, epoch))
-                checkpoint_name = 'ckpt_best_{:04d}.pth'.format(epoch)
-                torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
-
             if avg_test_acc > max_acc:
                 max_acc = avg_test_acc
                 logger.info(f"-- Saving best model with testing accuracy {max_acc:.3f} --")
                 checkpoint_name = 'ckpt_best.pth'
                 print(os.path.join(checkpoint_path, checkpoint_name))
+                torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
+
+            if epoch%saving_steps == 0:
+                logger.info("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_acc, epoch))
+                checkpoint_name = 'ckpt_best_{:04d}.pth'.format(epoch)
                 torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
 
         if epoch%10 == 0:

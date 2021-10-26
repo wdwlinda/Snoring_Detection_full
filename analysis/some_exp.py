@@ -318,8 +318,10 @@ def first_order_filter():
     import array
     # TODO: check https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
     f = rf'C:\Users\test\Downloads\AA\1632074953419_NA\1632074953419_34.m4a'
+    f = rf'C:\Users\test\Downloads\AA\1631294788806_12_138.70_139.70_018.wav'
+    f = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h\1598482996718_NA\1\1598482996718_47_152.29_153.29_020.wav'
     save_path = rf'C:\Users\test\Downloads\AA'
-    y = utils.load_audio_waveform(f, 'm4a', channels=1)
+    y = utils.load_audio_waveform(f, 'wav', channels=1)
     signal = np.float32(np.array(y.get_array_of_samples()))
 
     pre_emphasis = 0.97
@@ -370,7 +372,8 @@ def get_unconflicted_index():
 def show_dir_info():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
     # path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
-    dir_list = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    # dir_list = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    dir_list = utils.get_dir_list(path)
     acc, acc_p, acc_n, acc_balance = 0, 0, 0, 0
     total_p, total_n, total_balance = [], [], []
     for d in dir_list:
@@ -447,8 +450,8 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    show_dir_info()
+    # show_dir_info()
     # get_unconflicted_index()
-    # first_order_filter()
+    first_order_filter()
     # stacked_bar_graph()
     pass

@@ -52,7 +52,10 @@ class AbstractDastaset(Dataset):
         self.dataset_config = config.dataset
         self.model_config = config.model
         self.preprocess_config = self.dataset_config.preprocess_config
-        self.is_data_augmentation = self.dataset_config.is_data_augmentation
+        if mode == 'train':
+            self.is_data_augmentation = self.dataset_config.is_data_augmentation
+        else:
+            self.is_data_augmentation = False
         self.mode = mode
         self.transform = transforms.Compose([transforms.ToTensor()])
         # self.load_func = load_func
@@ -144,11 +147,15 @@ class AudioDataset(AbstractDastaset):
 
     def __getitem__(self, idx):
         waveform, sr = self.data_loading_function(self.input_data_indices[idx])
-        if self.dataset_config.preprocess_config.mix_up > random.random():
-            mix_idx = random.randint(0, len(self.input_data_indices)-1)
-            mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
-        else:
-            mix_waveform = None
+        
+        mix_waveform = None
+        if self.mode == 'train':
+            mix_up = self.dataset_config.preprocess_config.mix_up
+            if mix_up:
+                if mix_up > random.random():
+                    mix_idx = random.randint(0, len(self.input_data_indices)-1)
+                    mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
+
         input_data = self.preprocess(waveform, sr, mix_waveform)
 
         # def log(data):
