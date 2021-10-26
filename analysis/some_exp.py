@@ -315,9 +315,21 @@ def get_audio_frequency(signal, sr, duration, frame_size, filename, save_path, t
 
 
 def first_order_filter():
+    import array
     # TODO: check https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
-    # f = rf''
-    # utils.load_audio_waveform()
+    f = rf'C:\Users\test\Downloads\AA\1632074953419_NA\1632074953419_34.m4a'
+    save_path = rf'C:\Users\test\Downloads\AA'
+    y = utils.load_audio_waveform(f, 'm4a', channels=1)
+    signal = np.float32(np.array(y.get_array_of_samples()))
+
+    pre_emphasis = 0.97
+    emphasized_signal = np.append(signal[0], signal[1:] - pre_emphasis * signal[:-1])
+    librosa.display.waveplot(signal)
+    plt.show()
+
+    waveform = array.array(y.array_type, emphasized_signal)
+    new_sound = y._spawn(waveform)
+    new_sound.export(os.path.join(save_path, 'test.wav'), 'wav')
     pass
 
 
@@ -356,7 +368,7 @@ def get_unconflicted_index():
 
 
 def show_dir_info():
-    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital_2'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
     # path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     dir_list = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
     acc, acc_p, acc_n, acc_balance = 0, 0, 0, 0
@@ -378,7 +390,7 @@ def show_dir_info():
       if p+n == 0:
         balancing = 0
       else:
-        balancing = min(p,n) / (p+n) * 100
+        balancing = p / (p+n) * 100
       print(f'{d:<30} p: {p:<10} n: {n:<10} p+n: {p+n:<10} balancing: {balancing:0.2f} %')
       total_p.append(p)
       total_n.append(n)
@@ -395,9 +407,14 @@ def show_dir_info():
     dir_list_with_num = [f'{i+1:<5} {f:<30} ({total_balance[i]:0.2f} %)' for i, f in enumerate(dir_list)]
     for d in dir_list_with_num:
         print(d)
-    textstr = '\n'.join(dir_list_with_num)
-    props = dict(boxstyle='round', facecolor='gray', alpha=0.2)
-    ax.text(0.5, 0.98, textstr, transform=ax.transAxes, fontsize=12,
+    
+    # Text box
+    textstr = '\n'.join(dir_list_with_num[:len(dir_list_with_num)//2])
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.4)
+    ax.text(0.45, 0.98, textstr, transform=ax.transAxes, fontsize=9,
+        verticalalignment='top', bbox=props)
+    textstr = '\n'.join(dir_list_with_num[len(dir_list_with_num)//2:])
+    ax.text(0.67, 0.98, textstr, transform=ax.transAxes, fontsize=9,
         verticalalignment='top', bbox=props)
 
     ax.set_xlabel('Subject')
@@ -430,7 +447,8 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    # show_dir_info()
-    get_unconflicted_index()
+    show_dir_info()
+    # get_unconflicted_index()
+    # first_order_filter()
     # stacked_bar_graph()
     pass
