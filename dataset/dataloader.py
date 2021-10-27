@@ -167,6 +167,27 @@ class AudioDataset(AbstractDastaset):
         #     data = 20 * np.log10(data + 1)
         #     return data
 
+        def check_input_data(idx1=22, idx2=23):
+            import librosa.display
+            f1, f2 = self.input_data_indices[idx1], self.input_data_indices[idx2]
+            w1, sr1 = self.data_loading_function(f1)
+            w2, sr2 = self.data_loading_function(f2)
+
+            spec1 = self.preprocess(w1, sr1, mix_waveform=None)
+            spec2 = self.preprocess(w2, sr2, mix_waveform=None)
+
+            fig, ax = plt.subplots(2,1)
+            ax[0].set_title(f'{os.path.split(f1)[1]}_{self.ground_truth_indices[idx1]}')
+            ax[1].set_title(f'{os.path.split(f2)[1]}_{self.ground_truth_indices[idx2]}')
+            # img = librosa.display.specshow(spec1[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[0])
+            # librosa.display.specshow(spec2[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[1])
+            ax[0].imshow(spec1[0].cpu().numpy())
+            ax[1].imshow(spec2[0].cpu().numpy())
+            # fig.colorbar(img, ax=ax, format="%+2.f dB")
+
+            plt.show()
+
+        # check_input_data(idx, idx+1)
         # +++
         # plt.imshow(mfcc)
         # plt.show()
@@ -179,7 +200,7 @@ class AudioDataset(AbstractDastaset):
         # input_data = 20 * np.log10(input_data + 1)
         # plt.imshow(input_data[0])
         # import librosa.display
-        # # librosa.display.specshow(input_data[0].cpu().numpy())
+        # librosa.display.specshow(input_data[0].cpu().numpy())
         # plt.show()
         # print(mfcc == input_data)
         # +++
