@@ -13,6 +13,7 @@ import itertools
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import csv
+import train
 ImageClassifier = img_classifier.ImageClassifier
 
 # TODO: solve device problem, check behavoir while GPU using
@@ -85,6 +86,7 @@ def eval():
         for i, data in enumerate(test_dataloader):
             print('Sample: {}'.format(i+1))
             inputs, labels = data['input'], data['gt']
+            inputs = train.minmax_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
             output = net(inputs)
             prob = torch.exp(output) / torch.sum(torch.exp(output))

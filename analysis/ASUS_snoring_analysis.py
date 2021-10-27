@@ -33,7 +33,8 @@ def clip_to_feature(clip, sample_rate, method):
         'win_length': None,
         'hop_length': None,
         'n_mels': 128,
-        'n_mfcc': 128
+        'n_mfcc': 128,
+        'mean_norm': True
     }
     clip = torch.from_numpy(clip)
     feature = transformations.get_audio_features(clip, sample_rate, transform_methods=method, transform_config=transform_config)[method]
@@ -44,7 +45,7 @@ def clip_to_feature(clip, sample_rate, method):
 
 def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, 
                      wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition, save_path_h, save_peak_path, 
-                     annotation_path, load_format, save_format, sample_rate, feature_path, method, feature_path_h):
+                     annotation_path, load_format, save_format, sample_rate, feature_path, method, feature_path_h, save_feature):
     if output_type == 'mono':
         channels = 1
     elif output_type == 'stereo':
@@ -138,7 +139,8 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                 np_signal_clip = np.float32(np.array(signal_clip.get_array_of_samples()))
 
                 # Convert audio clip to feature
-                feature = clip_to_feature(np_signal_clip, sample_rate, method)
+                if save_feature:
+                    feature = clip_to_feature(np_signal_clip, sample_rate, method)
 
                 # Save audio clip
                 path = os.path.join(save_path, save_dir)
@@ -149,10 +151,11 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                 signal_clip.export('.'.join([path, save_format]), format=save_format)
                 
                 # Save converted feature
-                path = os.path.join(feature_path, save_dir)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                np.save(os.path.join(path, save_name+f'_{method}'), feature)
+                if save_feature:
+                    path = os.path.join(feature_path, save_dir)
+                    if not os.path.isdir(path):
+                        os.makedirs(path)
+                    np.save(os.path.join(path, save_name+f'_{method}'), feature)
 
 
             if peak_condition and hospital_condition:
@@ -165,10 +168,11 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                 signal_clip.export('.'.join([path, save_format]), format=save_format)
                 
                 # Save converted feature
-                path = os.path.join(feature_path_h, save_dir, sub_dir)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                np.save(os.path.join(path, save_name+f'_{method}'), (feature, int(sub_dir)))
+                if save_feature:
+                    path = os.path.join(feature_path_h, save_dir, sub_dir)
+                    if not os.path.isdir(path):
+                        os.makedirs(path)
+                    np.save(os.path.join(path, save_name+f'_{method}'), (feature, int(sub_dir)))
 
 
 def split_audio():
@@ -178,9 +182,9 @@ def split_audio():
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\AA'
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\AA\1630345236867_AA0801160'
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\AA\1630513297437_AA1700268'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k'
-    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
-    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw_mono_16k_peak'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_2sec'
+    save_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_2sec_h'
+    save_peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\raw_mono_16k_2sec_peak'
     method = 'MFCC'
     feature_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_{method}'
     feature_path_h = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_{method}'
@@ -188,8 +192,8 @@ def split_audio():
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
-    clip_range_time = 0.5
-    offset = 0.5
+    clip_range_time = 2
+    offset = -1
     time_unit = 1000
     mono_or_stereo = 'mono'
     sample_rate = 16000
@@ -199,11 +203,12 @@ def split_audio():
     save_format = 'wav'
     filelist = data_splitting.get_files(data_path, load_format)
     start_time = time.time()
+    save_feature = False
 
     save_audio_clips(
         filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, 
         clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition, save_path_h, save_peak_path, 
-        annotation_path, load_format, save_format, sample_rate, feature_path, method, feature_path_h)
+        annotation_path, load_format, save_format, sample_rate, feature_path, method, feature_path_h, save_feature)
     test.save_aLL_files_name(save_path, keyword=save_format, name='file_name', shuffle=False)
     test.save_aLL_files_name(save_path_h, keyword=save_format, name='file_name', shuffle=False)
 

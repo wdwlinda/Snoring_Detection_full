@@ -30,7 +30,8 @@ def get_files(path, keys=[], is_fullpath=True, sort=True):
                 func(root, f, file_list, is_fullpath)
 
     if file_list:
-        if sort: file_list.sort(key=len)
+        if sort: file_list.sort()
+        # if sort: file_list.sort(key=len)
     else:
         if keys: 
             logging.warning(f'No file exist with key {keys}.') 

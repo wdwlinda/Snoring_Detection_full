@@ -6,6 +6,7 @@ from typing import AbstractSet
 import random
 import torch
 import torchaudio
+import torchaudio.transforms as T
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
 import numpy as np
@@ -108,6 +109,7 @@ class AudioDataset(AbstractDastaset):
         super().__init__(config, mode)
         self.input_data_indices = dataset_utils.load_content_from_txt(
                 os.path.join(config.dataset.index_path, f'{mode}.txt'))
+                
         self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
         # self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
         self.transform_methods = config.dataset.transform_methods
@@ -148,6 +150,7 @@ class AudioDataset(AbstractDastaset):
     def __getitem__(self, idx):
         waveform, sr = self.data_loading_function(self.input_data_indices[idx])
         
+        # TODO: related to is_augmentation?
         mix_waveform = None
         if self.mode == 'train':
             mix_up = self.dataset_config.preprocess_config.mix_up
@@ -158,14 +161,19 @@ class AudioDataset(AbstractDastaset):
 
         input_data = self.preprocess(waveform, sr, mix_waveform)
 
-        # def log(data):
-        #     factor = torch.max(data)
-        #     data = (data - torch.min(data)) / torch.max(data)
-        #     factor /= torch.max(data)
-        #     data *= factor
-        #     # data = torch.where(data == 0, np.finfo(float).eps, data)
-        #     data = 20 * np.log10(data + 1)
-        #     return data
+        def log(data):
+            # factor = torch.max(data)
+            # data = (data - torch.min(data)) / torch.max(data)
+            # factor /= torch.max(data)
+            # data *= factor
+            # data = torch.where(data == 0, np.finfo(float).eps, data)
+            data2 = 20 * torch.log10(data + 1)
+            # data2 = T.AmplitudeToDB()(data)
+            # data2 = (data + 1)
+            torch.set_printoptions(precision=12)
+            print(data.max(), data.min(), data2.max(), data2.min())
+            return data2
+        # input_data = log(input_data)
 
         def check_input_data(idx1=22, idx2=23):
             import librosa.display
@@ -176,18 +184,21 @@ class AudioDataset(AbstractDastaset):
             spec1 = self.preprocess(w1, sr1, mix_waveform=None)
             spec2 = self.preprocess(w2, sr2, mix_waveform=None)
 
+            # spec1 = T.AmplitudeToDB()(spec1)
+            # spec2 = T.AmplitudeToDB()(spec2)
+
             fig, ax = plt.subplots(2,1)
             ax[0].set_title(f'{os.path.split(f1)[1]}_{self.ground_truth_indices[idx1]}')
             ax[1].set_title(f'{os.path.split(f2)[1]}_{self.ground_truth_indices[idx2]}')
-            # img = librosa.display.specshow(spec1[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[0])
-            # librosa.display.specshow(spec2[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[1])
-            ax[0].imshow(spec1[0].cpu().numpy())
-            ax[1].imshow(spec2[0].cpu().numpy())
-            # fig.colorbar(img, ax=ax, format="%+2.f dB")
+            img = librosa.display.specshow(spec1[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[0])
+            librosa.display.specshow(spec2[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[1])
+            fig.colorbar(img, ax=ax, format="%+2.f dB")
+            # ax[0].imshow(spec1[0].cpu().numpy())
+            # ax[1].imshow(spec2[0].cpu().numpy())
 
             plt.show()
 
-        # check_input_data(idx, idx+1)
+        # check_input_data()
         # +++
         # plt.imshow(mfcc)
         # plt.show()
@@ -216,6 +227,8 @@ class AudioDataset(AbstractDastaset):
         # input_data = input_data[:2]
         # # input_data = input_data[:, :98, :128]
         # print('input size', input_data.size())
+
+        # print(input_data.max(), input_data.min())
         return {'input': input_data, 'gt': ground_truth}
 
     def merge_audio_features(self, features):

@@ -2,7 +2,7 @@
 import importlib
 import os
 import logging
-
+from analysis import data_splitting
 
 
 # TODO: General solution
@@ -121,6 +121,54 @@ def load_content_from_txt(path, access_mode='r'):
     with open(path, access_mode) as fw:
         content = fw.read().splitlines()
     return content
+
+
+def inspect_data_split(data_split):
+    # TODO: if split in 0.725 0.275
+    train_split = data_split.get('train', 0)
+    valid_split = data_split.get('valid', 0)
+    test_split = data_split.get('test', 0)
+    if train_split+valid_split+test_split != 1:
+        raise ValueError('Incorrect splitting of dataset.')
+    split_code = f'{10*train_split:.0f}{10*valid_split:.0f}{10*test_split:.0f}'
+    return split_code
+
+
+def get_data_path(data_path, index_root, data_split, keywords=[]):
+    # TODO: save in csv
+    # TODO: save with label
+    split_code = inspect_data_split(data_split)
+    dataset_name = os.path.split(data_path)[1]
+    
+    # Check if an index already exists, create one if not.
+    index_path = os.path.join(index_root, dataset_name)
+    if not os.path.isdir(index_path):
+        os.mkdir(index_path)
+        file_path_list = data_splitting.get_files(data_path, keys=keywords, is_fullpath=True, sort=True)
+        train_split = int(data_split.get('train', 0)*len(file_path_list))
+        valid_split = int(data_split.get('valid', 0)*len(file_path_list))
+        test_split = int(data_split.get('test', 0)*len(file_path_list))
+
+        train_path_list = file_path_list[:train_split]
+        valid_path_list = file_path_list[train_split:train_split+valid_split]
+        test_path_list = file_path_list[train_split+valid_split:train_split+valid_split+test_split]
+
+        train_path = os.path.join(index_path, f'{dataset_name}_train_{split_code}.txt')
+        valid_path = os.path.join(index_path, f'{dataset_name}_valid_{split_code}.txt')
+        test_path = os.path.join(index_path, f'{dataset_name}_test_{split_code}.txt')
+
+        save_content_in_txt(train_path_list, train_path)
+        save_content_in_txt(valid_path_list, valid_path)
+        save_content_in_txt(test_path_list, test_path)
+
+        data_path_dict = {
+            'train': train_path,
+            'valid': valid_path,
+            'test': test_path}
+    else:
+        file_path_list = data_splitting.get_files(index_root, is_fullpath=True, sort=True)
+        data_path_dict
+    return data_path_dict
 
 
 def get_data_indices(data_name, data_path, save_path, data_split, mode, generate_index_func):
