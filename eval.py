@@ -134,14 +134,15 @@ def eval():
                 'pred': prediction[0],
                 'prob': prob[0][1].item(),
                 'file_name': os.path.basename(test_dataset.input_data_indices[i])})
-                
+
         for th_prob in [0.6, 0.7, 0.8, 0.9, 0.95, 0.99]:
             xx = y_true[prob_p>th_prob]
             y_true_th = np.append(y_true[prob_p>th_prob], y_true[prob_p<(1-th_prob)])
             y_pred_th = np.append(y_pred[prob_p>th_prob], y_pred[prob_p<(1-th_prob)])
             # y_true_th = np.where(prob_p>th_prob, 1, np.where(prob_p<(1-th_prob), 1, 0))
             cm_th = confusion_matrix(y_true_th, y_pred_th)
-            print(f'{th_prob}: {(cm_th[0,0]+cm_th[1,1])/np.sum(cm_th)*100:.2f} %')
+            print(f'{th_prob} acc: {(cm_th[0,0]+cm_th[1,1])/np.sum(cm_th)*100:.2f} %', 
+                  f'samples: {len(y_true_th)} ({len(y_true_th)/len(y_true)*100:.2f} %)')
             # plot_confusion_matrix(cm_th, [0,1], normalize=False)
             # plt.savefig(os.path.join(config.eval.restore_checkpoint_path, f'cm_{th_prob}.png'))
 
