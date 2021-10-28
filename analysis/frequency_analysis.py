@@ -9,6 +9,7 @@ import csv
 from pydub import AudioSegment
 import matplotlib.pyplot as plt
 from scipy.signal import hilbert, chirp
+from analysis import utils
 
 
 def get_audio_waveform(filename):
@@ -33,14 +34,10 @@ def get_frquency(signal, sr, n_fft):
     return cent[0]
     # return S
 
-def get_audio_clip(signal, time_interval, sample_rate):
-    signal_interval = [int(time_interval[0]*sample_rate), int(time_interval[1]*sample_rate)]
-    return signal[signal_interval[0]:signal_interval[1]]
-
 
 def convert_and_plot_frequency(signal, sr, time_interval, n_fft, save_path):
     # Get audio clip
-    clip = get_audio_clip(signal, time_interval, sr)
+    clip = utils.get_audio_clip(signal, time_interval, sr)
 
     # Process
     # print(clip.shape)
@@ -118,8 +115,8 @@ def frequency_analysis():
 
 
 def main():
-    # frequency_analysis()
-    plot_freq_histogram()
+    frequency_analysis()
+    # plot_freq_histogram()
 
 
 if __name__ == '__main__':

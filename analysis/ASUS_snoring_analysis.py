@@ -44,7 +44,7 @@ def clip_to_feature(clip, sample_rate, method):
 
 
 def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, 
-                     wait, clip_range_time, offset, time_unit, output_type, use_hospital_condition, save_path_h, save_peak_path, 
+                     wait, offset1, offset2, time_unit, output_type, use_hospital_condition, save_path_h, save_peak_path, 
                      annotation_path, load_format, save_format, sample_rate, feature_path, method, feature_path_h, save_feature):
     if output_type == 'mono':
         channels = 1
@@ -111,8 +111,7 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
         # Save audio clips
         for p in peak_times:
             # Handle boundary value
-            # print(p, y.duration_seconds, offset, clip_range_time)
-            peak_condition = (p > clip_range_time-offset and p < y.duration_seconds-offset-clip_range_time)
+            peak_condition = (p > 0+offset1 and p < y.duration_seconds-offset2)
             hospital_condition = False
             if use_hospital_condition:
                 if subject in df_dict:
@@ -132,10 +131,9 @@ def save_audio_clips(filelist, save_path, frame_size, hop_length, pre_max, post_
                 # peak_condition = (peak_condition and hospital_condition)
 
             if peak_condition:
-                # save_name = f'{name}_{p+offset-clip_range_time:.2f}_{p+offset+clip_range_time:.2f}_{idx+1:03d}.{save_format}'
                 idx += 1
-                save_name = f'{name}_{p+offset-clip_range_time:.2f}_{p+offset+clip_range_time:.2f}_{idx:03d}'
-                signal_clip = utils.get_audio_clip(y, [p+offset-clip_range_time, p+offset+clip_range_time], time_unit)
+                save_name = f'{name}_{p+offset1:.2f}_{p+offset2:.2f}_{idx:03d}'
+                signal_clip = utils.get_audio_clip(y, [p+offset1, p+offset2], time_unit)
                 np_signal_clip = np.float32(np.array(signal_clip.get_array_of_samples()))
 
                 # Convert audio clip to feature
@@ -192,22 +190,22 @@ def split_audio():
     hop_length = 5120
     frame_size = 10240
     pre_max, post_max, pre_avg, post_avg, wait = 1e5, 1e5, 1e3, 1e3, 10
-    clip_range_time = 2
-    offset = -1
+    offset1 = -1
+    offset2 = 1
     time_unit = 1000
     mono_or_stereo = 'mono'
     sample_rate = 16000
     # sample_rate = 44100
     use_hospital_condition = True
+    save_feature = False
     load_format = 'm4a'
     save_format = 'wav'
     filelist = data_splitting.get_files(data_path, load_format)
     start_time = time.time()
-    save_feature = False
 
     save_audio_clips(
         filelist, save_path, frame_size, hop_length, pre_max, post_max, pre_avg, post_avg, wait, 
-        clip_range_time, offset, time_unit, mono_or_stereo, use_hospital_condition, save_path_h, save_peak_path, 
+        offset1, offset2, time_unit, mono_or_stereo, use_hospital_condition, save_path_h, save_peak_path, 
         annotation_path, load_format, save_format, sample_rate, feature_path, method, feature_path_h, save_feature)
     test.save_aLL_files_name(save_path, keyword=save_format, name='file_name', shuffle=False)
     test.save_aLL_files_name(save_path_h, keyword=save_format, name='file_name', shuffle=False)

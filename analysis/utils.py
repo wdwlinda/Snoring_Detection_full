@@ -46,13 +46,13 @@ def get_dir_list(data_path):
     return list(dir_list)
 
 
-def get_audio_waveform(filename):
-    if filename.endswith('wav'):
-        y, sr = librosa.load(filename)
-    elif filename.endswith('m4a'):
-        y = AudioSegment.from_file(filename, format='m4a')
-        sr = y.frame_rate
-    return y, sr
+# def get_audio_waveform(filename):
+#     if filename.endswith('wav'):
+#         y, sr = librosa.load(filename)
+#     elif filename.endswith('m4a'):
+#         y = AudioSegment.from_file(filename, format='m4a')
+#         sr = y.frame_rate
+#     return y, sr
 
 
 def get_audio_clip(signal, time_interval, sample_rate):
@@ -66,8 +66,8 @@ def f_high(y, sr):
     yf = signal.lfilter(b,a,y)
     return yf
 
-def load_audio_waveform(filename, format, sr=None, channels=None):
-    y = AudioSegment.from_file(filename, format)
+def load_audio_waveform(filename, audio_format, sr=None, channels=None):
+    y = AudioSegment.from_file(filename, audio_format)
     if sr: y = y.set_frame_rate(sr)
     if channels: y = y.set_channels(channels)
     return y
