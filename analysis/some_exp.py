@@ -23,6 +23,7 @@ import test
 from pprint import pprint
 from analysis import utils
 from dataset import dataset_utils
+import array
 
 
 def audio_loading_exp():
@@ -271,9 +272,9 @@ def show_frequency():
                    [1, 180],
                    [1, 180],
                   ]
-    filenames = data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630345236867_AA0801160', 'm4a')
-    filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630866536302_NA', 'm4a'))
-    filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630600693454_Johnason', 'm4a'))
+    filenames = data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630345236867', 'm4a')
+    filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630866536302', 'm4a'))
+    filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630600693454', 'm4a'))
     time_ranges = [list([1, 180]) for _ in range(len(filenames))]
     # save_path = rf'C:\Users\test\Downloads\1018\test\result\meanspec'
     
@@ -282,10 +283,14 @@ def show_frequency():
     channels = 1
     # amplitude_factor = 2
     # first_erosion = 17
+    amplitude_factor_list = [2, 5, 8]
+    first_erosion_list = [17, 21, 25]
+    amplitude_factor_list = [4,6]
+    first_erosion_list = [13,19,25]
 
-    for amplitude_factor in [2, 5, 8]:
-        for first_erosion in [17, 21, 25]:
-            save_path = rf'C:\Users\test\Downloads\1018\test\result\{amplitude_factor}_{first_erosion}'
+    for amplitude_factor in amplitude_factor_list:
+        for first_erosion in first_erosion_list:
+            save_path = rf'C:\Users\test\Downloads\1018\test\result2\{amplitude_factor}_{first_erosion}_test'
             if not os.path.isdir(save_path):
                 os.mkdir(save_path)
             print(save_path)
@@ -300,7 +305,7 @@ def show_frequency():
                 # waveform = _1d_median_filtering(waveform, frame_size)
                 duration = time_range[1] - time_range[0]
                 # get_audio_frequency(waveform, sr, duration, frame_size, filename, save_path, time_range)
-                get_audio_frequency_thrshold(waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion)
+                get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion)
 
 
 # def get_audio_frequency(signal, sr, duration, frame_size, filename, save_path, time_range):
@@ -365,7 +370,7 @@ def show_frequency():
 #     plt.savefig(os.path.join(save_path, fig_name))
 
 
-def get_audio_frequency_thrshold(signal, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion):
+def get_audio_frequency_thrshold(y, signal, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion):
     hop_length = 512
     n_fft = 2048
     # amplitude_factor = 2
@@ -373,6 +378,7 @@ def get_audio_frequency_thrshold(signal, sr, duration, frame_size, filename, sav
 
     # fig = plt.figure(figsize=(16, 12))
     signal = np.float32(signal)
+    # signal *= np.abs(signal)
     S = librosa.feature.melspectrogram(signal, sr=sr, n_fft=n_fft, hop_length=hop_length)
     S_DB = librosa.power_to_db(S, ref=np.max)
     S_mean = S_DB - np.mean(S_DB, 0, keepdims=True)
@@ -380,24 +386,27 @@ def get_audio_frequency_thrshold(signal, sr, duration, frame_size, filename, sav
     mean_melspec = np.mean(S, axis=0)
     a = np.where(np.abs(mean_melspec)<np.mean(mean_melspec)*amplitude_factor, 0, 1)
     a = ndimage.morphology.binary_erosion(a, structure=np.ones((first_erosion))).astype(a.dtype)
-    best = (a, a)
+
+    # best = (np.zeros_like(signal), a)
     # a = np.where(np.abs(mean_melspec)<0.25, 0, 1)
     # b = ndimage.morphology.binary_dilation(a, structure=np.ones((13))).astype(a.dtype)
     # c = ndimage.morphology.binary_erosion(b, structure=np.ones((13))).astype(b.dtype)
     # c = np.repeat(c, len(signal)//len(c)+1)
     # print(len(c), len(signal))
     # a = np.repeat(a, len(signal)//len(c))
-    max_enegry = 0
+    
+    max_enegry = -5
     # np.repeat(c, len(signal)//len(c))
-    for dilation_s in range(1, 31, 6):
-        for erosion_s in range(1, 31, 6):
-            b = ndimage.morphology.binary_dilation(a, structure=np.ones((dilation_s))).astype(a.dtype)
-            c = ndimage.morphology.binary_erosion(b, structure=np.ones((erosion_s))).astype(b.dtype)
-            e = np.sum(mean_melspec*c)
-            if e > max_enegry:
-                max_enegry = e
-                c = np.repeat(c, len(signal)//len(c)+1)[:len(signal)]
-                best = (b, c)
+    for dilation_s in range(1, 51, 6):
+        # for erosion_s in range(1, 31, 6):
+        b = ndimage.morphology.binary_dilation(a, structure=np.ones((dilation_s))).astype(a.dtype)
+        c = b
+        # c = ndimage.morphology.binary_erosion(b, structure=np.ones((erosion_s))).astype(b.dtype)
+        e = np.sum(mean_melspec*c)
+        if e > max_enegry:
+            max_enegry = e
+            c = np.repeat(c, len(signal)//len(c)+1)[:len(signal)]
+            best = (b, c)
 
     fig, ax = plt.subplots(3,2, figsize=(18, 16))
     # ax[0,0].plot(signal)
@@ -422,26 +431,32 @@ def get_audio_frequency_thrshold(signal, sr, duration, frame_size, filename, sav
     ax[0,1].set_xlabel('Time')
     ax[0,1].set_ylabel('thrshold')
 
-    ax[1,1].plot(best[1])
+    librosa.display.waveplot(signal, sr=sr, x_axis='s', ax=ax[1,1])
+    librosa.display.waveplot(np.max(signal)*best[1], sr=sr, x_axis='s', ax=ax[1,1])
     ax[1,1].set_title('Step 4')
     ax[1,1].set_xlabel('Time')
     ax[1,1].set_ylabel('thrshold')
 
     # ax[2,1].plot(signal)
     # ax[2,1].plot(np.max(signal)*best[1])
-    librosa.display.waveplot(signal, sr=sr, x_axis='s', ax=ax[2,1])
-    librosa.display.waveplot(np.max(signal)*best[1], sr=sr, x_axis='s', ax=ax[2,1])
+    out_signal = np.float32(signal*best[1])
+    librosa.display.waveplot(out_signal, sr=sr, x_axis='s', ax=ax[2,1])
     ax[2,1].set_title('Step 5')
     ax[2,1].set_xlabel('Time')
     ax[2,1].set_ylabel('thrshold')
 
-    fig_name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
-    plt.savefig(os.path.join(save_path, fig_name))
+    name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
+    plt.savefig(os.path.join(save_path, name))
     plt.close(fig)
     # plt.show()
 
+    if amplitude_factor==2 and first_erosion==13:
+        waveform = array.array(y.array_type, out_signal)
+        new_sound = y._spawn(waveform)
+        new_sound.export(os.path.join(save_path, name+'.wav'), 'wav')
+
+
 def first_order_filter():
-    import array
     # TODO: check https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
     f = rf'C:\Users\test\Downloads\AA\1632074953419_NA\1632074953419_34.m4a'
     f = rf'C:\Users\test\Downloads\AA\1631294788806_12_138.70_139.70_018.wav'
@@ -464,6 +479,7 @@ def first_order_filter():
 def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test2_2'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_min_balance'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
@@ -577,8 +593,8 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 if __name__ == '__main__':
     # show_dir_info()
-    # get_unconflicted_index()
+    get_unconflicted_index()
     # first_order_filter()
-    show_frequency()
+    # show_frequency()
     # stacked_bar_graph()
     pass

@@ -8,7 +8,7 @@ import pandas as pd
 import random
 from analysis import data_splitting
 from dataset import dataset_utils
-
+from analysis import utils
 
 # def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
 #     files = os.listdir(path)
@@ -227,6 +227,58 @@ def peak_analysis():
     thresholding(filename, threshold=25)
 
 
+def re_split():
+    """ A test code which is for temporally purpose to extend audio clip from 1 sec to 2 sec. 
+    Not a great example, please define everything clearly at first"""
+    c = '0'
+    clip_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\{c}'
+    peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak3_2'
+    audio_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2_new'
+    times = [1, 2]
+    sr = 16000
+    channels = 1
+    load_format = 'm4a'
+    save_format = 'wav'
+
+    # dir_list = utils.get_dir_list(peak_path)
+    # for d in dir_list:
+    #     os.rename(d, os.path.join(peak_path, os.path.basename(d).split('_')[0]))
+
+    filenames = data_splitting.get_files(clip_path, keys='wav', is_fullpath=True, sort=True)
+    for i, f in enumerate(filenames):
+        # Get subject, peak number, and peak time
+        subject = os.path.split(f)[1].split('_')[0]
+        number = os.path.split(f)[1].split('_')[1]
+        peak_number = os.path.split(f)[1].split('_')[2].split('.')[0]
+        df = pd.read_csv(os.path.join(peak_path, subject, f'{subject}_{number}_peak.csv'))
+        peak_time = df['Time (second)'][int(peak_number)-1]
+        
+        #  Load raw audio
+        data_path = os.path.join(audio_path, subject, f'{subject}_{number}.{load_format}')
+        y = utils.load_audio_waveform(data_path, load_format)
+        # y = utils.load_audio_waveform(data_path, load_format, sr, channels)
+
+        # if i+1==158:
+        #     print(i)
+        print(i+1, f)
+        for t in times:
+            pick_next = utils.get_audio_clip(y, [peak_time, peak_time+t], 1000)
+            pick_cent = utils.get_audio_clip(y, [peak_time-0.5*t, peak_time+0.5*t], 1000)
+
+            # make dir
+            path_cent = os.path.join(save_path, f'test_{t}sec_cent_mono', c)
+            path_next = os.path.join(save_path, f'test_{t}sec_next_mono', c)
+            if not os.path.isdir(path_cent): os.makedirs(path_cent)
+            if not os.path.isdir(path_next): os.makedirs(path_next)
+
+            # save audio clip
+            save_name = os.path.basename(f)
+            pick_cent.export(os.path.join(path_cent, save_name), format=save_format)
+            pick_next.export(os.path.join(path_next, save_name), format=save_format)
+
+
+
 def save_audio_fig():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
     save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\imgs\ASUS_snoring'
@@ -262,10 +314,10 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono', keyword='wav', name='filenames', shuffle=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h', keyword='wav', name='filenames', shuffle=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_MFCC', keyword='npy', name='filenames', shuffle=False)
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono', keyword='wav', name='filenames', shuffle=False)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h', keyword='wav', name='filenames', shuffle=False)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_MFCC', keyword='npy', name='filenames', shuffle=False)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 
@@ -273,4 +325,5 @@ if __name__ == '__main__':
     # generate_index_for_subject()
     # save_files_in_csv()
     # try_noisereduce()
+    re_split()
     pass

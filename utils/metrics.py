@@ -161,10 +161,10 @@ class SegmentationMetrics():
         # print(self.label.shape, self.pred.shape)
         # self.pred = np.int32(self.pred)
         cm = confusion_matrix(self.label, self.pred, labels=np.arange(0, num_class))
-        tp = np.diagonal(cm)[0]
+        tp = cm[1,1]
         fp = cm[0,1]
         fn = cm[1,0]
-        tn = np.diagonal(cm)[1]
+        tn = cm[0,0]
         
         # tp = ((self.pred.data == 1) & (self.label.data == 1)).sum()
         # tn = ((self.pred.data == 0) & (self.label.data == 0)).sum()

@@ -1,6 +1,7 @@
 
 import importlib
 import os
+import numpy as np
 import logging
 from analysis import data_splitting
 
@@ -323,11 +324,12 @@ if __name__ == "__main__":
     #                                include_or_exclude=['include', 'include'], 
     #                                is_fullpath=True)
     # a = 3
+    
 
-    generate_kaggle_snoring_index(
-        data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1',
-        save_path=rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\dataset',
-        data_split=(0.7, 0.3))
+    # generate_kaggle_snoring_index(
+    #     data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1',
+    #     save_path=rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\dataset',
+    #     data_split=(0.7, 0.3))
 
     # get_data_indices(
     #     data_name='Snoring', 
@@ -336,3 +338,4 @@ if __name__ == "__main__":
     #     mode='valid',
     #     data_split=(0.7, 0.3), 
     #     generate_index_func=generate_kaggle_snoring_index)
+    pass
