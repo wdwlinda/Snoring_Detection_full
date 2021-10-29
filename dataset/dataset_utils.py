@@ -272,35 +272,35 @@ def save_input_and_label_index(data_path, save_path, data_split, data_keys=None,
     #     save_content_in_txt(valid_ground_truth, 'valid_gt.txt', filter_bank=class_name, access_mode="w+", dir=save_path)
 
 
-def string_filtering(s, filter):
-    filtered_s = {}
-    for f in filter:
-        if f in s:
-            filtered_s[f] = s
-    if len(filtered_s) > 0:
-        return filtered_s
-    else:
-        return None
+# def string_filtering(s, filter):
+#     filtered_s = {}
+#     for f in filter:
+#         if f in s:
+#             filtered_s[f] = s
+#     if len(filtered_s) > 0:
+#         return filtered_s
+#     else:
+#         return None
 
 # TODO: mkdir?
-def save_content_in_txt(content, path, filter_bank, access_mode='a+', dir=None):
-    assert isinstance(content, (str, list, tuple, dict))
+def save_content_in_txt(content, path, filter_bank=None, access_mode='a+', dir=None):
+    # assert isinstance(content, (str, list, tuple, dict))
     # TODO: overwrite warning
     with open(path, access_mode) as fw:
-        def string_ops(s, dir, filter):
-            pair = string_filtering(s, filter)
-            return os.path.join(dir, list(pair.keys())[0], list(pair.values())[0])
+        # def string_ops(s, dir, filter):
+        #     pair = string_filtering(s, filter)
+        #     return os.path.join(dir, list(pair.keys())[0], list(pair.values())[0])
 
         if isinstance(content, str):
-            if dir:
-                content = string_ops(content, dir, filter=filter_bank)
-                # content = os.path.join(dir, content)
+            # if dir:
+            #     content = string_ops(content, dir, filter=filter_bank)
+            #     # content = os.path.join(dir, content)
             fw.write(content)
         else:
             for c in content:
-                if dir:
-                    c = string_ops(c, dir, filter=filter_bank)
-                    # c = os.path.join(dir, c)
+                # if dir:
+                #     c = string_ops(c, dir, filter=filter_bank)
+                #     # c = os.path.join(dir, c)
                 fw.write(f'{c}\n')
 
 

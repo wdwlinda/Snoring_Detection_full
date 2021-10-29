@@ -480,6 +480,7 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test2_2'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_min_balance'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test_2sec'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))

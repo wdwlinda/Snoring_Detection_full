@@ -230,8 +230,6 @@ def peak_analysis():
 def re_split():
     """ A test code which is for temporally purpose to extend audio clip from 1 sec to 2 sec. 
     Not a great example, please define everything clearly at first"""
-    c = '0'
-    clip_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\{c}'
     peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak3_2'
     audio_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2_new'
@@ -245,38 +243,66 @@ def re_split():
     # for d in dir_list:
     #     os.rename(d, os.path.join(peak_path, os.path.basename(d).split('_')[0]))
 
-    filenames = data_splitting.get_files(clip_path, keys='wav', is_fullpath=True, sort=True)
-    for i, f in enumerate(filenames):
-        # Get subject, peak number, and peak time
-        subject = os.path.split(f)[1].split('_')[0]
-        number = os.path.split(f)[1].split('_')[1]
-        peak_number = os.path.split(f)[1].split('_')[2].split('.')[0]
-        df = pd.read_csv(os.path.join(peak_path, subject, f'{subject}_{number}_peak.csv'))
-        peak_time = df['Time (second)'][int(peak_number)-1]
-        
-        #  Load raw audio
-        data_path = os.path.join(audio_path, subject, f'{subject}_{number}.{load_format}')
-        y = utils.load_audio_waveform(data_path, load_format)
-        # y = utils.load_audio_waveform(data_path, load_format, sr, channels)
+    c = '0'
+    for c in ['0', '1']:
+        clip_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\{c}'
+        filenames = data_splitting.get_files(clip_path, keys='wav', is_fullpath=True, sort=True)
+        for i, f in enumerate(filenames):
+            # if f == rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\0\1630345236867_6_034.wav':
+            # Get subject, peak number, and peak time
+            subject = os.path.split(f)[1].split('_')[0]
+            number = os.path.split(f)[1].split('_')[1]
+            peak_number = os.path.split(f)[1].split('_')[2].split('.')[0]
+            df = pd.read_csv(os.path.join(peak_path, subject, f'{subject}_{number}_peak.csv'))
+            if df['Time (second)'][0] == 0:
+                index = int(peak_number)
+            else:
+                index = int(peak_number) - 1
+            peak_time = df['Time (second)'][index]
+            
+            #  Load raw audio
+            data_path = os.path.join(audio_path, subject, f'{subject}_{number}.{load_format}')
+            # y = utils.load_audio_waveform(data_path, load_format)
+            y = utils.load_audio_waveform(data_path, load_format, sr, channels)
 
-        # if i+1==158:
-        #     print(i)
-        print(i+1, f)
-        for t in times:
-            pick_next = utils.get_audio_clip(y, [peak_time, peak_time+t], 1000)
-            pick_cent = utils.get_audio_clip(y, [peak_time-0.5*t, peak_time+0.5*t], 1000)
+            # if i+1==158:
+            #     print(i)
+            print(i+1, f, c)
+            for t in times:
+                # pick_next = utils.get_audio_clip(y, [peak_time, peak_time+t], 1000)
+                # pick_cent = utils.get_audio_clip(y, [peak_time-0.5*t, peak_time+0.5*t], 1000)
 
-            # make dir
-            path_cent = os.path.join(save_path, f'test_{t}sec_cent_mono', c)
-            path_next = os.path.join(save_path, f'test_{t}sec_next_mono', c)
-            if not os.path.isdir(path_cent): os.makedirs(path_cent)
-            if not os.path.isdir(path_next): os.makedirs(path_next)
+                # # make dir
+                # path_cent = os.path.join(save_path, f'test_{t}sec_cent_mono', c)
+                # path_next = os.path.join(save_path, f'test_{t}sec_next_mono', c)
+                # if not os.path.isdir(path_cent): os.makedirs(path_cent)
+                # if not os.path.isdir(path_next): os.makedirs(path_next)
 
-            # save audio clip
-            save_name = os.path.basename(f)
-            pick_cent.export(os.path.join(path_cent, save_name), format=save_format)
-            pick_next.export(os.path.join(path_next, save_name), format=save_format)
+                # # save audio clip
+                # save_name = os.path.basename(f)
+                # pick_cent.export(os.path.join(path_cent, save_name), format=save_format)
+                # pick_next.export(os.path.join(path_next, save_name), format=save_format)
 
+
+                range_next = [peak_time, peak_time+t]
+                if range_next[0] > 0 and range_next[1] < y.duration_seconds:
+                    pick_next = utils.get_audio_clip(y, range_next, 1000)
+                    path_next = os.path.join(save_path, f'test_{t}sec_next_mono_16k', c)
+                    # make dir
+                    if not os.path.isdir(path_next): os.makedirs(path_next)
+                    # save audio clip
+                    save_name = os.path.basename(f)
+                    pick_next.export(os.path.join(path_next, save_name), format=save_format)
+
+                range_cent = [peak_time-0.5*t, peak_time+0.5*t]
+                if range_cent[0] > 0 and range_cent[1] < y.duration_seconds:
+                    pick_cent = utils.get_audio_clip(y, range_cent, 1000)
+                    path_cent = os.path.join(save_path, f'test_{t}sec_cent_mono_16k', c)
+                    # make dir
+                    if not os.path.isdir(path_cent): os.makedirs(path_cent)
+                    # save audio clip
+                    save_name = os.path.basename(f)
+                    pick_cent.export(os.path.join(path_cent, save_name), format=save_format)
 
 
 def save_audio_fig():

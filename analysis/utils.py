@@ -37,6 +37,34 @@ import librosa
 #     # minimum sampling
 #     # class balance sampling
 
+def list_filtering(content, filter_keys, mode):
+    if not filter_keys:
+        return content
+    if isinstance(filter_keys, str):
+        filter_keys = [filter_keys]
+    new_content = []
+
+    for k in filter_keys:
+        for c in content:
+            if mode == 'keep':
+                if k in c:
+                    new_content.append(c)
+            elif mode == 'remove':
+                if k not in c:
+                    new_content.append(c)
+            else:
+                raise ValueError('Unknown filtering mode.')
+    return new_content
+
+
+# TODO: replace keyword mode
+# TODO: replace original file mode
+def process_keyword_in_txt(data_path, filter_keys, mode):
+    content = load_content_from_txt(data_path)
+    new_content = list_filtering(content, filter_keys, mode)
+    new_data_path = os.path.join(os.path.split(data_path)[0], os.path.split(data_path)[1].replace('.', '_new.'))
+    save_content_in_txt(new_content, new_data_path, access_mode='w+')
+
 
 def get_dir_list(data_path):
     dir_list = np.array([], dtype=object)
@@ -109,15 +137,20 @@ def load_audio_waveform(filename, audio_format, sr=None, channels=None):
 
 
 def main():
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
     
-    p, n = balancing_indexing(data_path)
-    index_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_min_balance'
-    content = np.concatenate([p, n])
+    # p, n = balancing_indexing(data_path)
+    # index_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_min_balance'
+    # content = np.concatenate([p, n])
 
-    with open(os.path.join(index_path, 'train.txt'), 'w+') as fw:
-        for c in content:
-            fw.write(f'{c}\n')
+    # with open(os.path.join(index_path, 'train.txt'), 'w+') as fw:
+    #     for c in content:
+    #         fw.write(f'{c}\n')
+    process_keyword_in_txt(
+        data_path=rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test_2sec\train.txt', 
+        filter_keys='_-', 
+        mode='remove')
+
 
 if __name__ == '__main__':
     main()
