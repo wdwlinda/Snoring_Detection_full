@@ -308,95 +308,31 @@ def show_frequency():
                 get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion)
 
 
-# def get_audio_frequency(signal, sr, duration, frame_size, filename, save_path, time_range):
-#     signal = np.float32(signal)
-#     spec = np.abs(librosa.stft(signal))
-#     mean_spec = np.mean(spec, axis=0)
-#     melspec = librosa.feature.melspectrogram(signal, sr)
-#     # melspec -= melspec.mean()
-#     mean_melspec = np.mean(melspec, axis=0)
-
-#     print(f'Shape of Spectrogram: {np.shape(spec)} Shape of Mel-Spectrogram: {np.shape(melspec)}', 
-#           f'Duration: {time_range[1]-time_range[0]+1} sec',
-#           f'Sample rate: {sr}')
-
-    
-#     hop_length = 512
-#     n_fft = 2048
-    
-#     # D = np.abs(librosa.stft(signal, n_fft=n_fft,  hop_length=hop_length))
-#     # librosa.display.specshow(D, sr=sr, x_axis='time', y_axis='linear')
-#     # plt.colorbar()
-
-#     fig = plt.figure(figsize=(16, 12))
-#     S = librosa.feature.melspectrogram(np.float32(signal), sr=sr, n_fft=n_fft, hop_length=hop_length)
-#     S_DB = librosa.power_to_db(S, ref=np.max)
-#     S_mean = S_DB - np.mean(S_DB, 0, keepdims=True)
-#     librosa.display.specshow(S_mean, sr=sr, hop_length=hop_length, x_axis='time', y_axis='mel')
-#     plt.title('Mel-Spectrogram')
-#     plt.colorbar(format='%+2.0f dB')
-#     fig_name = os.path.basename(filename).split('.')[0] + f'_melspec.png' 
-#     if not os.path.isdir(save_path):
-#         os.mkdir(save_path)
-#     fig.savefig(os.path.join(save_path, fig_name))
-#     plt.close(fig)
-#     # plt.show()
-
-#     # figure(figsize=(8, 6), dpi=80)
-#     fig, ax = plt.subplots(3,1, figsize=(18, 16))
-#     ax[0].plot(signal)
-#     ax[0].set_title('Singal')
-#     ax[0].set_xlabel('Time')
-
-#     # ax[1].plot(mean_spec)
-#     ax[1].plot(mean_melspec)
-#     ax[1].hlines(np.mean(mean_melspec), 0, len(mean_spec), 'r')
-#     ax[1].set_title('Average of Spectrogram')
-#     ax[1].set_xlabel('Time')
-#     ax[1].set_ylabel('Hz (linear)')
-    
-
-#     # mean_melspec = np.diff(mean_melspec, n=5)
-#     # mean_melspec[] = 0
-#     mean_melspec = np.where(np.abs(mean_melspec)<np.mean(mean_melspec), 0, 1)
-#     mean_melspec = ndimage.morphology.binary_erosion(mean_melspec, structure=np.ones((9))).astype(mean_melspec.dtype)
-#     mean_melspec = ndimage.morphology.binary_dilation(mean_melspec, structure=np.ones((1))).astype(mean_melspec.dtype)
-#     ax[2].plot(mean_melspec)
-#     ax[2].set_title('Average of Mel-Spectrogram')
-#     ax[2].set_xlabel('Time')
-#     ax[2].set_ylabel('Hz (Mel)')
-#     # plt.show()
-#     fig_name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
-#     plt.savefig(os.path.join(save_path, fig_name))
-
-
-def get_audio_frequency_thrshold(y, signal, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion):
+def get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion):
     hop_length = 512
     n_fft = 2048
-    # amplitude_factor = 2
-    # first_erosion = 17
+    waveform = np.float32(waveform)
+    # waveform *= np.abs(waveform)
 
-    # fig = plt.figure(figsize=(16, 12))
-    signal = np.float32(signal)
-    # signal *= np.abs(signal)
-    S = librosa.feature.melspectrogram(signal, sr=sr, n_fft=n_fft, hop_length=hop_length)
-    S_DB = librosa.power_to_db(S, ref=np.max)
-    S_mean = S_DB - np.mean(S_DB, 0, keepdims=True)
+    # Mel-spectrogram
+    S = librosa.feature.melspectrogram(waveform, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    # S_DB = librosa.power_to_db(S, ref=np.max)
+    # S_mean = S_DB - np.mean(S_DB, 0, keepdims=True)
 
     mean_melspec = np.mean(S, axis=0)
-    a = np.where(np.abs(mean_melspec)<np.mean(mean_melspec)*amplitude_factor, 0, 1)
-    a = ndimage.morphology.binary_erosion(a, structure=np.ones((first_erosion))).astype(a.dtype)
+    threshold = np.where(np.abs(mean_melspec)<np.mean(mean_melspec)*amplitude_factor, 0, 1)
+    a = ndimage.morphology.binary_erosion(threshold, structure=np.ones((first_erosion))).astype(threshold.dtype)
 
-    # best = (np.zeros_like(signal), a)
+    # best = (np.zeros_like(waveform), a)
     # a = np.where(np.abs(mean_melspec)<0.25, 0, 1)
     # b = ndimage.morphology.binary_dilation(a, structure=np.ones((13))).astype(a.dtype)
     # c = ndimage.morphology.binary_erosion(b, structure=np.ones((13))).astype(b.dtype)
-    # c = np.repeat(c, len(signal)//len(c)+1)
-    # print(len(c), len(signal))
-    # a = np.repeat(a, len(signal)//len(c))
+    # c = np.repeat(c, len(waveform)//len(c)+1)
+    # print(len(c), len(waveform))
+    # a = np.repeat(a, len(waveform)//len(c))
     
     max_enegry = -5
-    # np.repeat(c, len(signal)//len(c))
+    # np.repeat(c, len(waveform)//len(c))
     for dilation_s in range(1, 51, 6):
         # for erosion_s in range(1, 31, 6):
         b = ndimage.morphology.binary_dilation(a, structure=np.ones((dilation_s))).astype(a.dtype)
@@ -405,55 +341,79 @@ def get_audio_frequency_thrshold(y, signal, sr, duration, frame_size, filename, 
         e = np.sum(mean_melspec*c)
         if e > max_enegry:
             max_enegry = e
-            c = np.repeat(c, len(signal)//len(c)+1)[:len(signal)]
+            c = np.repeat(c, len(waveform)//len(c)+1)[:len(waveform)]
             best = (b, c)
 
-    fig, ax = plt.subplots(3,2, figsize=(18, 16))
-    # ax[0,0].plot(signal)
-    librosa.display.waveplot(signal, sr=sr, x_axis='s', ax=ax[0,0])
-    ax[0,0].set_title('Singal')
+    waveform_delay = np. concatenate((best[1][1:], np.zeros(1)))
+    edge = np.int32(np.logical_xor(best[1], waveform_delay))
+    edge_time = np.where(edge==1)[0] / (len(waveform) / y.duration_seconds)
+    edge_time = np.around(edge_time, decimals=2)
+
+    # get a clip
+    for i in range(0, len(edge_time), 2):
+        start_time, end_time = edge_time[i], edge_time[i+1]
+        clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
+
+    # # save in raw dir
+    # clip.export(os.path.join(save_path, name+'.wav'), 'wav')
+
+    # # save in different time level dir
+    # for t in time_level:
+    #     if t > end_time-start_time:
+    #         # cut and save
+    #         pass
+
+    plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, filename, time_range)
+    # if amplitude_factor==2 and first_erosion==13:
+    #     waveform = array.array(y.array_type, out_waveform)
+    #     new_sound = y._spawn(waveform)
+    #     new_sound.export(os.path.join(save_path, name+'.wav'), 'wav')
+
+
+def plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, filename, time_range):
+    fig, ax = plt.subplots(3,2, figsize=(9, 6))
+    # ax[0,0].plot(waveform)
+    librosa.display.waveplot(waveform, sr=sr, x_axis='s', ax=ax[0,0])
+    ax[0,0].set_title('Waveform')
     ax[0,0].set_xlabel('Time')
 
     # ax[1].plot(mean_spec)
-    ax[1,0].plot(mean_melspec, alpha=0.8)
-    ax[1,0].hlines(np.mean(mean_melspec), 0, len(mean_melspec), 'r')
-    ax[1,0].set_title('Step 1')
+    ax[1,0].plot(mean_melspec, alpha=0.6)
+    ax[1,0].hlines(np.mean(mean_melspec), 0, len(mean_melspec), linewidth=2, color='r')
+    ax[1,0].set_title('Average of Mel-spectrogram')
     ax[1,0].set_xlabel('Time')
     ax[1,0].set_ylabel('Hz (Mel)')
+    ax[1,0].set_xlim(0,len(mean_melspec))
     
-    ax[2,0].plot(a)
-    ax[2,0].set_title('Step 2')
-    ax[2,0].set_xlabel('Time')
-    ax[2,0].set_ylabel('thrshold')
+    ax[2,0].plot(threshold)
+    ax[2,0].set_title('Threshold')
+    ax[2,0].set_xlabel('Sample')
+    ax[2,0].set_xlim(0,len(threshold))
 
-    ax[0,1].plot(best[0])
-    ax[0,1].set_title('Step 3')
-    ax[0,1].set_xlabel('Time')
-    ax[0,1].set_ylabel('thrshold')
+    ax[0,1].plot(best[1])
+    # ax[0,1].plot(edge)
+    ax[0,1].set_title('Threshold (morphological operations)')
+    ax[0,1].set_xlabel('Sample')
+    ax[0,1].set_xlim(0,len(best[1]))
 
-    librosa.display.waveplot(signal, sr=sr, x_axis='s', ax=ax[1,1])
-    librosa.display.waveplot(np.max(signal)*best[1], sr=sr, x_axis='s', ax=ax[1,1])
-    ax[1,1].set_title('Step 4')
-    ax[1,1].set_xlabel('Time')
-    ax[1,1].set_ylabel('thrshold')
+    librosa.display.waveplot(waveform, sr=sr, x_axis='s', ax=ax[1,1])
+    librosa.display.waveplot(np.max(waveform)*best[1], sr=sr, x_axis='s', ax=ax[1,1])
+    ax[1,1].set_title('Waveform with threshold')
+    ax[1,1].set_xlabel('Sample')
 
-    # ax[2,1].plot(signal)
-    # ax[2,1].plot(np.max(signal)*best[1])
-    out_signal = np.float32(signal*best[1])
-    librosa.display.waveplot(out_signal, sr=sr, x_axis='s', ax=ax[2,1])
-    ax[2,1].set_title('Step 5')
+    # ax[2,1].plot(waveform)
+    # ax[2,1].plot(np.max(waveform)*best[1])
+    out_waveform = np.float32(waveform*best[1])
+    librosa.display.waveplot(out_waveform, sr=sr, x_axis='s', ax=ax[2,1])
+    ax[2,1].set_title('Waveform (thresholding)')
     ax[2,1].set_xlabel('Time')
-    ax[2,1].set_ylabel('thrshold')
 
     name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
-    plt.savefig(os.path.join(save_path, name))
-    plt.close(fig)
-    # plt.show()
+    # plt.savefig(os.path.join(save_path, name))
+    # plt.close(fig)
+    fig.tight_layout()
+    plt.show()
 
-    if amplitude_factor==2 and first_erosion==13:
-        waveform = array.array(y.array_type, out_signal)
-        new_sound = y._spawn(waveform)
-        new_sound.export(os.path.join(save_path, name+'.wav'), 'wav')
 
 
 def first_order_filter():
@@ -594,8 +554,8 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 if __name__ == '__main__':
     # show_dir_info()
-    get_unconflicted_index()
+    # get_unconflicted_index()
     # first_order_filter()
-    # show_frequency()
+    show_frequency()
     # stacked_bar_graph()
     pass

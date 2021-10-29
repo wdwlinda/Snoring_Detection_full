@@ -19,6 +19,7 @@ def get_audio_features(waveform, sample_rate, transform_methods, transform_confi
             spec = spectrogram(waveform, sample_rate, **transform_config)
         elif method == 'mel-spec':
             spec = mel_spec(waveform, sample_rate, **transform_config)
+            spec = spec.log2()
         elif method == 'MFCC':
             spec = MFCC(waveform, sample_rate, **transform_config)
         else:

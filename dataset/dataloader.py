@@ -117,31 +117,35 @@ class AudioDataset(AbstractDastaset):
         print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
     
-    def data_loading_function(self, filename):
-        waveform, sr = torchaudio.load(filename)
-        if self.dataset_config.sample_rate:
-            waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
-            sr = self.dataset_config.sample_rate
-        return waveform, sr
-    
     # def data_loading_function(self, filename):
-    #     y = utils.load_audio_waveform(filename, 'wav', self.dataset_config.sample_rate, channels=1)
-    #     sr = y.frame_rate
-    #     waveform = np.float32(np.array(y.get_array_of_samples()))
-    #     waveform = torch.from_numpy(waveform)
-    #     # waveform, sr = torchaudio.load(filename)
+    #     waveform, sr = torchaudio.load(filename)
+    #     # print(waveform.size())
     #     if self.dataset_config.sample_rate:
     #         waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
     #         sr = self.dataset_config.sample_rate
     #     return waveform, sr
+    
+    def data_loading_function(self, filename):
+        y = utils.load_audio_waveform(filename, 'wav', self.dataset_config.sample_rate, channels=1)
+        sr = y.frame_rate
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        waveform = torch.from_numpy(waveform)
+        # print(waveform.size())
+        # waveform, sr = torchaudio.load(filename)
+        if self.dataset_config.sample_rate:
+            waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
+            sr = self.dataset_config.sample_rate
+        return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         # input_preprocess.audio_preprocess(
         #     waveform, sample_rate, mix_waveform, self.transform_methods, self.transform_config, **self.preprocess_config)
+        # print(waveform.max(), waveform.min())
         if mix_waveform is not None:
             waveform = input_preprocess.mix_up(waveform, mix_waveform)
         features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
+        # print(audio_feature.max(), audio_feature.min())
 
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
@@ -167,13 +171,18 @@ class AudioDataset(AbstractDastaset):
             # factor /= torch.max(data)
             # data *= factor
             # data = torch.where(data == 0, np.finfo(float).eps, data)
-            data2 = 20 * torch.log10(data + 1)
+            data2 = 20 * torch.log10(data)
             # data2 = T.AmplitudeToDB()(data)
             # data2 = (data + 1)
-            torch.set_printoptions(precision=12)
+            # torch.set_printoptions(precision=12)
             print(data.max(), data.min(), data2.max(), data2.min())
             return data2
+
         # input_data = log(input_data)
+
+        # plt.imshow(input_data[0])
+        # plt.title(f'{self.ground_truth_indices[idx]}')
+        # plt.show()
 
         def check_input_data(idx1=22, idx2=23):
             import librosa.display

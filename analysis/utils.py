@@ -19,24 +19,6 @@ from pydub import AudioSegment
 import librosa
 
 
-# # TODO: in progress
-# def balancing_indexing(data_path):
-#     dir_list = get_dir_list(data_path)
-#     dir_samples_pair = {}
-#     for d in dir_list:
-#         if os.path.isdir(os.path.join(data_path, d, '1')):
-#             p = len(os.listdir(os.path.join(data_path, d, '1')))
-#         else:
-#             p = 0
-#         if os.path.isdir(os.path.join(data_path, d, '0')):
-#             n = len(os.listdir(os.path.join(data_path, d, '0')))
-#         else:
-#             n = 0
-#         dir_samples_pair[d] = (p, n)
-
-#     # minimum sampling
-#     # class balance sampling
-
 def list_filtering(content, filter_keys, mode):
     if not filter_keys:
         return content
