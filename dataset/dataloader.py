@@ -180,6 +180,7 @@ class AudioDataset(AbstractDastaset):
 
         # input_data = log(input_data)
 
+        # print(torch.sum(torch.isnan(input_data)), self.input_data_indices[idx])
         # plt.imshow(input_data[0])
         # plt.title(f'{self.ground_truth_indices[idx]}')
         # plt.show()

@@ -17,7 +17,7 @@ class ImageClassifier(nn.Module):
         self.output_structure = output_structure
         if 'resnet' in backbone or 'resnext' in backbone:
             self.encoder = creat_torchvision_backbone(in_channels, backbone, pretrained, final_flatten=True)
-        elif backbone in ['efficientnet_b0', 'efficientnet_b4']:
+        elif backbone in ['efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2', 'efficientnet_b3', 'efficientnet_b4']:
             self.encoder = creat_timm_backbone(in_channels, backbone, pretrained, final_flatten=True)
         else:
             raise ValueError(f"Unknown encoder: {backbone}")

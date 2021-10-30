@@ -32,9 +32,11 @@ def minmax_norm(data):
     data -= data.min(1, keepdim=True)[0]
     # torch.where(data==0,  torch.tensor([torch.finfo(float).eps]), data)
     eps = torch.finfo(float).eps
+    # print(1, data.max(), data.min())
+    data /= data.max(1, keepdim=True)[0]
     # data = (data + eps) / (eps + data.max(1, keepdim=True)[0])
     data = data.view(data_shape)
-    # print(data.max(), data.min())
+    # print(2, data.max(), data.min())
     # plt.imshow(data[0,0])
     # plt.show()
     return data

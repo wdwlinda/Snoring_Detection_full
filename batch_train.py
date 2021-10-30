@@ -152,7 +152,37 @@ def main():
         train.main(base_train_config)
 
 
+def main3():
+    exp_config_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\experiment.yml'
+    train_config_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_train_config.yml'
+    eval_config_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_valid_config.yml'
+
+    base_exp_config = configuration._load_config_yaml(exp_config_path)
+    base_train_config = configuration._load_config_yaml(train_config_path)
+    base_eval_config = configuration._load_config_yaml(eval_config_path)
+
+    exp_config = copy.deepcopy(base_exp_config)
+    
+    if base_exp_config:
+        for exp, params in exp_config.items():
+            train_config = copy.deepcopy(base_train_config)
+        # for k in params:
+            # train_config.update(params)   
+            update(train_config, params)       
+
+            print(30*'-')
+            pprint(train_config)
+            # train
+            # train.main(train_config)
+
+            # # evaluation
+            # eval.main(eval_config)
+    else:
+        train.main(base_train_config)
+
+
 if __name__ == '__main__':
     # test()
-    main()
+    # main()
     # main2()
+    main3()
