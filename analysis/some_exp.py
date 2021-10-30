@@ -308,12 +308,83 @@ def show_frequency():
                 get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion)
 
 
-def get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion):
+# class Sound_peak_picking():
+#     def __init__(self, filename):
+#         self.filename = filename
+
+    
+#     def get_peak_from_audio():
+#         pass
+
+#     def peak_statistics():
+#         pass
+
+#     def peak_plot():
+#         pass
+
+def main():
+    load_format = 'm4a'
+    save_format =  'wav'
     hop_length = 512
     n_fft = 2048
-    waveform = np.float32(waveform)
-    # waveform *= np.abs(waveform)
+    amplitude_factors = [2, 4]
+    first_erosions = [21, 25]
+    sr = 16000
+    channels = 1
+    times = [1,2,3]
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
 
+    for amplitude_factor in amplitude_factors:
+        for first_erosion in first_erosions:
+            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
+            get_clip_from_frquency_thresholding(data_path, save_path, load_format, save_format, sr, channels,
+                                                hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor, 
+                                                first_erosion=first_erosion, times=times)
+
+
+def get_clip_from_frquency_thresholding(
+    data_path, save_path, load_format, save_format, sr=None, channels=None, **kwargs):
+    # TODO: code opt
+    dir_list = utils.get_dir_list(data_path)
+    for d in dir_list:
+        file_list = data_splitting.get_files(d, keys=load_format)
+        save_subject_path = os.path.join(save_path, os.path.basename(d))
+        if not os.path.isdir(save_subject_path):
+            os.makedirs(save_subject_path)
+        for idx, f in enumerate(file_list):
+            print(f'{d}: {f} {idx+1}')
+            name = os.path.basename(f).split('.')[0]
+            name = '_'.join([name.split('_')[0], name.split('_')[-1]])
+
+            y = utils.load_audio_waveform(f, load_format, sr, channels)
+            sr = y.frame_rate
+            channels = y.channels
+
+            waveform = y.get_array_of_samples()
+            waveform = np.float32(np.array(waveform))
+
+            peak_times = get_audio_frequency_thrshold(waveform, sr, **kwargs)
+            
+            def save_clip(y, start_time, end_time, save_path):
+                clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
+                save_name = f'{name}_{start_time:.2f}_{end_time:.2f}_{file_idx+1:03d}'
+                clip.export(os.path.join(save_path, '.'.join([save_name, save_format])), save_format)
+
+            for file_idx, (start_time, end_time) in enumerate(zip(peak_times[::2], peak_times[1::2])):
+                save_clip(y, start_time, end_time, save_subject_path)
+
+                for t in kwargs.get('times', [1]):
+                    save_subject_path_t = save_subject_path.replace('raw_f_', f'raw_f_{t}')
+                    if not os.path.isdir(save_subject_path_t):
+                        os.makedirs(save_subject_path_t)
+                    if end_time-start_time > t:
+                        mid_time = (end_time-start_time)/2
+                        start_time_t, end_time_t = mid_time - t/2, mid_time + t/2
+                        start_time_t, end_time_t = np.around(start_time_t, decimals=2), np.around(end_time_t, decimals=2)
+                        save_clip(y, start_time_t, end_time_t, save_subject_path_t)
+            
+
+def get_audio_frequency_thrshold(waveform, sr, amplitude_factor, first_erosion, n_fft, hop_length, **kwargs):
     # Mel-spectrogram
     S = librosa.feature.melspectrogram(waveform, sr=sr, n_fft=n_fft, hop_length=hop_length)
     # S_DB = librosa.power_to_db(S, ref=np.max)
@@ -346,13 +417,13 @@ def get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename
 
     waveform_delay = np. concatenate((best[1][1:], np.zeros(1)))
     edge = np.int32(np.logical_xor(best[1], waveform_delay))
-    edge_time = np.where(edge==1)[0] / (len(waveform) / y.duration_seconds)
+    edge_time = np.where(edge==1)[0] / sr
     edge_time = np.around(edge_time, decimals=2)
 
-    # get a clip
-    for i in range(0, len(edge_time), 2):
-        start_time, end_time = edge_time[i], edge_time[i+1]
-        clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
+    # # get a clip
+    # for i in range(0, len(edge_time), 2):
+    #     start_time, end_time = edge_time[i], edge_time[i+1]
+    #     clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
 
     # # save in raw dir
     # clip.export(os.path.join(save_path, name+'.wav'), 'wav')
@@ -363,11 +434,12 @@ def get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename
     #         # cut and save
     #         pass
 
-    plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, filename, time_range)
+    # plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, filename, time_range)
     # if amplitude_factor==2 and first_erosion==13:
     #     waveform = array.array(y.array_type, out_waveform)
     #     new_sound = y._spawn(waveform)
     #     new_sound.export(os.path.join(save_path, name+'.wav'), 'wav')
+    return edge_time
 
 
 def plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, filename, time_range):
@@ -556,6 +628,7 @@ if __name__ == '__main__':
     # show_dir_info()
     # get_unconflicted_index()
     # first_order_filter()
-    show_frequency()
+    # show_frequency()
     # stacked_bar_graph()
+    main()
     pass
