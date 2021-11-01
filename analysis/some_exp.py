@@ -43,26 +43,26 @@ def audio_loading_exp():
     c2 = y2[1000:5000]
 
     y3 = pydub.AudioSegment(
-        w1.tobytes(), 
+        w1.tobytes(),
         frame_rate=44100,
-        sample_width=w1.dtype.itemsize, 
+        sample_width=w1.dtype.itemsize,
         channels=1
     )
     c3 = y3[1000:5000]
 
     c4 = w1[int(1*44100):int(5*44100)]
     c4 = pydub.AudioSegment(
-        c4.tobytes(), 
+        c4.tobytes(),
         frame_rate=44100,
-        sample_width=c4.dtype.itemsize, 
+        sample_width=c4.dtype.itemsize,
         channels=1
     )
-    
+
     c5 = w2[int(1*y2.frame_rate):int(5*y2.frame_rate)]
     c5 = pydub.AudioSegment(
-        c5.tobytes(), 
+        c5.tobytes(),
         frame_rate=y2.frame_rate,
-        sample_width=c5.dtype.itemsize, 
+        sample_width=c5.dtype.itemsize,
         channels=1
     )
 
@@ -231,7 +231,7 @@ def check_two_channels():
     ax[1].set_title('Right')
     ax[1].xaxis.grid()
     librosa.display.waveplot(right, sr, x_axis='s', ax=ax[1], color='g')
-    fig_name = os.path.basename(filename).split('.')[0] + f'_left_and_right_{time_range[0]}_{time_range[1]}' 
+    fig_name = os.path.basename(filename).split('.')[0] + f'_left_and_right_{time_range[0]}_{time_range[1]}'
     plt.savefig(os.path.join(save_path, fig_name))
     # plt.show()
 
@@ -248,7 +248,7 @@ def show_frequency():
                  rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631456400568_AA2001038\1631456400568_154.m4a',
                  rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631456400568_AA2001038\1631456400568_154.m4a',
                 ]
-    
+
     time_ranges = [
                    [82, 91],
                    [38, 47],
@@ -277,7 +277,7 @@ def show_frequency():
     filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630600693454', 'm4a'))
     time_ranges = [list([1, 180]) for _ in range(len(filenames))]
     # save_path = rf'C:\Users\test\Downloads\1018\test\result\meanspec'
-    
+
     frame_size = 8
     sr = 16000
     channels = 1
@@ -312,7 +312,7 @@ def show_frequency():
 #     def __init__(self, filename):
 #         self.filename = filename
 
-    
+
 #     def get_peak_from_audio():
 #         pass
 
@@ -327,28 +327,57 @@ def main():
     save_format =  'wav'
     hop_length = 512
     n_fft = 2048
-    amplitude_factors = [2, 4]
-    first_erosions = [21, 25]
+    amplitude_factors = [2, 4, 6]
+    first_erosions = [21, 25, 29]
+    amplitude_factors = [6]
+    # first_erosions = [21]
     sr = 16000
     channels = 1
     times = [1,2,3]
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
-
+    annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
+    save_with_hospital_label = True
+    
     for amplitude_factor in amplitude_factors:
         for first_erosion in first_erosions:
-            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
-            get_clip_from_frquency_thresholding(data_path, save_path, load_format, save_format, sr, channels,
-                                                hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor, 
-                                                first_erosion=first_erosion, times=times)
+            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq3\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
+            get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr, channels,
+                                                hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor,
+                                                first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label)
 
 
-def get_clip_from_frquency_thresholding(
-    data_path, save_path, load_format, save_format, sr=None, channels=None, **kwargs):
-    # TODO: code opt
+def get_hospital_annotation(data_path, annotation_path):
     dir_list = utils.get_dir_list(data_path)
+    ori_annotation_file_list = os.listdir(annotation_path)
+    annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list if 'csv' in f]
+    df_dict = {}
+    
+    for d in dir_list:
+        subject = os.path.basename(d).split('_')[0]
+        if subject in annotation_file_list:
+            if  subject in df_dict:
+                continue
+            else:                
+                annotation = ori_annotation_file_list[annotation_file_list.index(subject)]
+                df = pd.read_csv(os.path.join(annotation_path, annotation))
+                df_dict[subject] = df
+    return df_dict
+    
+    
+def get_clip_from_frquency_thresholding(
+    data_path, save_path, annotation_path, load_format, save_format, sr=None, channels=None, **kwargs):
+    # TODO: code opt
+    # TODO: sound increse optional
+    # TODO: some string process not general enough
+    dir_list = utils.get_dir_list(data_path)
+    save_with_hospital_label = kwargs.get('save_with_hospital_label', False)
+    if save_with_hospital_label:
+        annotation = get_hospital_annotation(data_path, annotation_path)
+                    
     for d in dir_list:
         file_list = data_splitting.get_files(d, keys=load_format)
         save_subject_path = os.path.join(save_path, os.path.basename(d))
+        subject = os.path.basename(d).split('_')[0]
         if not os.path.isdir(save_subject_path):
             os.makedirs(save_subject_path)
         for idx, f in enumerate(file_list):
@@ -357,6 +386,7 @@ def get_clip_from_frquency_thresholding(
             name = '_'.join([name.split('_')[0], name.split('_')[-1]])
 
             y = utils.load_audio_waveform(f, load_format, sr, channels)
+            y += 6
             sr = y.frame_rate
             channels = y.channels
 
@@ -364,7 +394,7 @@ def get_clip_from_frquency_thresholding(
             waveform = np.float32(np.array(waveform))
 
             peak_times = get_audio_frequency_thrshold(waveform, sr, **kwargs)
-            
+
             def save_clip(y, start_time, end_time, save_path):
                 clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
                 save_name = f'{name}_{start_time:.2f}_{end_time:.2f}_{file_idx+1:03d}'
@@ -373,16 +403,40 @@ def get_clip_from_frquency_thresholding(
             for file_idx, (start_time, end_time) in enumerate(zip(peak_times[::2], peak_times[1::2])):
                 save_clip(y, start_time, end_time, save_subject_path)
 
-                for t in kwargs.get('times', [1]):
-                    save_subject_path_t = save_subject_path.replace('raw_f_', f'raw_f_{t}')
-                    if not os.path.isdir(save_subject_path_t):
-                        os.makedirs(save_subject_path_t)
-                    if end_time-start_time > t:
-                        mid_time = (end_time-start_time)/2
-                        start_time_t, end_time_t = mid_time - t/2, mid_time + t/2
-                        start_time_t, end_time_t = np.around(start_time_t, decimals=2), np.around(end_time_t, decimals=2)
-                        save_clip(y, start_time_t, end_time_t, save_subject_path_t)
-            
+                times = kwargs.get('times', [1])
+                if times:
+                    for t in times:
+                        save_subject_path_t = save_subject_path.replace('raw_f_', f'raw_f_{t}_')
+                        if not os.path.isdir(save_subject_path_t):
+                            os.makedirs(save_subject_path_t)
+                        if end_time-start_time > t:
+                            mid_time = (end_time+start_time)/2
+                            start_time_t, end_time_t = mid_time - t/2, mid_time + t/2
+                            start_time_t, end_time_t = np.around(start_time_t, decimals=2), np.around(end_time_t, decimals=2)
+                            save_clip(y, start_time_t, end_time_t, save_subject_path_t)
+
+                        if save_with_hospital_label:
+                            save_subject_path_t_h = save_subject_path.replace('raw_f_', f'raw_f_h_{t}_')
+                            if not os.path.isdir(save_subject_path_t_h):
+                                os.makedirs(os.path.join(save_subject_path_t_h, '0'))
+                                os.makedirs(os.path.join(save_subject_path_t_h, '1'))
+                            if subject in annotation:
+                                df = annotation[subject]
+                                annotated_indices = df.index[df['File'] == os.path.basename(f)].tolist()
+                                if annotated_indices:
+                                    for k in annotated_indices:
+                                        start_time_h, end_time_h, snoring_label = df['Start time'][k], df['End time'][k], df['Label'][k]
+                                        if start_time_t >= start_time_h and end_time_t <= end_time_h:
+                                            if snoring_label == 'snoring':
+                                                sub_dir = '1'
+                                            elif snoring_label == 'non-snoring':
+                                                sub_dir = '0'
+                                            save_clip(y, start_time_t, end_time_t, os.path.join(save_subject_path_t_h, sub_dir))
+        
+    save_dir_list = utils.get_dir_list(os.path.split(save_path)[0])
+    for save_dir in save_dir_list:
+        test.save_aLL_files_name(save_dir, keyword=save_format, name='file_name', shuffle=False)
+
 
 def get_audio_frequency_thrshold(waveform, sr, amplitude_factor, first_erosion, n_fft, hop_length, **kwargs):
     # Mel-spectrogram
@@ -401,7 +455,7 @@ def get_audio_frequency_thrshold(waveform, sr, amplitude_factor, first_erosion, 
     # c = np.repeat(c, len(waveform)//len(c)+1)
     # print(len(c), len(waveform))
     # a = np.repeat(a, len(waveform)//len(c))
-    
+
     max_enegry = -5
     # np.repeat(c, len(waveform)//len(c))
     for dilation_s in range(1, 51, 6):
@@ -456,7 +510,7 @@ def plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, 
     ax[1,0].set_xlabel('Time')
     ax[1,0].set_ylabel('Hz (Mel)')
     ax[1,0].set_xlim(0,len(mean_melspec))
-    
+
     ax[2,0].plot(threshold)
     ax[2,0].set_title('Threshold')
     ax[2,0].set_xlabel('Sample')
@@ -480,7 +534,7 @@ def plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, 
     ax[2,1].set_title('Waveform (thresholding)')
     ax[2,1].set_xlabel('Time')
 
-    name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}' 
+    name = os.path.basename(filename).split('.')[0] + f'_mean_of_spec_{time_range[0]}_{time_range[1]}'
     # plt.savefig(os.path.join(save_path, name))
     # plt.close(fig)
     fig.tight_layout()
@@ -513,6 +567,7 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_min_balance'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test_2sec'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
@@ -524,7 +579,7 @@ def get_unconflicted_index():
       subject = os.path.basename(f).split('_')[0]
       if subject not in subject_list:
         subject_list.append(subject)
-      
+
     count = 0
     for f in train_idx:
       for s in subject_list:
@@ -533,7 +588,7 @@ def get_unconflicted_index():
           count += 1
           print(count, s, f)
           break
-        
+
     new_train_idx = list(set(train_idx)-set(new_train_idx))
     with open(os.path.join(path, 'train_new.txt'), 'w+') as fw:
       for f in new_train_idx:
@@ -546,6 +601,7 @@ def get_unconflicted_index():
 
 def show_dir_info():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq3\4_21\raw_f_h_1_mono_16k'
     # path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     # dir_list = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
     dir_list = utils.get_dir_list(path)
@@ -560,7 +616,7 @@ def show_dir_info():
         n = len(os.listdir(os.path.join(path, d, '0')))
       else:
         n = 0
-      
+
       acc = acc + p + n
       acc_p += p
       acc_n += n
@@ -585,7 +641,7 @@ def show_dir_info():
     dir_list_with_num = [f'{i+1:<5} {f:<30} ({total_balance[i]:0.2f} %)' for i, f in enumerate(dir_list)]
     for d in dir_list_with_num:
         print(d)
-    
+
     # Text box
     textstr = '\n'.join(dir_list_with_num[:len(dir_list_with_num)//2])
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.4)
@@ -625,10 +681,10 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    # show_dir_info()
+    show_dir_info()
     # get_unconflicted_index()
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
-    main()
+    # main()
     pass

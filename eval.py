@@ -89,8 +89,9 @@ def eval():
             inputs = train.minmax_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
             output = net(inputs)
-            prob = torch.exp(output) / torch.sum(torch.exp(output))
-            prediction = torch.argmax(output, dim=1)
+            prob = torch.nn.functional.softmax(output, dim=1)
+            # prob = torch.exp(output) / torch.sum(torch.exp(output))
+            prediction = torch.argmax(prob, dim=1)
             labels = labels.cpu().detach().numpy()
             prediction = prediction.cpu().detach().numpy()
             
@@ -135,7 +136,7 @@ def eval():
                 'prob': prob[0][1].item(),
                 'file_name': os.path.basename(test_dataset.input_data_indices[i])})
 
-        for th_prob in [0.6, 0.7, 0.8, 0.9, 0.95, 0.99]:
+        for th_prob in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]:
             y_pred_th = np.array(prob_p)
             y_pred_th[y_pred_th>th_prob] = 1
             y_pred_th[y_pred_th<=th_prob] = 0
@@ -143,6 +144,7 @@ def eval():
             # y_pred_th = np.append(y_pred[prob_p>th_prob], y_pred[prob_p<(1-th_prob)])
             # y_true_th = np.where(prob_p>th_prob, 1, np.where(prob_p<(1-th_prob), 1, 0))
             if len(y_pred_th) > 0:
+                print(y_true.max(), y_pred_th.max(), y_pred.max())
                 cm_th = confusion_matrix(y_true, y_pred_th)
                 print(f'{th_prob}: acc = {(cm_th[0,0]+cm_th[1,1])/np.sum(cm_th)*100:.2f} %')
             else:

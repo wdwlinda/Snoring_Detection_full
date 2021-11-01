@@ -151,8 +151,9 @@ def main(config_reference):
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
                 test_loss += loss_func(outputs, labels).item()
-                prediction = torch.argmax(outputs, dim=1)
-
+                # prob = torch.exp(outputs) / torch.sum(torch.exp(outputs))
+                prob = torch.nn.functional.softmax(outputs, dim=1)
+                prediction = torch.argmax(prob, dim=1)
                 labels = labels.cpu().detach().numpy()
                 prediction = prediction.cpu().detach().numpy()
                 evals = eval_tool(labels, prediction)

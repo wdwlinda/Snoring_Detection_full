@@ -43,7 +43,7 @@ def mel_spec(waveform, sample_rate, **kwargs):
       'n_mels': kwargs.get('n_mels'),
       'hop_length': kwargs.get('hop_length'),
       'mel_scale': 'htk',
-      'normalized': True
+    #   'normalized': True
     }
     return T.MelSpectrogram(sample_rate, **melkwargs)(waveform)
 

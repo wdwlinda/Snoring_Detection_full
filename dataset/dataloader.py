@@ -165,6 +165,9 @@ class AudioDataset(AbstractDastaset):
 
         input_data = self.preprocess(waveform, sr, mix_waveform)
 
+        # TODO: TBC
+        input_data = input_data[...,:31]
+
         def log(data):
             # factor = torch.max(data)
             # data = (data - torch.min(data)) / torch.max(data)
