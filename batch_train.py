@@ -173,7 +173,7 @@ def main3():
             print(30*'-')
             pprint(train_config)
             # train
-            # train.main(train_config)
+            train.main(train_config)
 
             # # evaluation
             # eval.main(eval_config)

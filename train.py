@@ -167,22 +167,6 @@ def main(config_reference):
             logger.info("- Testing Loss:{:.3f}".format(avg_test_loss))
 
 
-            #     total_tp += tp
-            #     total_fp += fp
-
-            #     accuracy = metrics.accuracy(np.sum(evaluator.total_tp), np.sum(evaluator.total_fp), np.sum(evaluator.total_fn))
-            #     tp, fp, fn = eval_tool.tp, eval_tool.fp, eval_tool.fn
-            #     if (tp + fp + fn) != 0:
-            #         test_acc.append(evals['accuracy'])
-            #     else:
-            #         test_acc.append(0)
-            # avg_test_acc = sum(test_acc) / len(test_acc)
-            # avg_test_loss = test_loss / testing_steps
-            # total_test_loss.append(avg_test_loss)
-            # total_test_acc.append(avg_test_acc)
-            # print("**Testing Loss:{:.3f}".format(avg_test_loss))
-            
-            
             checkpoint = {
                     "net": net.state_dict(),
                     'optimizer':optimizer.state_dict(),
@@ -232,6 +216,8 @@ def main(config_reference):
         
             plt.savefig(os.path.join(checkpoint_path, f'{experiment}_accuracy.png'))
         plt.close()
+
+        # writer.close()
 
 
     # # create trainer

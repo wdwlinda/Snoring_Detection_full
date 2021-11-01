@@ -165,8 +165,7 @@ class AudioDataset(AbstractDastaset):
 
         input_data = self.preprocess(waveform, sr, mix_waveform)
 
-        # TODO: TBC
-        input_data = input_data[...,:31]
+        # print(idx, self.input_data_indices[idx], len(waveform))
 
         def log(data):
             # factor = torch.max(data)

@@ -83,6 +83,7 @@ def eval():
         y_true, y_pred, prediction_record = np.array([], dtype=np.float32), np.array([], dtype=np.float32), []
         prob_p = np.array([], dtype=np.float32)
         prob_n = np.array([], dtype=np.float32)
+        pred_filenames = np.array([], dtype=object)
         for i, data in enumerate(test_dataloader):
             print('Sample: {}'.format(i+1))
             inputs, labels = data['input'], data['gt']
@@ -130,11 +131,13 @@ def eval():
 
             prob_p = np.append(prob_p, prob[0][1].item())
             prob_n = np.append(prob_n, prob[0][0].item())
+            # TODO: file_name accessing only work if shuffle=False
             prediction_record.append({
                 'label': labels[0],
                 'pred': prediction[0],
                 'prob': prob[0][1].item(),
                 'file_name': os.path.basename(test_dataset.input_data_indices[i])})
+
 
         for th_prob in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]:
             y_pred_th = np.array(prob_p)
@@ -144,7 +147,7 @@ def eval():
             # y_pred_th = np.append(y_pred[prob_p>th_prob], y_pred[prob_p<(1-th_prob)])
             # y_true_th = np.where(prob_p>th_prob, 1, np.where(prob_p<(1-th_prob), 1, 0))
             if len(y_pred_th) > 0:
-                print(y_true.max(), y_pred_th.max(), y_pred.max())
+                # print(y_true.max(), y_pred_th.max(), y_pred.max())
                 cm_th = confusion_matrix(y_true, y_pred_th)
                 print(f'{th_prob}: acc = {(cm_th[0,0]+cm_th[1,1])/np.sum(cm_th)*100:.2f} %')
             else:
@@ -172,13 +175,17 @@ def eval():
         print(f'total specificity: {100*mean_specificity:.2f} %', '\n')
         
         pred_file = f'{os.path.split(config.eval.restore_checkpoint_path)[1]}_prediction.csv'
+        th_prob = 0.9
         with open(os.path.join(config.eval.restore_checkpoint_path, pred_file), 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['#', 'file', 'label', 'prediction', 'positive prob', 'correctness'])
             for i, v in enumerate(prediction_record):
                 writer.writerow(
                     [str(i+1), v['file_name'], str(v['label']), str(v['pred']), str(v['prob']), str(int(v['label']==v['pred']))])
-
+                
+                
+                # if prob_p > th_prob or prob_p < (1-th_prob):
+                #     np.append(pred_filenames, prediction_record['file_name'])
 
         prob_pp, prob_nn = [], []
         prob_pp2, prob_nn2 = [], []
