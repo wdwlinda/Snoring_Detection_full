@@ -648,6 +648,7 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_KC'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
@@ -734,7 +735,10 @@ def show_dir_info(path, save_path):
     ax.text(0.65, 0.98, textstr, transform=ax.transAxes, fontsize=9,
         verticalalignment='top', bbox=props)
 
-    ax.text(0.01, 0.99, f'Total data sample: {sum(total_p+total_n)}\n P rate: {sum(total_p)/sum(total_p+total_n)}', transform=ax.transAxes, fontsize=9,
+    textstr = '\n'.join([f'Total data sample: {sum(total_p+total_n)}',
+                         f'P rate: {sum(total_p)/sum(total_p+total_n)}',
+                         f'P: {sum(total_p)} N: {sum(total_n)}'])
+    ax.text(0.01, 0.99, textstr, transform=ax.transAxes, fontsize=9,
         verticalalignment='top', bbox=props)
 
     ax.set_xlabel('Subject')
@@ -769,10 +773,10 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    get_unconflicted_index()
+    # get_unconflicted_index()
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
     # main()
-    # plot_dir_number()
+    plot_dir_number()
     pass

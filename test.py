@@ -9,6 +9,7 @@ import random
 from analysis import data_splitting
 from dataset import dataset_utils
 from analysis import utils
+import shutil
 
 # def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
 #     files = os.listdir(path)
@@ -330,6 +331,22 @@ def save_audio_fig():
                         plt.close()
 
 
+def get_diff_files(src1, src2, dst, data_format='wav'):
+    files1 = data_splitting.get_files(src1, data_format, is_fullpath=False)
+    files2 = data_splitting.get_files(src2, data_format, is_fullpath=False)
+    # TODO: fix above lines for generalization
+    dst_files = list(set(files1)-set(files2))
+    dst_files = [os.path.join(src1, f.split('_')[0], f) for f in dst_files]
+    # 
+
+    for idx, f in enumerate(dst_files):
+        print(f'{idx+1}/{len(dst_files)}', f)
+        new_f = f.replace(src1, dst)
+        if not os.path.isdir(os.path.split(new_f)[0]):
+            os.makedirs(os.path.split(new_f)[0])
+        shutil.copyfile(f, new_f)
+
+
 if __name__ == '__main__':
     # Snoring_data_analysis()
     # save_audio_fig()
@@ -344,6 +361,7 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h', keyword='wav', name='filenames', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_MFCC', keyword='npy', name='filenames', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
+    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
     # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
     #                       keyword_pair=['1', '0'], 
     #                       keep_remain=False, 
@@ -351,5 +369,12 @@ if __name__ == '__main__':
     # generate_index_for_subject()
     # save_files_in_csv()
     # try_noisereduce()
-    re_split()
+    # re_split()
+    for i in [1, 2, 4]:
+        for j in [9,13,21]:
+            for k in [1,2,3]:
+                src1 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_{k}_mono_16k'
+                src2 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_h_{k}_mono_16k'
+                dst = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_unlabeled_{k}_mono_16k_'
+                get_diff_files(src1, src2, dst, data_format='wav')
     pass

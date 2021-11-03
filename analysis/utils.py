@@ -181,9 +181,12 @@ def best_indexing(data_path, save_path, rate):
             n = len(os.listdir(os.path.join(data_path, d, '0')))
         else:
             n = 0
-        total_p.append(p)
-        total_n.append(n)
-        total_amount.append(p+n)
+        if p+n == 0:
+            dir_list.remove(d)
+        else:
+            total_p.append(p)
+            total_n.append(n)
+            total_amount.append(p+n)
     # sorted_subject_by_p = np.take(dir_list, np.argsort(total_p))
     # sorted_subject_by_n = np.take(dir_list, np.argsort(total_n))
     sorted_subject_by_pn = np.take(dir_list, np.argsort(total_amount))
@@ -336,7 +339,12 @@ def main():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\4_21\raw_f_h_1_mono_16k'
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_13\raw_f_h_2_mono_16k'
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_1_mono_16k'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_2_mono_16k'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_1_mono_16k'
     save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_unlabeld'
+    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_unlabeld'
 
     val_list_0 = ['1630779176834', '1631290615832', '1631037490390', '1631119510605', '1633366331189', '1631211991910', '1630949188143', '1631037196770', '1632597921043', '1631206248977']
     train_list_0 = ['1606921286802', '1620055140118', '1630345236867', '1620231545598', '1630945379152', '1620144382079', '1632329094624', '1598482996718', '1631293102954', '1633117275174', '1631294788806', '1633452805900', '1632245323932', '1630866536302', '1630600693454', '1633284111726', '1632672580868', '1632417619384', '1631810812342', '1631639847689', '1633540605366', '1631554200509', '1631208670684', '1631033725248', '1630681292279', '1633019471084', '1631902918706', '1631294758253', '1631208559119', '1630513297437']
@@ -344,11 +352,12 @@ def main():
     train_list_1 = ['1630779176834', '1620055140118', '1620231545598', '1630345236867', '1630949188143', '1598482996718', '1630866536302', '1630681292279', '1631119510605', '1633284111726', '1631208670684', '1631294758253', '1631208559119', '1631902918706', '1631293102954', '1632597921043', '1631551695426', '1632672580868', '1633540605366', '1631294788806', '1632417619384', '1631037196770', '1633019471084', '1630600693454', '1632245323932', '1631468777871', '1631810812342', '1631554200509', '1630945379152', '1630513297437', '1606921286802']
     # indexing(data_path)
 
-    # generate_index(data_path, save_path, subject_list)
+    unlabeled = ['1631456400568', '1633802751975', '1631385387541', '1631551841612', '1633626558232', '1631382924751', '1631719459740', '1631989049961', '1633713762911', '1633972039746', '1632074953419', '1631382357071']
+    generate_index(data_path, save_path, unlabeled)
     # save_subject_index(data_path, save_path, 'train', train_list_1, train_list_0, keys=[])
     # save_subject_index(data_path, save_path, 'valid', val_list_1, val_list_0, keys=[])
 
-    best_indexing(data_path, save_path, rate=None)
+    # best_indexing(data_path, save_path, rate=None)
     # p, n = balancing_indexing(data_path)
     # index_path = rf'C:\Users\test\Downloads\1022'
     # content = np.concatenate([p, n])

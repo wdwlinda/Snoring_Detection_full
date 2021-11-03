@@ -174,9 +174,9 @@ def main(config_reference):
                 labels = labels.cpu().detach().numpy()
                 prediction = prediction.cpu().detach().numpy()
                 evals = eval_tool(labels, prediction)
-            avg_test_acc = evals['accuracy'].item()
-            # avg_test_acc = metrics.accuracy(
-            #     np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn)).item()
+            # avg_test_acc = evals['accuracy'].item()
+            avg_test_acc = metrics.accuracy(
+                np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn)).item()
             
             writer.add_scalar('Accuracy/test', avg_test_acc, epoch)
             # total_test_acc = np.append(total_test_acc, avg_test_acc)
