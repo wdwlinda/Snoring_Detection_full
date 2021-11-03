@@ -124,7 +124,7 @@ class SegmentationMetrics():
     def __call__(self, label, pred):
         self.label = label
         self.pred = pred
-        self.tp, self.fp, self.fn, self.tn = self.confusion_matrix()
+        self.tp, self.fp, self.fn, self.tn = self.cm_value()
         self.total_tp = self.tp if self.total_tp is None else self.total_tp + self.tp
         self.total_fp = self.fp if self.total_fp is None else self.total_fp + self.fp
         self.total_fn = self.fn if self.total_fn is None else self.total_fn + self.fn
@@ -149,29 +149,18 @@ class SegmentationMetrics():
 
     def confusion_matrix(self):
         num_class = self.num_class if self.num_class > 1 else self.num_class + 1
-        # print(self.label.max(), self.label.min())
-        # print(self.pred.max(), self.pred.min())
-        # import matplotlib.pyplot as plt
-        # plt.imshow(self.pred)
-        # plt.show()
-        # plt.imshow(self.label)
-        # plt.show()
         self.label = np.reshape(self.label, [-1])
         self.pred = np.reshape(self.pred, [-1])
-        # print(self.label.shape, self.pred.shape)
-        # self.pred = np.int32(self.pred)
         cm = confusion_matrix(self.label, self.pred, labels=np.arange(0, num_class))
+        return cm
+    
+    def cm_value(self):
+        cm = self.confusion_matrix()
         tp = cm[1,1]
         fp = cm[0,1]
         fn = cm[1,0]
         tn = cm[0,0]
-        
-        # tp = ((self.pred.data == 1) & (self.label.data == 1)).sum()
-        # tn = ((self.pred.data == 0) & (self.label.data == 0)).sum()
-        # fn = ((self.pred.data == 0) & (self.label.data == 1)).sum()
-        # fp = ((self.pred.data == 1) & (self.label.data == 0)).sum()
         return (tp, fp, fn, tn)
-    
 
 # def torch_confusion_matrix
 def get_evaluation_metric(config):
