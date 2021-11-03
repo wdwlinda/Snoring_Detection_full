@@ -24,9 +24,10 @@ CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_c
 logger = train_utils.get_logger('train')
 
 
-def minmax_norm(data):
+def minmax_norm(data, label=None):
     # print(data.size())
     # print(data.max(), data.min())
+    
     data_shape = data.size()
     data = data.view(data.size(0), -1)
     data -= data.min(1, keepdim=True)[0]
@@ -37,6 +38,9 @@ def minmax_norm(data):
     # data = (data + eps) / (eps + data.max(1, keepdim=True)[0])
     data = data.view(data_shape)
     # print(2, data.max(), data.min())
+    # data = 20*torch.log10(data+1)
+
+    # plt.title(f'{label[0]}')
     # plt.imshow(data[0,0])
     # plt.show()
     return data
@@ -122,7 +126,7 @@ def main(config_reference):
         for i, data in enumerate(train_dataloader):
             net.train()
             inputs, labels = data['input'], data['gt']
-            inputs = minmax_norm(inputs)
+            inputs = minmax_norm(inputs, labels)
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = net(inputs)

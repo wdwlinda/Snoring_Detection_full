@@ -331,8 +331,8 @@ def main():
     first_erosions = [21, 25, 29]
     amplitude_factors = [2, 6]
     first_erosions = [13,21,29]
-    amplitude_factors = [2, 4]
-    first_erosions = [13, 21]
+    amplitude_factors = [1, 2, 4]
+    first_erosions = [9, 13, 21]
     sr = 16000
     channels = 1
     times = [1,2,3]
@@ -342,7 +342,7 @@ def main():
     
     for amplitude_factor in amplitude_factors:
         for first_erosion in first_erosions:
-            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq5\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
+            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
             get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr, channels,
                                                 hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor,
                                                 first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label)
@@ -411,30 +411,43 @@ def get_clip_from_frquency_thresholding(
                         save_subject_path_t = save_subject_path.replace('raw_f_', f'raw_f_{t}_')
                         if not os.path.isdir(save_subject_path_t):
                             os.makedirs(save_subject_path_t)
-                        if end_time-start_time > t:
-                            mid_time = (end_time+start_time)/2
-                            start_time_t = mid_time + t/2
-                            start_time_t = np.around(start_time_t, decimals=2)
-                            end_time_t = start_time_t + t
-                            save_clip(y, start_time_t, end_time_t, save_subject_path_t)
+                        
+                        # +++
+                        mid_time = (end_time+start_time)/2
+                        start_time_t = mid_time - t/2
+                        start_time_t = np.around(start_time_t, decimals=2)
+                        end_time_t = start_time_t + t
+                        save_clip(y, start_time_t, end_time_t, save_subject_path_t)
+                        # +++
+
+                        # if end_time-start_time > t:
+                        #     mid_time = (end_time+start_time)/2
+                        #     start_time_t = mid_time - t/2
+                        #     start_time_t = np.around(start_time_t, decimals=2)
+                        #     end_time_t = start_time_t + t
+                        #     save_clip(y, start_time_t, end_time_t, save_subject_path_t)
+                        # else:
+                        #     start_time_t, end_time_t = None, None
 
                         if save_with_hospital_label:
-                            save_subject_path_t_h = save_subject_path.replace('raw_f_', f'raw_f_h_{t}_')
-                            if not os.path.isdir(save_subject_path_t_h):
-                                os.makedirs(os.path.join(save_subject_path_t_h, '0'))
-                                os.makedirs(os.path.join(save_subject_path_t_h, '1'))
-                            if subject in annotation:
-                                df = annotation[subject]
-                                annotated_indices = df.index[df['File'] == os.path.basename(f)].tolist()
-                                if annotated_indices:
-                                    for k in annotated_indices:
-                                        start_time_h, end_time_h, snoring_label = df['Start time'][k], df['End time'][k], df['Label'][k]
-                                        if start_time_t >= start_time_h and end_time_t <= end_time_h:
-                                            if snoring_label == 'snoring':
-                                                sub_dir = '1'
-                                            elif snoring_label == 'non-snoring':
-                                                sub_dir = '0'
-                                            save_clip(y, start_time_t, end_time_t, os.path.join(save_subject_path_t_h, sub_dir))
+                            if start_time_t is not None and end_time_t is not None:
+                                save_subject_path_t_h = save_subject_path.replace('raw_f_', f'raw_f_h_{t}_')
+                                if not os.path.isdir(save_subject_path_t_h):
+                                    os.makedirs(os.path.join(save_subject_path_t_h, '0'))
+                                    os.makedirs(os.path.join(save_subject_path_t_h, '1'))
+                                if subject in annotation:
+                                    df = annotation[subject]
+                                    annotated_indices = df.index[df['File'] == os.path.basename(f)].tolist()
+                                    if annotated_indices:
+                                        for k in annotated_indices:
+                                            start_time_h, end_time_h, snoring_label = df['Start time'][k], df['End time'][k], df['Label'][k]
+                                            if start_time_t > start_time_h and end_time_t < end_time_h:
+                                                if snoring_label == 'snoring':
+                                                    sub_dir = '1'
+                                                elif snoring_label == 'non-snoring':
+                                                    sub_dir = '0'
+                                                # print(t, k, start_time_t, end_time_t)
+                                                save_clip(y, start_time_t, end_time_t, os.path.join(save_subject_path_t_h, sub_dir))
         
     save_dir_list = utils.get_dir_list(os.path.split(save_path)[0])
     for save_dir in save_dir_list:
@@ -548,8 +561,8 @@ def plot_freq_thresholding_process(waveform, mean_melspec, threshold, sr, best, 
 
 
 def plot_dir_number():
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq3'
-    save_path = rf'C:\Users\test\Downloads\1022\data_num'
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit'
+    save_path = rf'C:\Users\test\Downloads\1022\data_num\1102_nl'
     
     dir_list = utils.get_dir_list(data_path)
     _1sec = []
@@ -560,7 +573,7 @@ def plot_dir_number():
         dir_list2 = utils.get_dir_list(d)
         for d2 in dir_list2:
             if 'raw_f_h' in d2:
-                save_name = os.path.join(save_path, f'{os.path.split(d)[1]}_{os.path.split(d2)[1]}.png')
+                save_name = f'{os.path.split(d)[1]}_{os.path.split(d2)[1]}.png'
                 show_dir_info(d2, os.path.join(save_path, save_name))
                 file_list = data_splitting.get_files(d2, 'wav')
                 if '_1_' in d2:
@@ -597,7 +610,9 @@ def plot_dir_number():
     # ax.bar_label(rects3, padding=3)
 
     fig.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(save_path, f'dir_info.png'))
+    plt.close(fig)
+    # plt.show()
 
 
 def first_order_filter():
@@ -628,7 +643,9 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_2'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_2s'
-    train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_45cases'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\a'
+    train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'file_name.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
     valid_idx.sort()
@@ -650,7 +667,7 @@ def get_unconflicted_index():
           break
 
     new_train_idx = list(set(train_idx)-set(new_train_idx))
-    with open(os.path.join(path, 'train_new.txt'), 'w+') as fw:
+    with open(os.path.join(path, 'train.txt'), 'w+') as fw:
       for f in new_train_idx:
         fw.write(f)
         fw.write('\n')
@@ -700,18 +717,18 @@ def show_dir_info(path, save_path):
 
     # TODO: alignment problem, working in print function but not ax.text
     dir_list_with_num = [
-        f'{i+1:<5} p: {total_p[i]:<10} n: {total_n[i]:<10} p+n: {total_p[i]+total_n[i]:<10} ({total_balance[i]:0.2f} %)' for i, f in enumerate(dir_list)]
+        f'{i+1:<5} {os.path.basename(f).split("_")[0]:<10} p: {total_p[i]:<10} n: {total_n[i]:<10} p+n: {total_p[i]+total_n[i]:<10} ({total_balance[i]:0.2f} %)' for i, f in enumerate(dir_list)]
     # dir_list_with_num = [f'{i+1:<5} {f:<30} ({total_balance[i]:0.2f} %)' for i, f in enumerate(dir_list)]
     for d in dir_list_with_num:
         print(d)
 
     # Text box
     textstr = '\n'.join(dir_list_with_num[:len(dir_list_with_num)//2])
-    props = dict(boxstyle='round', facecolor='wheat', alpha=0.4)
-    ax.text(0.4, 0.98, textstr, transform=ax.transAxes, fontsize=9,
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.3)
+    ax.text(0.25, 0.98, textstr, transform=ax.transAxes, fontsize=9,
         verticalalignment='top', bbox=props)
     textstr = '\n'.join(dir_list_with_num[len(dir_list_with_num)//2:])
-    ax.text(0.67, 0.98, textstr, transform=ax.transAxes, fontsize=9,
+    ax.text(0.65, 0.98, textstr, transform=ax.transAxes, fontsize=9,
         verticalalignment='top', bbox=props)
 
     ax.text(0.01, 0.99, f'Total data sample: {sum(total_p+total_n)}\n P rate: {sum(total_p)/sum(total_p+total_n)}', transform=ax.transAxes, fontsize=9,
@@ -749,11 +766,10 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    # show_dir_info()
-    get_unconflicted_index()
+    # get_unconflicted_index()
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
     # main()
-    # plot_dir_number()
+    plot_dir_number()
     pass

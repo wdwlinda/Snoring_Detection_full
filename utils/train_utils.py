@@ -9,8 +9,19 @@ import importlib
 import torch.optim as optim
 import numpy as np
 from pprint import pprint
-
+from tensorboardX import SummaryWriter
     
+
+def tensorboard_write(data_to_record):
+    writer = SummaryWriter()
+
+    epoch = data_to_record.get('epoch', None)
+    dummy_s1 = torch.rand(1)
+    dummy_s2 = torch.rand(1)
+    # data grouping by `slash`
+    writer.add_scalar('data/scalar1', dummy_s1[0], epoch)
+    writer.add_scalar('data/scalar2', dummy_s2[0], epoch)
+
 
 def replace_item(obj, key, replace_value):
     for k, v in obj.items():

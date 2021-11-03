@@ -61,10 +61,12 @@ def fbank(waveform, sample_rate, **kwargs):
 
 
 def MFCC(waveform, sample_rate, n_mfcc, **kwargs):
-    melkwargs = {
-      'n_fft': kwargs.get('n_fft'),
-      'n_mels': kwargs.get('n_mels'),
-      'hop_length': kwargs.get('hop_length'),
-      'mel_scale': 'htk',
-    }
-    return T.MFCC(sample_rate, n_mfcc, melkwargs=melkwargs)(waveform)
+    # melkwargs = {
+    #   'n_fft': kwargs.get('n_fft'),
+    #   'n_mels': kwargs.get('n_mels'),
+    #   'hop_length': kwargs.get('hop_length'),
+    #   'mel_scale': 'htk',
+    # }
+    # return T.MFCC(sample_rate, n_mfcc, melkwargs=melkwargs)(waveform)
+
+    return torch.from_numpy(librosa.feature.mfcc(y=waveform.numpy(), sr=sample_rate, n_mfcc=40))

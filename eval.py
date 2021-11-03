@@ -107,8 +107,9 @@ def eval():
             total_precision = np.append(total_precision, evals['precision'])
             total_recall = np.append(total_recall, evals['recall'])
 
-            if not os.path.exists(os.path.join(config.eval.restore_checkpoint_path, 'images')):
-                os.makedirs(os.path.join(config.eval.restore_checkpoint_path, 'images'))
+            result_path = os.path.join(config.eval.restore_checkpoint_path, config.eval.running_mode)
+            if not os.path.exists(result_path):
+                os.makedirs(result_path)
 
             # TODO: Visualizer
             if config.eval.save_segmentation_result or config.eval.show_segmentation_result:
@@ -119,9 +120,7 @@ def eval():
                 if config.eval.save_segmentation_result:
                     image_code = i + 1
                     image_code = test_dataset.input_data[i].split('\\')[-1]
-                    fig.savefig(os.path.join(
-                        config.eval.restore_checkpoint_path, 'images', 
-                        f'{config.eval.running_mode}_{image_code}.png'))
+                    fig.savefig(os.path.join(result_path, f'{config.eval.running_mode}_{image_code}.png'))
                     plt.close(fig)
                 if config.eval.show_segmentation_result:
                     plt.show()
@@ -157,7 +156,7 @@ def eval():
 
         cm = confusion_matrix(y_true, y_pred)
         plot_confusion_matrix(cm, [0,1], normalize=False)
-        plt.savefig(os.path.join(config.eval.restore_checkpoint_path, 'cm.png'))
+        plt.savefig(os.path.join(config.eval.restore_checkpoint_path, config.eval.running_mode, 'cm.png'))
         # plt.show()
         precision = metrics.precision(evaluator.total_tp, evaluator.total_fp)
         recall = metrics.recall(evaluator.total_tp, evaluator.total_fn)
@@ -176,7 +175,7 @@ def eval():
         
         pred_file = f'{os.path.split(config.eval.restore_checkpoint_path)[1]}_prediction.csv'
         th_prob = 0.9
-        with open(os.path.join(config.eval.restore_checkpoint_path, pred_file), 'w', newline='') as csvfile:
+        with open(os.path.join(result_path, pred_file), 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['#', 'file', 'label', 'prediction', 'positive prob', 'correctness'])
             for i, v in enumerate(prediction_record):
@@ -208,7 +207,7 @@ def eval():
         ax.set_ylabel('negative')
         ax.set_title('Probability distribution')
         ax.legend([f'diff < {th} ({len(prob_pp)/len(prob_p)*100:.2f} %)', f'diff >= {th} ({len(prob_pp2)/len(prob_p)*100:.2f} %)'])
-        fig.savefig(os.path.join(config.eval.restore_checkpoint_path, 'class_prob_dist.png'))
+        fig.savefig(os.path.join(result_path, 'class_prob_dist.png'))
         # with open(os.path.join(config.eval.restore_checkpoint_path, 'error_samples.txt'), 'w+') as fw:
         #     errors.sort(key=len)
         #     for i, v in enumerate(errors):
