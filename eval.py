@@ -184,7 +184,7 @@ def eval():
                 
                 
                 # if prob_p > th_prob or prob_p < (1-th_prob):
-                #     np.append(pred_filenames, prediction_record['file_name'])
+                #     np.append(pred_filenames, prediction_record['file_name'])n
 
         prob_pp, prob_nn = [], []
         prob_pp2, prob_nn2 = [], []

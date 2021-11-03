@@ -645,7 +645,10 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_2s'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_45cases'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\a'
-    train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'file_name.txt'))
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_KC'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
+    train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
     valid_idx.sort()
@@ -667,7 +670,7 @@ def get_unconflicted_index():
           break
 
     new_train_idx = list(set(train_idx)-set(new_train_idx))
-    with open(os.path.join(path, 'train.txt'), 'w+') as fw:
+    with open(os.path.join(path, 'vv.txt'), 'w+') as fw:
       for f in new_train_idx:
         fw.write(f)
         fw.write('\n')
@@ -685,12 +688,12 @@ def show_dir_info(path, save_path):
     acc, acc_p, acc_n, acc_balance = 0, 0, 0, 0
     total_p, total_n, total_balance = [], [], []
     for d in dir_list:
-        if os.path.isdir(os.path.join(path, d, '1')):
+        if os.path.isdir(os.path.join(d, '1')):
             p = len(os.listdir(os.path.join(path, d, '1')))
         else:
             p = 0
-        if os.path.isdir(os.path.join(path, d, '0')):
-            n = len(os.listdir(os.path.join(path, d, '0')))
+        if os.path.isdir(os.path.join(d, '0')):
+            n = len(os.listdir(os.path.join(d, '0')))
         else:
             n = 0
 
@@ -766,10 +769,10 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    # get_unconflicted_index()
+    get_unconflicted_index()
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
     # main()
-    plot_dir_number()
+    # plot_dir_number()
     pass
