@@ -331,8 +331,8 @@ def main():
     first_erosions = [21, 25, 29]
     amplitude_factors = [2, 6]
     first_erosions = [13,21,29]
-    amplitude_factors = [1, 2, 4]
-    first_erosions = [9, 13, 21]
+    amplitude_factors = [2, 4]
+    first_erosions = [13, 21]
     sr = 16000
     channels = 1
     times = [1,2,3]
@@ -342,7 +342,7 @@ def main():
     
     for amplitude_factor in amplitude_factors:
         for first_erosion in first_erosions:
-            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
+            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq7_no_limit\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
             get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr, channels,
                                                 hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor,
                                                 first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label)
@@ -398,9 +398,10 @@ def get_clip_from_frquency_thresholding(
             peak_times = get_audio_frequency_thrshold(waveform, sr, **kwargs)
 
             def save_clip(y, start_time, end_time, save_path):
-                clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
-                save_name = f'{name}_{start_time:.2f}_{end_time:.2f}_{file_idx+1:03d}'
-                clip.export(os.path.join(save_path, '.'.join([save_name, save_format])), save_format)
+                if start_time > 0 and end_time < y.duration_seconds:
+                    clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
+                    save_name = f'{name}_{start_time:.2f}_{end_time:.2f}_{file_idx+1:03d}'
+                    clip.export(os.path.join(save_path, '.'.join([save_name, save_format])), save_format)
 
             for file_idx, (start_time, end_time) in enumerate(zip(peak_times[::2], peak_times[1::2])):
                 save_clip(y, start_time, end_time, save_subject_path)
@@ -417,6 +418,7 @@ def get_clip_from_frquency_thresholding(
                         start_time_t = mid_time - t/2
                         start_time_t = np.around(start_time_t, decimals=2)
                         end_time_t = start_time_t + t
+                        
                         save_clip(y, start_time_t, end_time_t, save_subject_path_t)
                         # +++
 
@@ -777,6 +779,6 @@ if __name__ == '__main__':
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
-    # main()
-    plot_dir_number()
+    main()
+    # plot_dir_number()
     pass

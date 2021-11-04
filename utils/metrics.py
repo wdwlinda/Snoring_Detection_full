@@ -162,6 +162,7 @@ class SegmentationMetrics():
         tn = cm[0,0]
         return (tp, fp, fn, tn)
 
+
 # def torch_confusion_matrix
 def get_evaluation_metric(config):
     """

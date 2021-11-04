@@ -69,4 +69,4 @@ def MFCC(waveform, sample_rate, n_mfcc, **kwargs):
     # }
     # return T.MFCC(sample_rate, n_mfcc, melkwargs=melkwargs)(waveform)
 
-    return torch.from_numpy(librosa.feature.mfcc(y=waveform.numpy(), sr=sample_rate, n_mfcc=40))
+    return torch.from_numpy(librosa.feature.mfcc(y=waveform.numpy(), sr=sample_rate, n_mfcc=n_mfcc))

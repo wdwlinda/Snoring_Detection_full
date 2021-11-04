@@ -22,12 +22,6 @@ from analysis.resample_test import resample
 from analysis import utils
 
 
-def minmax_normalization(image):
-    img_max = np.max(image)
-    img_min = np.min(image)
-    return (image-img_min) / (img_max-img_min)
-
-
 def convert_value(image, value_pair=None):
     # TODO: one-to-one mapping, non-repeat
     # TODO: label pair convert

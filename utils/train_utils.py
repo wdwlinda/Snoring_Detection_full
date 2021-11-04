@@ -15,6 +15,26 @@ from pprint import pprint
 
 
 
+def get_displaying_step(steps, times=5):
+    displaying_step = steps//times
+    length = 0
+    temp = displaying_step
+    while (temp):
+        temp = temp // 10
+        length += 1
+    displaying_step = round(displaying_step / 10**(length-1)) * 10**(length-1)
+    return displaying_step
+
+
+def minmax_norm(data):
+    data_shape = data.size()
+    data = data.view(data.size(0), -1)
+    data -= data.min(1, keepdim=True)[0]
+    data /= data.max(1, keepdim=True)[0]
+    data = data.view(data_shape)
+    return data
+
+
 def replace_item(obj, key, replace_value):
     for k, v in obj.items():
         if isinstance(v, dict):

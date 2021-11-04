@@ -26,15 +26,24 @@ from analysis import data_splitting
 #     return input_paths, gt_paths
 
 
-def get_files(path, keys=[], is_fullpath=True, sort=True):
-    """Get all the file name under the given path with assigned keys"""
+def get_files(path, keys=[], return_fullpath=True, sort=True, sorting_key=None):
+    """Get all the file name under the given path with assigned keys
+    Args:
+        path: (str)
+        keys: (list, str)
+        return_fullpath: (bool)
+        sort: (bool)
+        sorting_key: (func)
+    Return:
+        file_list: (list)
+    """
     file_list = []
     assert isinstance(keys, (list, str))
     if isinstance(keys, str): keys = [keys]
-    # Rmove repeated key
+    # Rmove repeated keys
     keys = list(set(keys))
 
-    def func(root, f, file_list, is_fullpath):
+    def push_into_filelist(root, f, file_list, is_fullpath):
         if is_fullpath:
             file_list.append(os.path.join(root, f))
         else:
@@ -45,18 +54,17 @@ def get_files(path, keys=[], is_fullpath=True, sort=True):
             if keys:
                 for key in keys:
                     if key in f:
-                        func(root, f, file_list, is_fullpath)
+                        push_into_filelist(root, f, file_list, return_fullpath)
             else:
-                func(root, f, file_list, is_fullpath)
+                push_into_filelist(root, f, file_list, return_fullpath)
 
     if file_list:
-        if sort: file_list.sort(key=len)
+        if sort: file_list.sort(key=sorting_key)
     else:
         if keys: 
             logging.warning(f'No file exist with key {keys}.') 
         else: 
             logging.warning(f'No file exist.') 
-            
     return file_list
 
 
