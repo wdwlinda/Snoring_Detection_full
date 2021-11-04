@@ -85,8 +85,8 @@ def main(config_reference):
 
     print(60*"-")
     loss_func = nn.CrossEntropyLoss()
-    train_writer = SummaryWriter(log_dir=checkpoint_path)
-    test_writer = SummaryWriter(log_dir=checkpoint_path)
+    train_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'train'))
+    test_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'valid'))
     max_acc = -1
     n_iter, test_n_iter = 0, 0
     for epoch in range(1, config.train.epoch+1):
@@ -124,7 +124,7 @@ def main(config_reference):
                 outputs = net(inputs)
                 loss = loss_func(outputs, labels).item()
                 total_test_loss += loss
-                test_writer.add_scalar('Loss/test', loss, test_n_iter)
+                test_writer.add_scalar('Loss/test/step', loss, test_n_iter)
 
                 prob = torch.nn.functional.softmax(outputs, dim=1)
                 prediction = torch.argmax(prob, dim=1)
@@ -136,7 +136,7 @@ def main(config_reference):
                 np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn)).item()
             
             test_writer.add_scalar('Accuracy/test/epoch', avg_test_acc, epoch)
-            train_writer.add_scalar('Loss/test/epoch', total_test_loss/testing_samples, epoch)
+            test_writer.add_scalar('Loss/test/epoch', total_test_loss/testing_samples, epoch)
 
             checkpoint = {
                 "net": net.state_dict(),

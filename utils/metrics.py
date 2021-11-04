@@ -48,7 +48,6 @@ def recall(tp, fn):
     return tp / denominator
 
 
-# TODO: correct
 def accuracy(tp, fp, fn, tn):
     denominator = tp + fp + tn + fn
     denominator = np.where(
@@ -85,24 +84,6 @@ def specificity(tn, fp):
     return tn / denominator
 
 
-# def precision(tp, fp):
-#     return (tp) / (tp + fp) if tp > 0 else 0
-
-# def recall(tp, fn):
-#     return (tp) / (tp + fn) if tp > 0 else 0
-
-# def accuracy(tp, fp, fn):
-#     return (2 * tp) / (2 * tp + fp + fn) if tp > 0 else 0
-
-
-# def f1(tp, fp, fn):
-#     return (2 * tp) / (2 * tp + fp + fn) if tp > 0 else 0
-
-
-# def iou(tp, fp, fn):
-#     return tp / (tp + fp + fn) if tp > 0 else 0
-
-
 # TODO: property for all avaiable metrics
 # TODO: input output type --> numpy or tensor
 # TODO: should implement in @staticmethod
@@ -129,10 +110,7 @@ class SegmentationMetrics():
         self.total_fp = self.fp if self.total_fp is None else self.total_fp + self.fp
         self.total_fn = self.fn if self.total_fn is None else self.total_fn + self.fn
         self.total_tn = self.tn if self.total_tn is None else self.total_tn + self.tn
-        # self.total_tp += self.tp
-        # self.total_fp += self.fp
-        # self.total_fn += self.fn
-        # self.total_tn += self.tn
+
         eval_result = {}
         for m in self.metrics:
             if m == 'precision':

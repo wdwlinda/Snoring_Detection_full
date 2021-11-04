@@ -104,8 +104,8 @@ class AudioDataset(AbstractDastaset):
         self.input_data_indices = dataset_utils.load_content_from_txt(
                 os.path.join(config.dataset.index_path, f'{mode}.txt'))
                 
-        self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices if ]
-        # self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
+        # self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices if ]
+        self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
         self.transform_methods = config.dataset.transform_methods
         self.transform_config = self.dataset_config.transform_config
         print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
