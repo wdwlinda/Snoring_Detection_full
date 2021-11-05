@@ -14,9 +14,10 @@ from dataset import dataset_utils
 from utils import configuration
 from utils import metrics
 from pprint import pprint
+from torch.cuda.amp import autocast, GradScaler
 ImageClassifier = img_classifier.ImageClassifier
 from tensorboardX import SummaryWriter
-
+import random
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # # device = torch.device('cpu')
 # print('Using device: {}'.format(device))
@@ -33,12 +34,17 @@ def main(config_reference):
     pprint(config)
 
     manual_seed = config.get('manual_seed', None)
-    if manual_seed:
+    if manual_seed is not None:
         logger.info(f'Seed the RNG for all devices with {manual_seed}')
         torch.manual_seed(manual_seed)
         # see https://pytorch.org/docs/stable/notes/randomness.html
-        torch.backends.cudnn.deterministic = True
+        torch.cuda.manual_seed(manual_seed)
+        torch.cuda.manual_seed_all(manual_seed)
+        np.random.seed(manual_seed)
+        random.seed(manual_seed)
         torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
 
     checkpoint_path = train_utils.create_training_path(os.path.join(config.train.project_path, 'checkpoints'))
     # TODO: selective pretrained
@@ -92,6 +98,7 @@ def main(config_reference):
     test_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'valid'))
     max_acc = -1
     n_iter, test_n_iter = 0, 0
+    scaler = GradScaler()
     for epoch in range(1, config.train.epoch+1):
         total_train_loss, total_test_loss = 0.0, 0.0
         print(60*"=")
@@ -99,14 +106,29 @@ def main(config_reference):
         for i, data in enumerate(train_dataloader):
             n_iter += 1
             net.train()
-            optimizer.zero_grad()
+            
             inputs, labels = data['input'], data['gt']
             inputs = train_utils.minmax_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
-            outputs = net(inputs)
-            loss = loss_func(outputs, labels.float())
-            loss.backward()
-            optimizer.step()
+
+            # # optimization if amp is not used
+            # outputs = net(inputs)
+            # loss = loss_func(outputs, labels.float())
+            # optimizer.zero_grad()
+            # loss.backward()
+            # optimizer.step()
+
+            # optimiztion if amp is used
+            with autocast():
+                outputs = net(inputs)
+                loss = loss_func(outputs, labels.float())
+
+            optimizer.zero_grad()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+
             loss = loss.item()
             train_writer.add_scalar('Loss/train/step', loss, n_iter)
             total_train_loss += loss
