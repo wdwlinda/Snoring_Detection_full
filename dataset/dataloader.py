@@ -4,15 +4,19 @@
 # from cfg import DATA_PATH
 from typing import AbstractSet
 import random
+from scipy.ndimage.measurements import label
 import torch
 import torchaudio
 import torchaudio.transforms as T
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
 import numpy as np
+import csv
+import pandas as df
 import os
 import cv2
 import matplotlib.pyplot as plt
+from analysis.data_splitting import get_files
 from dataset import preprocess_utils
 from dataset import input_preprocess
 from dataset import dataset_utils
@@ -20,6 +24,37 @@ from dataset import transformations
 from utils import configuration
 from analysis.resample_test import resample
 from analysis import utils
+
+
+def load_input_data(index_path, data_path, keys, data_split, label_csv=None):
+    
+    # Load data indices if exist
+    dataset_name = '-'.join([os.path.basename(data_path), data_split[0], data_split[1]])
+
+    # Create and save data indices
+    data_list = get_files(data_path, keys)
+    data_list.sort()
+    if os.path.exists(label_csv):
+        df_label = df.read_csv(label_csv)
+        labels = {f: df_label['full_path'][f] for f in data_list}
+    else:
+        labels = None
+    
+    return data_list, labels
+
+
+def make_index_dict(data_path):
+    if not os.path.exists(data_path):
+        return None
+
+    index_lookup = {}
+    with open(data_path, 'r') as f:
+        csv_reader = csv.DictReader(f)
+        line_count = 0
+        for row in csv_reader:
+            index_lookup[row['File']] = row['Label']
+            line_count += 1
+    return index_lookup
 
 
 def convert_value(image, value_pair=None):
@@ -30,13 +65,13 @@ def convert_value(image, value_pair=None):
     return image
 
 
-def create_kaggle_snoring_dataloader():
-    load_func = None
-    gen_index_func = dataset_utils.generate_kaggle_snoring_index
+# def create_kaggle_snoring_dataloader():
+#     load_func = None
+#     gen_index_func = dataset_utils.generate_kaggle_snoring_index
 
-    kaggle_snoring_dataloader = KaggleSnoringDataset(load_func,
-                                                     gen_index_func,)
-    return kaggle_snoring_dataloader
+#     kaggle_snoring_dataloader = KaggleSnoringDataset(load_func,
+#                                                      gen_index_func,)
+#     return kaggle_snoring_dataloader
     
 
 # TODO: check data shape and type
@@ -92,40 +127,39 @@ class AbstractDastaset(Dataset):
 
     def check_dataset_split(self, data_split):
         assert (isinstance(data_split, list) or isinstance(data_split, tuple))
-        assert data_split[0] + data_split[1] == 1
-
+        assert data_split[0] + data_split[1] == 1.0
+        assert data_split[0] >= 0.0 and data_split[0] <= 1.0
+        assert data_split[1] >= 0.0 and data_split[1] <= 1.0
     # def generate_index_func(self):
     #     return dataset_utils.generate_kaggle_breast_ultrasound_index
+
 
 # TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode):
         super().__init__(config, mode)
+        # self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data(
+        #     config.dataset.data_path, config.dataset.data_suffix, label_csv=os.path.join(config.dataset.data_path, 'label.csv'))
+        # # TODO: validation dataset_split
+        # # self.ground_truth_indices = make_index_dict(os.path.join(config.dataset.data_path, 'label.csv'))
+
+        self.data_suffix = config.dataset.data_suffix
         self.input_data_indices = dataset_utils.load_content_from_txt(
                 os.path.join(config.dataset.index_path, f'{mode}.txt'))
                 
-        # self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices if ]
-        self.ground_truth_indices = [int(os.path.basename(f)[0]) for f in self.input_data_indices]
+        # TODO: gt
+        # judge return (data) or (data, label), data_split, use two dataset together?
+        self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
         self.transform_methods = config.dataset.transform_methods
         self.transform_config = self.dataset_config.transform_config
-        print(f"{self.mode}  Samples: {len(self.input_data_indices)}")
+        print(f"Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
     
-    # def data_loading_function(self, filename):
-    #     waveform, sr = torchaudio.load(filename)
-    #     # print(waveform.size())
-    #     if self.dataset_config.sample_rate:
-    #         waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
-    #         sr = self.dataset_config.sample_rate
-    #     return waveform, sr
-    
     def data_loading_function(self, filename):
-        y = utils.load_audio_waveform(filename, 'wav', self.dataset_config.sample_rate, channels=1)
+        y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
         sr = y.frame_rate
         waveform = np.float32(np.array(y.get_array_of_samples()))
         waveform = torch.from_numpy(waveform)
-        # print(waveform.size())
-        # waveform, sr = torchaudio.load(filename)
         if self.dataset_config.sample_rate:
             waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
             sr = self.dataset_config.sample_rate
@@ -135,94 +169,43 @@ class AudioDataset(AbstractDastaset):
         # input_preprocess.audio_preprocess(
         #     waveform, sample_rate, mix_waveform, self.transform_methods, self.transform_config, **self.preprocess_config)
         # print(waveform.max(), waveform.min())
+        if len(waveform.shape) == 1:
+            waveform = torch.unsqueeze(waveform, dim=0)
+            if mix_waveform is not None:
+                mix_waveform = torch.unsqueeze(mix_waveform, dim=0)
+
         if mix_waveform is not None:
-            waveform = input_preprocess.mix_up(waveform, mix_waveform)
+            waveform, mix_lambda = input_preprocess.mix_up(waveform, mix_waveform)
+        else:
+            mix_lambda = None
         features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
-        # print(audio_feature.max(), audio_feature.min())
 
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
-        return audio_feature
+        return audio_feature, mix_lambda
 
     def __getitem__(self, idx):
         waveform, sr = self.data_loading_function(self.input_data_indices[idx])
         
         # TODO: related to is_augmentation?
         mix_waveform = None
-        if self.mode == 'train':
-            mix_up = self.dataset_config.preprocess_config.mix_up
-            if mix_up:
-                if mix_up > random.random():
-                    mix_idx = random.randint(0, len(self.input_data_indices)-1)
-                    mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
+        # if self.mode == 'train':
+        mix_up = self.dataset_config.preprocess_config.mix_up
+        if mix_up:
+            if mix_up > random.random():
+                mix_idx = random.randint(0, len(self.input_data_indices)-1)
+                mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
+        input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
 
-        input_data = self.preprocess(waveform, sr, mix_waveform)
-
-        # print(idx, self.input_data_indices[idx], len(waveform))
-
-        def log(data):
-            # factor = torch.max(data)
-            # data = (data - torch.min(data)) / torch.max(data)
-            # factor /= torch.max(data)
-            # data *= factor
-            # data = torch.where(data == 0, np.finfo(float).eps, data)
-            data2 = 20 * torch.log10(data)
-            # data2 = T.AmplitudeToDB()(data)
-            # data2 = (data + 1)
-            # torch.set_printoptions(precision=12)
-            print(data.max(), data.min(), data2.max(), data2.min())
-            return data2
-
-        # input_data = log(input_data)
-
-        # print(torch.sum(torch.isnan(input_data)), self.input_data_indices[idx])
-        # plt.imshow(input_data[0])
-        # plt.title(f'{self.ground_truth_indices[idx]}')
-        # plt.show()
-
-        def check_input_data(idx1=22, idx2=23):
-            import librosa.display
-            f1, f2 = self.input_data_indices[idx1], self.input_data_indices[idx2]
-            w1, sr1 = self.data_loading_function(f1)
-            w2, sr2 = self.data_loading_function(f2)
-
-            spec1 = self.preprocess(w1, sr1, mix_waveform=None)
-            spec2 = self.preprocess(w2, sr2, mix_waveform=None)
-
-            # spec1 = T.AmplitudeToDB()(spec1)
-            # spec2 = T.AmplitudeToDB()(spec2)
-
-            fig, ax = plt.subplots(2,1)
-            ax[0].set_title(f'{os.path.split(f1)[1]}_{self.ground_truth_indices[idx1]}')
-            ax[1].set_title(f'{os.path.split(f2)[1]}_{self.ground_truth_indices[idx2]}')
-            img = librosa.display.specshow(spec1[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[0])
-            librosa.display.specshow(spec2[0].cpu().numpy(), x_axis='time', y_axis='mel', ax=ax[1])
-            fig.colorbar(img, ax=ax, format="%+2.f dB")
-            # ax[0].imshow(spec1[0].cpu().numpy())
-            # ax[1].imshow(spec2[0].cpu().numpy())
-
-            plt.show()
-
-        # check_input_data()
-        # +++
-        # plt.imshow(mfcc)
-        # plt.show()
-        # print(self.input_data_indices[idx])
-        # factor = torch.max(input_data)
-        # input_data = (input_data - torch.min(input_data)) / torch.max(input_data)
-        # factor /= torch.max(input_data)
-        # input_data *= factor
-        # # input_data = torch.where(input_data == 0, np.finfo(float).eps, input_data)
-        # input_data = 20 * np.log10(input_data + 1)
-        # plt.imshow(input_data[0])
-        # import librosa.display
-        # librosa.display.specshow(input_data[0].cpu().numpy())
-        # plt.show()
-        # print(mfcc == input_data)
-        # +++
         if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
+            # TODO: binary to multi np.eye(2)
+            ground_truth = torch.eye(2)[ground_truth]
+            if mix_up:
+                if mix_lambda:
+                    mix_ground_truth = torch.eye(2)[self.ground_truth_indices[mix_idx]]
+                    ground_truth = mix_lambda*ground_truth + (1-mix_lambda)*mix_ground_truth
         else:
             ground_truth = None
         # TODO: general solution for channel issue
@@ -253,15 +236,6 @@ class AudioDataset(AbstractDastaset):
         audio_feature = torch.cat(reshape_f, axis=0)
         # self.model_config.in_channels = self.model_config.in_channels * len(features)
         return audio_feature
-
-
-class KaggleSnoringDataset(AudioDataset):
-    def __init__(self, config, mode):
-        super().__init__(config, mode)
-
-    def preprocess(self, data):
-        # data = self.audio_preprocess(data)
-        return data
 
 
 if __name__ == "__main__":

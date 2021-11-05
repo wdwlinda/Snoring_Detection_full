@@ -236,11 +236,11 @@ def f_high(y, sr):
     return yf
 
 
-def load_audio_waveform(filename, audio_format, sr=None, channels=None):
-    y = AudioSegment.from_file(filename, audio_format)
-    if sr: y = y.set_frame_rate(sr)
-    if channels: y = y.set_channels(channels)
-    return y
+# def load_audio_waveform(filename, audio_format, sr=None, channels=None):
+#     y = AudioSegment.from_file(filename, audio_format)
+#     if sr: y = y.set_frame_rate(sr)
+#     if channels: y = y.set_channels(channels)
+#     return y
 
 # +++ 11/3
 def get_dir_list(data_path, full_path=True):

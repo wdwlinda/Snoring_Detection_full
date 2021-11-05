@@ -4,6 +4,7 @@ import os
 import numpy as np
 import logging
 from analysis import data_splitting
+from pydub import AudioSegment
 
 
 # TODO: General solution
@@ -24,6 +25,14 @@ from analysis import data_splitting
 #                 else:
 #                     input_paths.append(fullpath)
 #     return input_paths, gt_paths
+
+
+def load_audio_waveform(filename, audio_format, sr=None, channels=None):
+    """Pydub based audio waveform loading function"""
+    y = AudioSegment.from_file(filename, audio_format)
+    if sr: y = y.set_frame_rate(sr)
+    if channels: y = y.set_channels(channels)
+    return y    
 
 
 def get_files(path, keys=[], return_fullpath=True, sort=True, sorting_key=None):

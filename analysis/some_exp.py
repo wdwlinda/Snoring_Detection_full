@@ -779,6 +779,8 @@ if __name__ == '__main__':
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
-    main()
+    # main()
+    show_dir_info(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k', 
+                  rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k')
     # plot_dir_number()
     pass

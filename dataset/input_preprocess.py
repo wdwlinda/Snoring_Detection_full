@@ -56,4 +56,4 @@ def mix_up(waveform1, waveform2):
 
     mix_waveform = mix_lambda * waveform1 + (1 - mix_lambda) * waveform2
     waveform = mix_waveform - mix_waveform.mean()
-    return waveform
+    return waveform, mix_lambda

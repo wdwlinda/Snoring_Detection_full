@@ -55,6 +55,8 @@ def main(config_reference):
     train_dataset = AudioDataset(config, mode='train')
     train_dataloader = DataLoader(
         train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
+    # TODO: config.dataset.preprocess_config.mix_up = None
+    config.dataset.preprocess_config.mix_up = None
     test_dataset = AudioDataset(config, mode='valid')
     test_dataloader = DataLoader(
         test_dataset, batch_size=1, shuffle=False, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
@@ -84,7 +86,8 @@ def main(config_reference):
 
 
     print(60*"-")
-    loss_func = nn.CrossEntropyLoss()
+    # loss_func = nn.CrossEntropyLoss()
+    loss_func = nn.BCEWithLogitsLoss()
     train_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'train'))
     test_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'valid'))
     max_acc = -1
@@ -101,7 +104,7 @@ def main(config_reference):
             inputs = train_utils.minmax_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = net(inputs)
-            loss = loss_func(outputs, labels)
+            loss = loss_func(outputs, labels.float())
             loss.backward()
             optimizer.step()
             loss = loss.item()
@@ -122,12 +125,15 @@ def main(config_reference):
                 inputs = train_utils.minmax_norm(inputs)
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
-                loss = loss_func(outputs, labels).item()
+                loss = loss_func(outputs, labels.float()).item()
                 total_test_loss += loss
                 test_writer.add_scalar('Loss/test/step', loss, test_n_iter)
 
-                prob = torch.nn.functional.softmax(outputs, dim=1)
+                # TODO: torch.nn.functional.sigmoid(outputs)
+                # prob = torch.nn.functional.softmax(outputs, dim=1)
+                prob = torch.sigmoid(outputs)
                 prediction = torch.argmax(prob, dim=1)
+                labels = torch.argmax(labels, dim=1)
                 labels = labels.cpu().detach().numpy()
                 prediction = prediction.cpu().detach().numpy()
                 evals = eval_tool(labels, prediction)

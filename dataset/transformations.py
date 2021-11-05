@@ -68,5 +68,6 @@ def MFCC(waveform, sample_rate, n_mfcc, **kwargs):
     #   'mel_scale': 'htk',
     # }
     # return T.MFCC(sample_rate, n_mfcc, melkwargs=melkwargs)(waveform)
-
+    # TODO: check feature extraction method
+    waveform = waveform[0]
     return torch.from_numpy(librosa.feature.mfcc(y=waveform.numpy(), sr=sample_rate, n_mfcc=n_mfcc))
