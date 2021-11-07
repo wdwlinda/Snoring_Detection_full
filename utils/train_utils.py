@@ -29,8 +29,9 @@ def get_displaying_step(steps, times=5):
 def minmax_norm(data):
     data_shape = data.size()
     data = data.view(data.size(0), -1)
-    data -= data.min(1, keepdim=True)[0]
-    data /= data.max(1, keepdim=True)[0]
+    # data -= data.min(1, keepdim=True)[0]
+    # data /= data.max(1, keepdim=True)[0]
+    data = (data-data.min(1, keepdim=True)[0]) / (data.max(1, keepdim=True)[0]-data.min(1, keepdim=True)[0])
     data = data.view(data_shape)
     return data
 

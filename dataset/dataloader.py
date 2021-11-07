@@ -26,21 +26,21 @@ from analysis.resample_test import resample
 from analysis import utils
 
 
-def load_input_data(index_path, data_path, keys, data_split, label_csv=None):
+# def load_input_data(index_path, data_path, keys, data_split, label_csv=None):
     
-    # Load data indices if exist
-    dataset_name = '-'.join([os.path.basename(data_path), data_split[0], data_split[1]])
+#     # Load data indices if exist
+#     dataset_name = '-'.join([os.path.basename(data_path), data_split[0], data_split[1]])
 
-    # Create and save data indices
-    data_list = get_files(data_path, keys)
-    data_list.sort()
-    if os.path.exists(label_csv):
-        df_label = df.read_csv(label_csv)
-        labels = {f: df_label['full_path'][f] for f in data_list}
-    else:
-        labels = None
+#     # Create and save data indices
+#     data_list = get_files(data_path, keys)
+#     data_list.sort()
+#     if os.path.exists(label_csv):
+#         df_label = df.read_csv(label_csv)
+#         labels = {f: df_label['full_path'][f] for f in data_list}
+#     else:
+#         labels = None
     
-    return data_list, labels
+#     return data_list, labels
 
 
 def make_index_dict(data_path):
@@ -143,6 +143,8 @@ class AudioDataset(AbstractDastaset):
         # # TODO: validation dataset_split
         # # self.ground_truth_indices = make_index_dict(os.path.join(config.dataset.data_path, 'label.csv'))
 
+        self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data()
+        
         self.data_suffix = config.dataset.data_suffix
         self.input_data_indices = dataset_utils.load_content_from_txt(
                 os.path.join(config.dataset.index_path, f'{mode}.txt'))

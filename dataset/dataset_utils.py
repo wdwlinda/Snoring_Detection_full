@@ -5,6 +5,7 @@ import numpy as np
 import logging
 from analysis import data_splitting
 from pydub import AudioSegment
+import pandas as pd
 
 
 # TODO: General solution
@@ -25,6 +26,88 @@ from pydub import AudioSegment
 #                 else:
 #                     input_paths.append(fullpath)
 #     return input_paths, gt_paths
+
+
+def get_ASUS_snoring_index(save_path, split, balancing=True):
+    # TODO: Multiple class (miner)
+    # Load and check dataset
+    subject_list = []
+    data_pair = {}
+    train_pairs, valid_pairs = [], []
+    df = pd.read_csv(save_path)
+    
+    for index, row in df.iterrows():
+        pair = (row['path'], row['label'])
+        if row['subject'] in data_pair:
+            data_pair[row['subject']].append(pair)
+        else:
+            subject_list.append(row['subject'])
+            data_pair[row['subject']] = [pair]
+        # TODO: balancing
+        
+    # indexing
+    if balancing:
+        sample_count = {}
+        for subject in subject_list:
+            for sample in data_pair[subject]:
+                if sample[1] in sample_count[subject]:
+                    sample_count[subject][sample[1]] += 1
+                else:
+                    sample_count[subject][sample[1]] = 1
+        
+    else:
+        sample_count = []
+        for subject in subject_list:
+            sample_count.append(len(data_pair[subject]))
+        sorted_idx = np.argsort(np.array(sample_count))
+        subject_list = np.take(subject_list, sorted_idx)
+        # TODO: subject_list[::3]
+        valid_subjects = subject_list[::3]
+        train_subjects = list(set(subject_list)-set(valid_subjects))
+        
+        for subject in train_subjects:
+            train_pairs.extend(data_pair[subject])
+            
+        for subject in valid_subjects:
+            valid_pairs.extend(data_pair[subject])    
+        
+    
+    
+    return train_pairs, valid_pairs
+        
+            
+        
+            
+    return train_pairs, valid_pairs
+
+
+def save_ASUS_snoring_index(data_path, data_suffixs):
+    # pass if index has existed
+    
+    # save dataset information
+    
+    # save dataset index in csv format
+    return save_path
+
+
+def load_input_data(config):
+    assert isinstance(config.dataset.data_path, dict)
+    total_train, total_valid = [], []
+    for key in config.dataset.data_path:
+        if key == 'ASUS_snoring':
+            save_path = save_ASUS_snoring_index(config.dataset.data_path[key])
+            train, valid = get_ASUS_snoring_index(save_path)
+        elif key == 'esc-50':
+            pass
+        elif key == 'Kaggle_snoring':
+            pass
+        total_train.extend(train)
+        total_valid.extend(valid)
+            
+    return total_train, total_valid
+    
+    
+    return datasets_indexed
 
 
 def load_audio_waveform(filename, audio_format, sr=None, channels=None):
