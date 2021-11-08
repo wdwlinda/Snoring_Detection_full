@@ -87,12 +87,14 @@ def eval():
         for i, data in enumerate(test_dataloader):
             print('Sample: {}'.format(i+1))
             inputs, labels = data['input'], data['gt']
-            inputs = train.minmax_norm(inputs)
+            inputs = train_utils.minmax_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)
             output = net(inputs)
-            prob = torch.nn.functional.softmax(output, dim=1)
-            # prob = torch.exp(output) / torch.sum(torch.exp(output))
+            # prob = torch.nn.functional.softmax(output, dim=1)
+            # prediction = torch.argmax(prob, dim=1)
+            prob = torch.sigmoid(output)
             prediction = torch.argmax(prob, dim=1)
+            labels = torch.argmax(labels, dim=1)
             labels = labels.cpu().detach().numpy()
             prediction = prediction.cpu().detach().numpy()
             

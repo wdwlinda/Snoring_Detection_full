@@ -117,7 +117,7 @@ def main(config_reference):
             # optimizer.zero_grad()
             # loss.backward()
             # optimizer.step()
-
+            
             # optimiztion if amp is used
             with autocast():
                 outputs = net(inputs)
@@ -149,7 +149,7 @@ def main(config_reference):
                 outputs = net(inputs)
                 loss = loss_func(outputs, labels.float()).item()
                 total_test_loss += loss
-                test_writer.add_scalar('Loss/test/step', loss, test_n_iter)
+                # test_writer.add_scalar('Loss/test/step', loss, test_n_iter)
 
                 # TODO: torch.nn.functional.sigmoid(outputs)
                 # prob = torch.nn.functional.softmax(outputs, dim=1)
@@ -179,7 +179,7 @@ def main(config_reference):
                 torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
 
             if epoch%config.train.checkpoint_saving_steps == 0:
-                logger.info("Saving model with testing accuracy {:.3f} in epoch {} ".format(avg_test_acc, epoch))
+                logger.info(f"Saving model with testing accuracy {avg_test_acc:.3f} in epoch {epoch} ")
                 checkpoint_name = 'ckpt_best_{:04d}.pth'.format(epoch)
                 torch.save(checkpoint, os.path.join(checkpoint_path, checkpoint_name))
 

@@ -4,6 +4,7 @@
 # from cfg import DATA_PATH
 from typing import AbstractSet
 import random
+import librosa
 from scipy.ndimage.measurements import label
 import torch
 import torchaudio
@@ -157,14 +158,19 @@ class AudioDataset(AbstractDastaset):
         print(f"Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
     
+    # def data_loading_function(self, filename):
+    #     waveform, sr = librosa.load(filename, self.dataset_config.sample_rate)
+    #     waveform = torch.from_numpy(waveform)
+    #     return waveform, sr
+
     def data_loading_function(self, filename):
         y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
         sr = y.frame_rate
         waveform = np.float32(np.array(y.get_array_of_samples()))
-        waveform = torch.from_numpy(waveform)
-        if self.dataset_config.sample_rate:
-            waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
-            sr = self.dataset_config.sample_rate
+        # waveform = torch.from_numpy(waveform)
+        # if self.dataset_config.sample_rate:
+        #     waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
+        #     sr = self.dataset_config.sample_rate
         return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
@@ -172,9 +178,9 @@ class AudioDataset(AbstractDastaset):
         #     waveform, sample_rate, mix_waveform, self.transform_methods, self.transform_config, **self.preprocess_config)
         # print(waveform.max(), waveform.min())
         if len(waveform.shape) == 1:
-            waveform = torch.unsqueeze(waveform, dim=0)
+            waveform = np.expand_dims(waveform, axis=0)
             if mix_waveform is not None:
-                mix_waveform = torch.unsqueeze(mix_waveform, dim=0)
+                mix_waveform = np.expand_dims(mix_waveform, axis=0)
 
         if mix_waveform is not None:
             waveform, mix_lambda = input_preprocess.mix_up(waveform, mix_waveform)
@@ -185,6 +191,9 @@ class AudioDataset(AbstractDastaset):
 
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
+
+        # if np.sum(np.isnan(audio_feature))> 0:
+        #     print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
         return audio_feature, mix_lambda
 
     def __getitem__(self, idx):
@@ -203,10 +212,10 @@ class AudioDataset(AbstractDastaset):
         if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
             # TODO: binary to multi np.eye(2)
-            ground_truth = torch.eye(2)[ground_truth]
+            ground_truth = np.eye(2)[ground_truth]
             if mix_up:
                 if mix_lambda:
-                    mix_ground_truth = torch.eye(2)[self.ground_truth_indices[mix_idx]]
+                    mix_ground_truth = np.eye(2)[self.ground_truth_indices[mix_idx]]
                     ground_truth = mix_lambda*ground_truth + (1-mix_lambda)*mix_ground_truth
         else:
             ground_truth = None
@@ -220,6 +229,9 @@ class AudioDataset(AbstractDastaset):
         # print('input size', input_data.size())
 
         # print(input_data.max(), input_data.min())
+
+        input_data = np.swapaxes(np.swapaxes(input_data, 0, 1), 1, 2)
+        input_data = self.transform(input_data)
         return {'input': input_data, 'gt': ground_truth}
 
     def merge_audio_features(self, features):
@@ -235,7 +247,7 @@ class AudioDataset(AbstractDastaset):
             reshape_f.append(f)
             # reshape_f.append(f)
                 
-        audio_feature = torch.cat(reshape_f, axis=0)
+        audio_feature = np.concatenate(reshape_f, axis=0)
         # self.model_config.in_channels = self.model_config.in_channels * len(features)
         return audio_feature
 
