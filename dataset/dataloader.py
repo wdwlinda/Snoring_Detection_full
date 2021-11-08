@@ -188,9 +188,13 @@ class AudioDataset(AbstractDastaset):
             mix_lambda = None
         features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
+        
+        audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
+        audio_feature = self.transform(audio_feature)
 
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
+
 
         # if np.sum(np.isnan(audio_feature))> 0:
         #     print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
@@ -230,8 +234,7 @@ class AudioDataset(AbstractDastaset):
 
         # print(input_data.max(), input_data.min())
 
-        input_data = np.swapaxes(np.swapaxes(input_data, 0, 1), 1, 2)
-        input_data = self.transform(input_data)
+        
         return {'input': input_data, 'gt': ground_truth}
 
     def merge_audio_features(self, features):
