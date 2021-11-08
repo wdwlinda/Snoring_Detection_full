@@ -358,7 +358,8 @@ if __name__ == '__main__':
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono', keyword='wav', name='filenames', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h', keyword='wav', name='filenames', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\ecs50\ecs50_1', keyword='wav', name='train', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\ecs50\ecs50_2', keyword='wav', name='train', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_MFCC', keyword='npy', name='filenames', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
     # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
@@ -370,11 +371,12 @@ if __name__ == '__main__':
     # save_files_in_csv()
     # try_noisereduce()
     # re_split()
-    for i in [1, 2, 4]:
-        for j in [9,13,21]:
-            for k in [1,2,3]:
-                src1 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_{k}_mono_16k'
-                src2 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_h_{k}_mono_16k'
-                dst = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_unlabeled_{k}_mono_16k_'
-                get_diff_files(src1, src2, dst, data_format='wav')
-    pass
+
+    # for i in [1, 2, 4]:
+    #     for j in [9,13,21]:
+    #         for k in [1,2,3]:
+    #             src1 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_{k}_mono_16k'
+    #             src2 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_h_{k}_mono_16k'
+    #             dst = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\{i}_{j}\raw_f_unlabeled_{k}_mono_16k_'
+    #             get_diff_files(src1, src2, dst, data_format='wav')
+    # pass

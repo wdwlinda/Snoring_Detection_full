@@ -26,15 +26,30 @@ def get_displaying_step(steps, times=5):
     return displaying_step
 
 
+# def minmax_norm(data):
+#     data_shape = data.size()
+#     data = data.view(data.size(0), -1)
+#     # data -= data.min(1, keepdim=True)[0]
+#     # data /= data.max(1, keepdim=True)[0]
+#     data = (data-data.min(1, keepdim=True)[0]) / (data.max(1, keepdim=True)[0]-data.min(1, keepdim=True)[0])
+#     data = data.view(data_shape)
+#     return data
+
 def minmax_norm(data):
     data_shape = data.size()
-    data = data.view(data.size(0), -1)
+    data = data.view(data.size()[0], -1)
     # data -= data.min(1, keepdim=True)[0]
     # data /= data.max(1, keepdim=True)[0]
-    data = (data-data.min(1, keepdim=True)[0]) / (data.max(1, keepdim=True)[0]-data.min(1, keepdim=True)[0])
+    mins = data.min(1, keepdim=True)[0]
+    maxs = data.max(1, keepdim=True)[0]
+    data = (data-mins) / (maxs-mins)
+    # if torch.sum(torch.isnan(data)) > 0:
+    #     print(10)
     data = data.view(data_shape)
+    # import matplotlib.pyplot as plt
+    # plt.imshow(data[0,0])
+    # plt.show()
     return data
-
 
 def replace_item(obj, key, replace_value):
     for k, v in obj.items():

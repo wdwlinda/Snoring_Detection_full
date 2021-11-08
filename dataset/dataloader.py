@@ -143,7 +143,7 @@ class AudioDataset(AbstractDastaset):
         # # TODO: validation dataset_split
         # # self.ground_truth_indices = make_index_dict(os.path.join(config.dataset.data_path, 'label.csv'))
 
-        self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data()
+        # self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data()
         
         self.data_suffix = config.dataset.data_suffix
         self.input_data_indices = dataset_utils.load_content_from_txt(
