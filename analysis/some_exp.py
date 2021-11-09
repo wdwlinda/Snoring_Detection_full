@@ -327,10 +327,6 @@ def main():
     save_format =  'wav'
     hop_length = 512
     n_fft = 2048
-    amplitude_factors = [2, 4, 6]
-    first_erosions = [21, 25, 29]
-    amplitude_factors = [2, 6]
-    first_erosions = [13,21,29]
     amplitude_factors = [2, 4]
     first_erosions = [13, 21]
     sr = 16000
@@ -342,7 +338,7 @@ def main():
     
     for amplitude_factor in amplitude_factors:
         for first_erosion in first_erosions:
-            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq7_no_limit\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
+            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_ori\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
             get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr, channels,
                                                 hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor,
                                                 first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label)
@@ -387,8 +383,8 @@ def get_clip_from_frquency_thresholding(
             name = os.path.basename(f).split('.')[0]
             name = '_'.join([name.split('_')[0], name.split('_')[-1]])
 
-            y = utils.load_audio_waveform(f, load_format, sr, channels)
-            y += 6
+            y = dataset_utils.load_audio_waveform(f, load_format, sr, channels)
+            # y += 6
             sr = y.frame_rate
             channels = y.channels
 
@@ -779,8 +775,8 @@ if __name__ == '__main__':
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
-    # main()
-    show_dir_info(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k', 
-                  rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k')
+    main()
+    # show_dir_info(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k', 
+    #               rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k')
     # plot_dir_number()
     pass

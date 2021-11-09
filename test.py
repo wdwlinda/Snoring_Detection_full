@@ -349,14 +349,14 @@ def get_diff_files(src1, src2, dst, data_format='wav'):
 
 
 def convert_testing_data(path, src, dst, add_dB):
-    y1 = AudioSegment.from_file(path, src)
+    y1 = dataset_utils.load_audio_waveform(path, src, 16000, 1)
     y2 = y1 + add_dB
     y1.export(path.replace(src, dst), dst)
-    y2.export(path.replace(src, dst), dst)
+    y2.export(path.replace(f'.{src}', f'_6dB.{dst}'), dst)
 
 
 def convert_KC_testing():
-    file_list = [rf'']
+    file_list = data_splitting.get_files(rf'C:\Users\test\Downloads\1112\KC_testing', 'm4a')
     for f in file_list:
         convert_testing_data(f, 'm4a', 'wav', 6)
 
@@ -386,7 +386,10 @@ if __name__ == '__main__':
     # try_noisereduce()
     # re_split()
 
-    convert_KC_testing()
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\_12remain_for_testing', keyword='wav', name='train', shuffle=False)
+    
+    # convert_KC_testing()
+
     # for i in [2, 4]:
     #     for j in [13,21]:
     #         for k in [1,2,3]:

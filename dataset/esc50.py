@@ -1,6 +1,7 @@
 import os
 import logging
 from pydub import AudioSegment
+import numpy as np
 
 MAJOR_CATEGORIES = [
     'Animals',
@@ -86,15 +87,19 @@ def ecs50_process(data_path, save_path, base_folder_name='ecs50'):
         # split to 1 sec samples
         for idx, t in enumerate(range(duration), 1):
             clip = y[1000*t:1000*(t+1)]
-            clip.export(os.path.join(save_path1, basename).replace('.wav', f'-{idx}.wav'), 'wav')
+            # Filter out no sound clips (all zeros)
+            if np.sum(clip.get_array_of_samples()) != 0:
+                clip.export(os.path.join(save_path1, basename).replace('.wav', f'-{idx}.wav'), 'wav')
 
         # split to 2 sec samples
         for idx, t in enumerate(range(duration-1), 1):
             clip = y[1000*t:1000*(t+2)]
-            clip.export(os.path.join(save_path2, basename).replace('.wav', f'-{idx}.wav'), 'wav')
+            # Filter out no sound clips (all zeros)
+            if np.sum(clip.get_array_of_samples()) != 0:
+                clip.export(os.path.join(save_path2, basename).replace('.wav', f'-{idx}.wav'), 'wav')
 
 
 if __name__ == '__main__':
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50-master'
     save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process'
-    ecs50_process(data_path, save_path, base_folder_name='ecs50')
+    ecs50_process(data_path, save_path, base_folder_name='esc50')

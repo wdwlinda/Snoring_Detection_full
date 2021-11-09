@@ -38,18 +38,20 @@ def spectrogram(waveform, n_fft, **kwargs):
     return T.Spectrogram(n_fft, **kwargs)(waveform)
 
 
+# def mel_spec(waveform, sample_rate, **kwargs):
+#     melkwargs = {
+#       'n_fft': kwargs.get('n_fft'),
+#       'n_mels': kwargs.get('n_mels'),
+#       'hop_length': kwargs.get('hop_length'),
+#       'mel_scale': 'htk',
+#     #   'normalized': True
+#     }
+#     return T.MelSpectrogram(sample_rate, **melkwargs)(torch.from_numpy(waveform)).numpy()
+
+
 def mel_spec(waveform, sample_rate, **kwargs):
-    # melkwargs = {
-    #   'n_fft': kwargs.get('n_fft'),
-    #   'n_mels': kwargs.get('n_mels'),
-    #   'hop_length': kwargs.get('hop_length'),
-    #   'mel_scale': 'htk',
-    # #   'normalized': True
-    # }
-    # return T.MelSpectrogram(sample_rate, **melkwargs)(waveform)
     waveform = waveform[0]
     return librosa.feature.melspectrogram(y=waveform, sr=sample_rate)
-    # return torch.from_numpy(librosa.feature.melspectrogram(y=waveform, sr=sample_rate))
 
 
 def fbank(waveform, sample_rate, **kwargs):
@@ -61,7 +63,7 @@ def fbank(waveform, sample_rate, **kwargs):
       'dither': 0.0,
       'frame_shift': 10
     }
-    return torchaudio.compliance.kaldi.fbank(waveform, sample_frequency=sample_rate, **melkwargs)
+    return torchaudio.compliance.kaldi.fbank(torch.from_numpy(waveform), sample_frequency=sample_rate, **melkwargs).numpy()
     
 
 
@@ -75,4 +77,4 @@ def MFCC(waveform, sample_rate, n_mfcc, **kwargs):
     # return T.MFCC(sample_rate, n_mfcc, melkwargs=melkwargs)(waveform)
     # TODO: check feature extraction method
     waveform = waveform[0]
-    return torch.from_numpy(librosa.feature.mfcc(y=waveform.numpy(), sr=sample_rate, n_mfcc=n_mfcc))
+    return librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=n_mfcc)

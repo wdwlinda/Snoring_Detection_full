@@ -109,8 +109,13 @@ def main(config_reference):
             
             inputs, labels = data['input'], data['gt']
             inputs = train_utils.minmax_norm(inputs)
+            # if torch.sum(torch.isnan(inputs[0,0]))> 0:
+            #     plt.imshow(torch.where(torch.isnan(inputs[0,0]), 1, 0))
+            #     plt.show()
+            #     plt.imshow(inputs[0,0])
+            #     plt.show()
             inputs, labels = inputs.to(device), labels.to(device)
-
+            
             # # optimization if amp is not used
             # outputs = net(inputs)
             # loss = loss_func(outputs, labels.float())

@@ -37,11 +37,12 @@ def get_displaying_step(steps, times=5):
 
 def minmax_norm(data):
     data_shape = data.size()
-    data = data.view(data.size()[0], -1)
+    data = data.view(data.size(0), -1)
     # data -= data.min(1, keepdim=True)[0]
     # data /= data.max(1, keepdim=True)[0]
     mins = data.min(1, keepdim=True)[0]
     maxs = data.max(1, keepdim=True)[0]
+    
     data = (data-mins) / (maxs-mins)
     # if torch.sum(torch.isnan(data)) > 0:
     #     print(10)

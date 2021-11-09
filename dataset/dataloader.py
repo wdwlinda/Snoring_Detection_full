@@ -167,6 +167,18 @@ class AudioDataset(AbstractDastaset):
         y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
         sr = y.frame_rate
         waveform = np.float32(np.array(y.get_array_of_samples()))
+        # TODO: general: len(waveform) < 32000 train-test with different length
+        # if len(waveform) > self.dataset_config.sample_rate:
+        #     # cut
+        #     pass
+        waveform = waveform[8000:24000]
+        # if len(waveform) < 32000:
+        #     pass
+        #     pad_length = (32000 - len(waveform)) // 2
+        #     # padding
+        #     waveform = np.concatenate([waveform, waveform])
+        #     # waveform = np.concatenate([np.zeros(pad_length, dtype=np.float32), waveform, np.zeros(pad_length, dtype=np.float32)])
+
         # waveform = torch.from_numpy(waveform)
         # if self.dataset_config.sample_rate:
         #     waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
@@ -188,13 +200,15 @@ class AudioDataset(AbstractDastaset):
             mix_lambda = None
         features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
-        
-        audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
-        audio_feature = self.transform(audio_feature)
+        # plt.imshow(audio_feature[0])
+        # plt.show()
+        if np.sum(np.isnan(audio_feature))> 0:
+            print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
+        # audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
+        # audio_feature = self.transform(audio_feature)
 
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
-
 
         # if np.sum(np.isnan(audio_feature))> 0:
         #     print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
@@ -233,8 +247,11 @@ class AudioDataset(AbstractDastaset):
         # print('input size', input_data.size())
 
         # print(input_data.max(), input_data.min())
-
-        
+        if input_data.max() == input_data.min():
+            print('nan', input_data.max(), input_data.min(), self.input_data_indices[idx], np.max(waveform), np.min(waveform), np.sum(waveform))
+            # import matplotlib.pyplot as plt
+            # plt.imshow(input_data[0])
+            # plt.show()
         return {'input': input_data, 'gt': ground_truth}
 
     def merge_audio_features(self, features):

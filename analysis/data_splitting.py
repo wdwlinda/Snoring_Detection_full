@@ -3,6 +3,9 @@ import csv
 import numpy as np
 import logging
 
+from torch.utils.data import dataset
+from dataset import dataset_utils
+
 # TODO: recursively get the files should be a option
 # TODO: input soring function, condition
 # TODO: think about the design of shuffling and sorting, in-function or separated
@@ -89,13 +92,35 @@ def generate_recording_table(peak_timestamps_path, peak_infos, save_path):
         writer.writerows(content)
 
 
+def continuous_split(path, clip_time, hop_time, sr, channels):
+    assert clip_time > 0 and hop_time > 0
+    file_name = os.path.basename(path)
+    file_format = file_name.split('.')[1]
+    y = dataset_utils.load_audio_waveform(path, file_format, sr, channels)
+    save_path = os.path.join(path, 'clips')
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+    if y.duration_seconds >= clip_time:
+        for idx, t in enumerate(range(0, int(y.duration_seconds)-clip_time, hop_time), 1):
+            start_t, end_t = t, t+clip_time
+            print(idx, start_t, end_t)
+            clip = y[1000*start_t:1000*end_t]
+            clip.export(os.path.join(save_path, file_name.replace(f'.{file_format}', f'_{idx:03d}.{file_format}')), file_format)
+
+
+def main():
+    path = rf'C:\Users\test\Downloads\1112\KC_testing\1631385387541_22.wav'
+    continuous_split(path, clip_time=1, hop_time=1, sr=16000, channels=1)
+
 
 if __name__ == '__main__':
-    path = rf'C:\Users\test\Downloads\snoring_test\timestamps\1630345236867_6_peak.csv'
-    path = rf'C:\Users\test\Downloads\1007\env_sounds\x'
-    peak_infos = rf'C:\Users\test\Downloads\peak_infos.csv'
-    generate_recording_table(path, peak_infos, '')
+    # path = rf'C:\Users\test\Downloads\snoring_test\timestamps\1630345236867_6_peak.csv'
+    # path = rf'C:\Users\test\Downloads\1007\env_sounds\x'
+    # peak_infos = rf'C:\Users\test\Downloads\peak_infos.csv'
+    # generate_recording_table(path, peak_infos, '')
 
+    main()
+    
     # path = rf'C:\Users\test\Downloads\1007\env_sounds\x'
     # files = get_files(path, 'pms')
     # for f in files:

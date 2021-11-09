@@ -62,6 +62,7 @@ def eval():
     dataset_config = config['dataset']
     test_dataset = AudioDataset(config, mode=config.eval.running_mode)
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    dataset_name = os.path.basename(config.dataset.index_path)
 
     # model
     net = ImageClassifier(
@@ -109,7 +110,7 @@ def eval():
             total_precision = np.append(total_precision, evals['precision'])
             total_recall = np.append(total_recall, evals['recall'])
 
-            result_path = os.path.join(config.eval.restore_checkpoint_path, config.eval.running_mode)
+            result_path = os.path.join(config.eval.restore_checkpoint_path, config.eval.running_mode, dataset_name)
             if not os.path.exists(result_path):
                 os.makedirs(result_path)
 
@@ -158,7 +159,7 @@ def eval():
 
         cm = confusion_matrix(y_true, y_pred)
         plot_confusion_matrix(cm, [0,1], normalize=False)
-        plt.savefig(os.path.join(config.eval.restore_checkpoint_path, config.eval.running_mode, 'cm.png'))
+        plt.savefig(os.path.join(result_path, 'cm.png'))
         # plt.show()
         precision = metrics.precision(evaluator.total_tp, evaluator.total_fp)
         recall = metrics.recall(evaluator.total_tp, evaluator.total_fn)
