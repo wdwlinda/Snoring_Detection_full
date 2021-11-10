@@ -386,7 +386,7 @@ if __name__ == '__main__':
     # try_noisereduce()
     # re_split()
 
-    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\_12remain_for_testing', keyword='wav', name='train', shuffle=False)
+    save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50_16k\esc50_16k_2', keyword='wav', name='file_names', shuffle=False)
     
     # convert_KC_testing()
 

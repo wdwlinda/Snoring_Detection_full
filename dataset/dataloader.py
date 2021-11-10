@@ -157,33 +157,45 @@ class AudioDataset(AbstractDastaset):
         self.transform_config = self.dataset_config.transform_config
         print(f"Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
-    
-    # def data_loading_function(self, filename):
-    #     waveform, sr = librosa.load(filename, self.dataset_config.sample_rate)
-    #     waveform = torch.from_numpy(waveform)
-    #     return waveform, sr
 
     def data_loading_function(self, filename):
-        y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
-        sr = y.frame_rate
-        waveform = np.float32(np.array(y.get_array_of_samples()))
-        # TODO: general: len(waveform) < 32000 train-test with different length
-        # if len(waveform) > self.dataset_config.sample_rate:
-        #     # cut
-        #     pass
-        waveform = waveform[8000:24000]
-        # if len(waveform) < 32000:
-        #     pass
-        #     pad_length = (32000 - len(waveform)) // 2
-        #     # padding
-        #     waveform = np.concatenate([waveform, waveform])
-        #     # waveform = np.concatenate([np.zeros(pad_length, dtype=np.float32), waveform, np.zeros(pad_length, dtype=np.float32)])
-
+        waveform, sr = librosa.load(filename, self.dataset_config.sample_rate)
         # waveform = torch.from_numpy(waveform)
-        # if self.dataset_config.sample_rate:
-        #     waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
-        #     sr = self.dataset_config.sample_rate
         return waveform, sr
+
+    # def data_loading_function(self, filename):
+    #     waveform, sr = torchaudio.load(filename)
+    #     torchaudio
+    #     transformed = torchaudio.transforms
+    #     if sr != self.dataset_config.sample_rate:
+    #         sr = self.dataset_config.sample_rate
+    #         transformed = transformed.Resample(sr, self.dataset_config.sample_rate)
+    #         waveform = transformed(waveform[0, :].view(1, -1))
+    #     # print('Shape of transformed waveform:', waveform.size())
+    #     waveform = waveform.numpy()
+    #     return waveform, sr
+
+    # def data_loading_function(self, filename):
+    #     y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
+    #     sr = y.frame_rate
+    #     waveform = np.float32(np.array(y.get_array_of_samples()))
+    #     # TODO: general: len(waveform) < 32000 train-test with different length
+    #     # if len(waveform) > self.dataset_config.sample_rate:
+    #     #     # cut
+    #     #     pass
+    #     # waveform = waveform[8000:24000]
+    #     # if len(waveform) < 32000:
+    #     #     pass
+    #     #     pad_length = (32000 - len(waveform)) // 2
+    #     #     # padding
+    #     #     waveform = np.concatenate([waveform, waveform])
+    #     #     # waveform = np.concatenate([np.zeros(pad_length, dtype=np.float32), waveform, np.zeros(pad_length, dtype=np.float32)])
+
+    #     # waveform = torch.from_numpy(waveform)
+    #     # if self.dataset_config.sample_rate:
+    #     #     waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
+    #     #     sr = self.dataset_config.sample_rate
+    #     return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         # input_preprocess.audio_preprocess(
@@ -202,10 +214,10 @@ class AudioDataset(AbstractDastaset):
         audio_feature = self.merge_audio_features(features)
         # plt.imshow(audio_feature[0])
         # plt.show()
-        if np.sum(np.isnan(audio_feature))> 0:
-            print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
-        # audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
-        # audio_feature = self.transform(audio_feature)
+        # if np.sum(np.isnan(audio_feature))> 0:
+        #     print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
+        audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
+        audio_feature = self.transform(audio_feature)
 
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)

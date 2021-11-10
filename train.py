@@ -70,10 +70,13 @@ def main(config_reference):
     # Start training
     training_samples = len(train_dataloader.dataset)
     training_steps = int(training_samples/config.dataset.batch_size) if training_samples > config.dataset.batch_size else 1
-    if training_samples%config.dataset.batch_size != 0:
-        training_steps += 1
+    training_steps = max(training_samples//config.dataset.batch_size, 1)
+    # if training_samples%config.dataset.batch_size != 0:
+    #     training_steps += 1
     testing_samples = len(test_dataloader.dataset)
-    displaying_step = train_utils.get_displaying_step(training_steps)
+    # displaying_step = train_utils.get_displaying_step(training_steps)
+    show_times = 5
+    displaying_step = max(training_steps//show_times//show_times*show_times, 1)
     
 
     # Logger
@@ -109,6 +112,9 @@ def main(config_reference):
             
             inputs, labels = data['input'], data['gt']
             inputs = train_utils.minmax_norm(inputs)
+            # xx = torch.where(torch.isnan(inputs))
+            # plt.imshow(inputs[11,0])
+            # plt.show()
             # if torch.sum(torch.isnan(inputs[0,0]))> 0:
             #     plt.imshow(torch.where(torch.isnan(inputs[0,0]), 1, 0))
             #     plt.show()
