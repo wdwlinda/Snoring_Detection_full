@@ -3,7 +3,6 @@ import importlib
 import os
 import numpy as np
 import logging
-from analysis import data_splitting
 from pydub import AudioSegment
 import pandas as pd
 
@@ -26,6 +25,55 @@ import pandas as pd
 #                 else:
 #                     input_paths.append(fullpath)
 #     return input_paths, gt_paths
+
+
+def save_aLL_files_name(path, name='file_names', keyword=[], filtering_mode='in', is_fullpath=True, shuffle=True, save_path=None):
+    # file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
+    file_names = get_files(path, keys=keyword, return_fullpath=True, sort=True)
+    if not save_path: save_path = path
+    save_content_in_txt(
+        file_names, os.path.join(save_path, f'{name}.txt'), filter_bank=[], access_mode='w+', dir=None)
+    # with open(os.path.join(save_path, f'{name}.txt'), 'w+') as fw:
+    #     for f in file_names:
+    #         fw.write(f)    
+    #         fw.write('\n')
+
+
+# TODO: recursively get the files should be a option
+# TODO: input soring function, condition
+# TODO: think about the design of shuffling and sorting, in-function or separated
+# def get_files(path, keys=[], is_fullpath=True, sort=True):
+#     """Get all the file name under the given path with assigned keys"""
+#     file_list = []
+#     assert isinstance(keys, (list, str))
+#     if isinstance(keys, str): keys = [keys]
+#     # Rmove repeated key
+#     keys = list(set(keys))
+
+#     def func(root, f, file_list, is_fullpath):
+#         if is_fullpath:
+#             file_list.append(os.path.join(root, f))
+#         else:
+#             file_list.append(f)
+
+#     for i, (root, dirs, files) in enumerate(os.walk(path)):
+#         for j, f in enumerate(files):
+#             if keys:
+#                 for key in keys:
+#                     if key in f:
+#                         func(root, f, file_list, is_fullpath)
+#             else:
+#                 func(root, f, file_list, is_fullpath)
+
+#     if file_list:
+#         if sort: file_list.sort()
+#         # if sort: file_list.sort(key=len)
+#     else:
+#         if keys: 
+#             logging.warning(f'No file exist with key {keys}.') 
+#         else: 
+#             logging.warning(f'No file exist.') 
+#     return file_list
 
 
 def get_ASUS_snoring_index(save_path, split, balancing=True):
@@ -245,7 +293,7 @@ def get_data_path(data_path, index_root, data_split, keywords=[]):
     index_path = os.path.join(index_root, dataset_name)
     if not os.path.isdir(index_path):
         os.mkdir(index_path)
-        file_path_list = data_splitting.get_files(data_path, keys=keywords, is_fullpath=True, sort=True)
+        file_path_list = get_files(data_path, keys=keywords, return_fullpath=True, sort=True)
         train_split = int(data_split.get('train', 0)*len(file_path_list))
         valid_split = int(data_split.get('valid', 0)*len(file_path_list))
         test_split = int(data_split.get('test', 0)*len(file_path_list))
@@ -267,7 +315,7 @@ def get_data_path(data_path, index_root, data_split, keywords=[]):
             'valid': valid_path,
             'test': test_path}
     else:
-        file_path_list = data_splitting.get_files(index_root, is_fullpath=True, sort=True)
+        file_path_list = get_files(index_root, return_fullpath=True, sort=True)
         data_path_dict
     return data_path_dict
 

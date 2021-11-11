@@ -17,7 +17,7 @@ import pandas as df
 import os
 import cv2
 import matplotlib.pyplot as plt
-from analysis.data_splitting import get_files
+# from analysis.data_splitting import get_files
 from dataset import preprocess_utils
 from dataset import input_preprocess
 from dataset import dataset_utils
@@ -152,16 +152,17 @@ class AudioDataset(AbstractDastaset):
                 
         # TODO: gt
         # judge return (data) or (data, label), data_split, use two dataset together?
-        self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
+        # self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
+        self.ground_truth_indices = None
         self.transform_methods = config.dataset.transform_methods
         self.transform_config = self.dataset_config.transform_config
         print(f"Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
 
-    def data_loading_function(self, filename):
-        waveform, sr = librosa.load(filename, self.dataset_config.sample_rate)
-        # waveform = torch.from_numpy(waveform)
-        return waveform, sr
+    # def data_loading_function(self, filename):
+    #     waveform, sr = librosa.load(filename, self.dataset_config.sample_rate)
+    #     # waveform = torch.from_numpy(waveform)
+    #     return waveform, sr
 
     # def data_loading_function(self, filename):
     #     waveform, sr = torchaudio.load(filename)
@@ -175,27 +176,27 @@ class AudioDataset(AbstractDastaset):
     #     waveform = waveform.numpy()
     #     return waveform, sr
 
-    # def data_loading_function(self, filename):
-    #     y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
-    #     sr = y.frame_rate
-    #     waveform = np.float32(np.array(y.get_array_of_samples()))
-    #     # TODO: general: len(waveform) < 32000 train-test with different length
-    #     # if len(waveform) > self.dataset_config.sample_rate:
-    #     #     # cut
-    #     #     pass
-    #     # waveform = waveform[8000:24000]
-    #     # if len(waveform) < 32000:
-    #     #     pass
-    #     #     pad_length = (32000 - len(waveform)) // 2
-    #     #     # padding
-    #     #     waveform = np.concatenate([waveform, waveform])
-    #     #     # waveform = np.concatenate([np.zeros(pad_length, dtype=np.float32), waveform, np.zeros(pad_length, dtype=np.float32)])
+    def data_loading_function(self, filename):
+        y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
+        sr = y.frame_rate
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        # TODO: general: len(waveform) < 32000 train-test with different length
+        # if len(waveform) > self.dataset_config.sample_rate:
+        #     # cut
+        #     pass
+        # waveform = waveform[8000:24000]
+        # if len(waveform) < 32000:
+        #     pass
+        #     pad_length = (32000 - len(waveform)) // 2
+        #     # padding
+        #     waveform = np.concatenate([waveform, waveform])
+        #     # waveform = np.concatenate([np.zeros(pad_length, dtype=np.float32), waveform, np.zeros(pad_length, dtype=np.float32)])
 
-    #     # waveform = torch.from_numpy(waveform)
-    #     # if self.dataset_config.sample_rate:
-    #     #     waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
-    #     #     sr = self.dataset_config.sample_rate
-    #     return waveform, sr
+        # waveform = torch.from_numpy(waveform)
+        # if self.dataset_config.sample_rate:
+        #     waveform = resample('transforms', waveform, sr, self.dataset_config.sample_rate)
+        #     sr = self.dataset_config.sample_rate
+        return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         # input_preprocess.audio_preprocess(
@@ -264,7 +265,8 @@ class AudioDataset(AbstractDastaset):
             # import matplotlib.pyplot as plt
             # plt.imshow(input_data[0])
             # plt.show()
-        return {'input': input_data, 'gt': ground_truth}
+        # return {'input': input_data, 'gt': ground_truth}
+        return {'input': input_data, 'gt': 1}
 
     def merge_audio_features(self, features):
         if not isinstance(features, dict):

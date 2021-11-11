@@ -30,18 +30,6 @@ import shutil
 #     return file_names
 
 
-def save_aLL_files_name(path, name='file_names', keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True, save_path=None):
-    # file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
-    file_names = data_splitting.get_files(path, keys=keyword, is_fullpath=True, sort=True)
-    if not save_path: save_path = path
-    dataset_utils.save_content_in_txt(
-        file_names, os.path.join(save_path, f'{name}.txt'), filter_bank=[], access_mode='w+', dir=None)
-    # with open(os.path.join(save_path, f'{name}.txt'), 'w+') as fw:
-    #     for f in file_names:
-    #         fw.write(f)    
-    #         fw.write('\n')
-
-
 def generate_index_for_subject():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
     save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
@@ -55,7 +43,7 @@ def generate_index_for_subject():
             os.mkdir(os.path.join(save_path, d))
         # save_aLL_files_name(
         #     os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
-        file_names = data_splitting.get_files(os.path.join(path, d), keys='wav', is_fullpath=True, sort=True)
+        file_names = dataset_utils.get_files(os.path.join(path, d), keys='wav', is_fullpath=True, sort=True)
         # TODO: redundency code, change it ASAP
         for f in file_names:
             for valid_f in val_content:
@@ -247,7 +235,7 @@ def re_split():
     c = '0'
     for c in ['0', '1']:
         clip_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\{c}'
-        filenames = data_splitting.get_files(clip_path, keys='wav', is_fullpath=True, sort=True)
+        filenames = dataset_utils.get_files(clip_path, keys='wav', is_fullpath=True, sort=True)
         for i, f in enumerate(filenames):
             # if f == rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\0\1630345236867_6_034.wav':
             # Get subject, peak number, and peak time
@@ -332,14 +320,12 @@ def save_audio_fig():
 
 
 def get_diff_files(src1, src2, dst, data_format='wav'):
-    files1 = data_splitting.get_files(src1, data_format, is_fullpath=False)
-    files2 = data_splitting.get_files(src2, data_format, is_fullpath=False)
+    files1 = dataset_utils.get_files(src1, data_format, is_fullpath=False)
+    files2 = dataset_utils.get_files(src2, data_format, is_fullpath=False)
     # TODO: fix above lines for generalization
     dst_files = list(set(files1)-set(files2))
     dst_files = [os.path.join(src1, f.split('_')[0], f) for f in dst_files]
-    # 
-
-
+    
     for idx, f in enumerate(dst_files):
         print(f'{idx+1}/{len(dst_files)}', f)
         new_f = f.replace(src1, dst)
@@ -356,7 +342,7 @@ def convert_testing_data(path, src, dst, add_dB):
 
 
 def convert_KC_testing():
-    file_list = data_splitting.get_files(rf'C:\Users\test\Downloads\1112\KC_testing', 'm4a')
+    file_list = dataset_utils.get_files(rf'C:\Users\test\Downloads\1112\KC_testing', 'm4a')
     for f in file_list:
         convert_testing_data(f, 'm4a', 'wav', 6)
 
