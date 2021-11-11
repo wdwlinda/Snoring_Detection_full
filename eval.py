@@ -17,48 +17,16 @@ import train
 ImageClassifier = img_classifier.ImageClassifier
 
 # TODO: solve device problem, check behavoir while GPU using
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # device = torch.device('cpu')
 CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_valid_config.yml'
 
 
-def plot_confusion_matrix(cm, classes,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Blues):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
-
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, cm[i, j],
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black",
-                 fontsize=14)
-
-    # plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
 
 # TODO: separate checkpoint and evaluation result. (can keep new evaluation while using new dataset)
 def eval():
     config = configuration.load_config(CONFIG_PATH)
+    device = config.device
     test_dataset = AudioDataset(config, mode=config.eval.running_mode)
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     dataset_name = os.path.basename(config.dataset.index_path)
@@ -153,11 +121,11 @@ def eval():
                 print(f'{th_prob}: acc = {(cm_th[0,0]+cm_th[1,1])/np.sum(cm_th)*100:.2f} %')
             else:
                 print(f'{th_prob}: null')
-            # plot_confusion_matrix(cm_th, [0,1], normalize=False)
+            # train_utils.plot_confusion_matrix(cm_th, [0,1], normalize=False)
             # plt.savefig(os.path.join(config.eval.restore_checkpoint_path, f'cm_{th_prob}.png'))
 
         cm = confusion_matrix(y_true, y_pred)
-        plot_confusion_matrix(cm, [0,1], normalize=False)
+        train_utils.plot_confusion_matrix(cm, [0,1], normalize=False)
         plt.savefig(os.path.join(result_path, 'cm.png'))
         # plt.show()
         precision = metrics.precision(evaluator.total_tp, evaluator.total_fp)
@@ -240,100 +208,7 @@ def eval():
         # TODO: write to txt or excel
 
 
-def pred():
-    config = configuration.load_config(CONFIG_PATH)
-    test_dataset = AudioDataset(config, mode=config.eval.running_mode)
-    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-    dataset_name = os.path.basename(config.dataset.index_path)
-
-    # model
-    net = ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
-        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None)
-    checkpoint = os.path.join(config.eval.restore_checkpoint_path, config.eval.checkpoint_name)
-    state_key = torch.load(checkpoint, map_location=device)
-    net.load_state_dict(state_key['net'])
-    net = net.to(device)
-    # from torchsummary import summary
-    # summary(net, (1,128,63))
-    with torch.no_grad():
-        net.eval()
-
-        if len(test_dataloader) == 0:
-            raise ValueError('No Data Exist. Please check the data path or data_plit.')
-
-        total_prob = []
-        for i, data in enumerate(test_dataloader, 1):
-            inputs, _ = data['input'], data['gt']
-            inputs = train_utils.minmax_norm(inputs)
-            inputs = inputs.to(device)
-            output = net(inputs)
-            prob = torch.sigmoid(output)
-            # prob = torch.nn.functional.softmax(output)
-            prediction = torch.argmax(prob, dim=1)
-            prediction = prediction.cpu().detach().numpy()
-            print('Sample: {}'.format(i), prob, prediction[0], test_dataset.input_data_indices[i-1])
-
-            # total_prob.append([os.path.basename(test_dataset.input_data_indices[i-1]), prob[0,1].item(), test_dataset.input_data_indices[i-1]])
-            total_prob.append([os.path.basename(test_dataset.input_data_indices[i-1]), prob, test_dataset.input_data_indices[i-1]])
-            # if prediction[0] == 1:
-            #     with open(rf'C:\Users\test\Downloads\1112\1.csv', mode='a+', newline='') as csv_file:
-            #         writer = csv.writer(csv_file)
-            #         writer.writerow([os.path.basename(test_dataset.input_data_indices[i-1]), prob[0,1].item(), test_dataset.input_data_indices[i-1]])
-            
-            # if prediction[0] == 0:
-            #     with open(rf'C:\Users\test\Downloads\1112\0.csv', mode='a+', newline='') as csv_file:
-            #         writer = csv.writer(csv_file)
-            #         writer.writerow([os.path.basename(test_dataset.input_data_indices[i-1]), prob[0,1].item(), test_dataset.input_data_indices[i-1]])
-            
-            # total_prob.append(prob[0,1].item())
-            if i > 100:
-                break
-
-        KC_data = []
-        with open(rf'C:\Users\test\Downloads\1112\test_6dB_prediction.csv', mode='r', newline='') as csv_file:
-            rows = csv.reader(csv_file)
-            for row in rows:
-                data = f'{row[0]}_{row[1].zfill(3)}.wav'
-                # data = data.replace('_6dB', '')
-                for r in total_prob:
-                    if data in r:
-                        with open(rf'C:\Users\test\Downloads\1112\merge.csv', mode='a+', newline='') as csv_file2:
-                            writer = csv.writer(csv_file2)
-                            prob_n, prob_p = r[1][0,0].item(), r[1][0,1].item()
-                            if prob_p > prob_n:
-                                prob = prob_p
-                            else:
-                                prob = prob_n
-                            row.append(prob)
-                            row[0] = row[0]+'_6dB'
-                            writer.writerow(row)
-
-        with open(rf'C:\Users\test\Downloads\1112\test_raw_prediction.csv', mode='r', newline='') as csv_file:
-            rows = csv.reader(csv_file)
-            for row in rows:
-                data = f'{row[0]}_{row[1].zfill(3)}.wav'
-                for r in total_prob:
-                    if data in r:
-                        with open(rf'C:\Users\test\Downloads\1112\merge.csv', mode='a+', newline='') as csv_file2:
-                            writer = csv.writer(csv_file2)
-                            prob_n, prob_p = r[1][0,0].item(), r[1][0,1].item()
-                            if prob_p > prob_n:
-                                prob = prob_p
-                            else:
-                                prob = prob_n
-                            row.append(prob)
-                            writer.writerow(row)
-        # a = rf'C:\Users\test\Downloads\1112\test_prediction.csv'
-        # for data in total_prob:
-
-
-        # fig, ax = plt.subplots()
-        # n, bins, patches = ax.hist(total_prob, bins=20)
-        # fig.tight_layout()
-        # plt.show()
 
 if __name__ == "__main__":
-    # eval()
-    pred()
+    eval()
     

@@ -137,7 +137,7 @@ class AbstractDastaset(Dataset):
 
 # TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
-    def __init__(self, config, mode):
+    def __init__(self, config, mode, eval_mode=True):
         super().__init__(config, mode)
         # self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data(
         #     config.dataset.data_path, config.dataset.data_suffix, label_csv=os.path.join(config.dataset.data_path, 'label.csv'))
@@ -152,8 +152,10 @@ class AudioDataset(AbstractDastaset):
                 
         # TODO: gt
         # judge return (data) or (data, label), data_split, use two dataset together?
-        # self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
-        self.ground_truth_indices = None
+        if eval_mode:
+            self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
+        else:
+            self.ground_truth_indices = None
         self.transform_methods = config.dataset.transform_methods
         self.transform_config = self.dataset_config.transform_config
         print(f"Samples: {len(self.input_data_indices)}")
@@ -265,8 +267,10 @@ class AudioDataset(AbstractDastaset):
             # import matplotlib.pyplot as plt
             # plt.imshow(input_data[0])
             # plt.show()
-        # return {'input': input_data, 'gt': ground_truth}
-        return {'input': input_data, 'gt': 1}
+        if ground_truth is not None:
+            return {'input': input_data, 'gt': ground_truth}
+        else:
+            return {'input': input_data}
 
     def merge_audio_features(self, features):
         if not isinstance(features, dict):

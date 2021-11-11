@@ -95,8 +95,8 @@ def main(config_reference):
 
 
     print(60*"-")
-    # loss_func = nn.CrossEntropyLoss()
-    loss_func = nn.BCEWithLogitsLoss()
+    loss_func = nn.CrossEntropyLoss()
+    # loss_func = nn.BCEWithLogitsLoss()
     train_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'train'))
     test_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'valid'))
     max_acc = -1
@@ -113,7 +113,13 @@ def main(config_reference):
             inputs, labels = data['input'], data['gt']
             inputs = train_utils.minmax_norm(inputs)
             # xx = torch.where(torch.isnan(inputs))
-            # plt.imshow(inputs[11,0])
+            # plt.imshow(inputs[0,0])
+            # plt.title(f'{labels[0]}')
+            # import librosa
+            # fig, ax = plt.subplots(nrows=1, sharex=True, sharey=True)
+            # img1 = librosa.display.specshow(inputs[0,0].numpy(), x_axis='time', ax=ax)
+            # ax.set(title='RASTAMAT / Auditory toolbox (dct_type=2)')
+            # fig.colorbar(img1, ax=[ax])
             # plt.show()
             # if torch.sum(torch.isnan(inputs[0,0]))> 0:
             #     plt.imshow(torch.where(torch.isnan(inputs[0,0]), 1, 0))
@@ -132,7 +138,8 @@ def main(config_reference):
             # optimiztion if amp is used
             with autocast():
                 outputs = net(inputs)
-                loss = loss_func(outputs, labels.float())
+                # loss = loss_func(outputs, labels.float())
+                loss = loss_func(outputs, torch.argmax(labels, dim=1))
 
             optimizer.zero_grad()
             scaler.scale(loss).backward()
@@ -141,13 +148,13 @@ def main(config_reference):
 
 
             loss = loss.item()
-            train_writer.add_scalar('Loss/train/step', loss, n_iter)
+            train_writer.add_scalar('Loss/step', loss, n_iter)
             total_train_loss += loss
             
             if i%displaying_step == 0:
                 logger.info('Step {}  Step loss {}'.format(i, loss))
 
-        train_writer.add_scalar('Loss/train/epoch', total_train_loss/training_steps, epoch)
+        train_writer.add_scalar('Loss/epoch', total_train_loss/training_steps, epoch)
         
         with torch.no_grad():
             net.eval()
@@ -158,9 +165,10 @@ def main(config_reference):
                 inputs = train_utils.minmax_norm(inputs)
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
-                loss = loss_func(outputs, labels.float()).item()
+                # loss = loss_func(outputs, labels.float()).item()
+                loss = loss_func(outputs, torch.argmax(labels, dim=1)).item()
                 total_test_loss += loss
-                # test_writer.add_scalar('Loss/test/step', loss, test_n_iter)
+                # test_writer.add_scalar('Loss/step', loss, test_n_iter)
 
                 # TODO: torch.nn.functional.sigmoid(outputs)
                 # prob = torch.nn.functional.softmax(outputs, dim=1)
@@ -174,8 +182,8 @@ def main(config_reference):
             avg_test_acc = metrics.accuracy(
                 np.sum(eval_tool.total_tp), np.sum(eval_tool.total_fp), np.sum(eval_tool.total_fn), np.sum(eval_tool.total_tn)).item()
             
-            test_writer.add_scalar('Accuracy/test/epoch', avg_test_acc, epoch)
-            test_writer.add_scalar('Loss/test/epoch', total_test_loss/testing_samples, epoch)
+            test_writer.add_scalar('Accuracy/epoch', avg_test_acc, epoch)
+            test_writer.add_scalar('Loss/epoch', total_test_loss/testing_samples, epoch)
 
             checkpoint = {
                 "net": net.state_dict(),
