@@ -95,8 +95,7 @@ def main(config_reference):
 
 
     print(60*"-")
-    loss_func = nn.CrossEntropyLoss()
-    # loss_func = nn.BCEWithLogitsLoss()
+    loss_func = train_utils.get_loss(config.train.loss)
     train_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'train'))
     test_writer = SummaryWriter(log_dir=os.path.join(checkpoint_path, 'valid'))
     max_acc = -1
@@ -126,6 +125,12 @@ def main(config_reference):
             #     plt.show()
             #     plt.imshow(inputs[0,0])
             #     plt.show()
+            # cc  = torch.unsqueeze(labels, 2)
+            # torch
+            # aa = torch.unsqueeze(torch.unsqueeze(inputs[2:], 0), 1).tolist()
+            # xx = torch.unsqueeze(torch.unsqueeze(labels, 2), 3).repeat()
+            # input_shape = inputs[0:1,0:1].size()
+            # labels = torch.unsqueeze(torch.unsqueeze(labels, 2), 3).repeat(input_shape)
             inputs, labels = inputs.to(device), labels.to(device)
             
             # # optimization if amp is not used
@@ -139,8 +144,12 @@ def main(config_reference):
             with autocast():
                 outputs = net(inputs)
                 # loss = loss_func(outputs, labels.float())
-                loss = loss_func(outputs, torch.argmax(labels, dim=1))
-
+                # loss = loss_func(outputs, labels.long())
+                # loss = loss_func(outputs, torch.argmax(labels, dim=1))
+                if isinstance(loss_func, torch.nn.CrossEntropyLoss):
+                    loss = loss_func(outputs, torch.argmax(labels.long(), axis=1))
+                else:
+                    loss = loss_func(outputs, labels)
             optimizer.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(optimizer)
@@ -166,13 +175,18 @@ def main(config_reference):
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = net(inputs)
                 # loss = loss_func(outputs, labels.float()).item()
-                loss = loss_func(outputs, torch.argmax(labels, dim=1)).item()
-                total_test_loss += loss
+                # loss = loss_func(outputs, labels.long()).item()
+                if isinstance(loss_func, torch.nn.CrossEntropyLoss):
+                    loss = loss_func(outputs, torch.argmax(labels.long(), axis=1))
+                else:
+                    loss = loss_func(outputs, labels)
+                # loss = loss_func(outputs, torch.argmax(labels, dim=1)).item()
+                total_test_loss += loss.item()
                 # test_writer.add_scalar('Loss/step', loss, test_n_iter)
 
                 # TODO: torch.nn.functional.sigmoid(outputs)
-                prob = torch.nn.functional.softmax(outputs, dim=1)
-                # prob = torch.sigmoid(outputs)
+                # prob = torch.nn.functional.softmax(outputs, dim=1)
+                prob = torch.sigmoid(outputs)
                 prediction = torch.argmax(prob, dim=1)
                 labels = torch.argmax(labels, dim=1)
                 labels = labels.cpu().detach().numpy()

@@ -41,7 +41,7 @@ def mix_up(waveform1, waveform2):
     if waveform1.shape[1] != waveform2.shape[1]:
         if waveform1.shape[1] > waveform2.shape[1]:
             # padding
-            temp_wav = torch.zeros(1, waveform1.shape[1])
+            temp_wav = np.zeros((1, waveform1.shape[1]), np.float32)
             temp_wav[0, 0:waveform2.shape[1]] = waveform2
             waveform2 = temp_wav
         else:
@@ -51,9 +51,9 @@ def mix_up(waveform1, waveform2):
     # sample lambda from uniform distribution
     #mix_lambda = random.random()
     # sample lambda from beta distribtion
-    # mix_lambda = np.random.beta(10, 10)
-    mix_lambda = np.random.beta(8, 4)
+    mix_lambda = np.random.beta(10, 10)
+    # mix_lambda = np.random.beta(8, 4)
 
-    mix_waveform = mix_lambda * waveform1 + (1 - mix_lambda) * waveform2
+    mix_waveform = mix_lambda * waveform1 + (1-mix_lambda) * waveform2
     waveform = mix_waveform - mix_waveform.mean()
     return waveform, mix_lambda

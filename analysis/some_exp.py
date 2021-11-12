@@ -317,18 +317,21 @@ def main():
     first_erosions = [21]
     sr = 16000
     channels = 1
-    times = [1,2,3]
+    times = [2]
+    time_shift = 1
+    add_volume = 6
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
     save_with_hospital_label = True
-    root_save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift'
+    root_save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift_6dB'
     
     for amplitude_factor in amplitude_factors:
         for first_erosion in first_erosions:
             save_path = os.path.join(root_save_path, f'{amplitude_factor}_{first_erosion}', 'raw_f_mono_16k')
             get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr, channels,
                                                 hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor,
-                                                first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label)
+                                                first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label,
+                                                time_shift=time_shift, add_volume=add_volume)
 
 
 def get_hospital_annotation(data_path, annotation_path):
@@ -349,13 +352,15 @@ def get_hospital_annotation(data_path, annotation_path):
     return df_dict
     
     
-def get_clip_from_frquency_thresholding(
-    data_path, save_path, annotation_path, load_format, save_format, sr=None, channels=None, **kwargs):
+def get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr=None, channels=None, **kwargs):
     # TODO: code opt
-    # TODO: sound increase optional
     # TODO: some string process not general enough
     dir_list = utils.get_dir_list(data_path)
     save_with_hospital_label = kwargs.get('save_with_hospital_label', False)
+    time_shift = kwargs.get('time_shift', 0)
+    add_volume = kwargs.get('add_volume', 0)
+    assert isinstance(add_volume, int)
+
     if save_with_hospital_label:
         annotation = get_hospital_annotation(data_path, annotation_path)
                     
@@ -371,7 +376,8 @@ def get_clip_from_frquency_thresholding(
             name = '_'.join([name.split('_')[0], name.split('_')[-1]])
 
             y = dataset_utils.load_audio_waveform(f, load_format, sr, channels)
-            # y += 6
+            y += add_volume
+
             sr = y.frame_rate
             channels = y.channels
 
@@ -381,8 +387,12 @@ def get_clip_from_frquency_thresholding(
             peak_times = get_audio_frequency_thrshold(waveform, sr, **kwargs)
 
 
-            def save_clip(y, start_time, end_time, save_path, shift=1):
-                for s_t in range(-shift, shift+1, shift):
+            def save_clip(y, start_time, end_time, save_path, shift):
+                if shift:
+                    shift_time = range(-shift, shift+1, shift)
+                else:
+                    shift_time = range(1)
+                for s_t in shift_time:
                     start_time_s, end_time_s = start_time + s_t, end_time + s_t
                     # print(start_time_s, end_time_s)
                     if start_time_s > 0 and end_time_s < y.duration_seconds:
@@ -390,8 +400,9 @@ def get_clip_from_frquency_thresholding(
                         save_name = f'{name}_{start_time_s:.2f}_{end_time_s:.2f}_{file_idx+1:03d}'
                         clip.export(os.path.join(save_path, '.'.join([save_name, save_format])), save_format)
 
+
             for file_idx, (start_time, end_time) in enumerate(zip(peak_times[::2], peak_times[1::2])):
-                save_clip(y, start_time, end_time, save_subject_path)
+                save_clip(y, start_time, end_time, save_subject_path, time_shift)
 
                 times = kwargs.get('times', [1])
                 if times:
@@ -406,7 +417,7 @@ def get_clip_from_frquency_thresholding(
                         start_time_t = np.around(start_time_t, decimals=2)
                         end_time_t = start_time_t + t
                         
-                        save_clip(y, start_time_t, end_time_t, save_subject_path_t)
+                        save_clip(y, start_time_t, end_time_t, save_subject_path_t, time_shift)
                         # +++
 
                         # if end_time-start_time > t:
@@ -436,11 +447,11 @@ def get_clip_from_frquency_thresholding(
                                                 elif snoring_label == 'non-snoring':
                                                     sub_dir = '0'
                                                 # print(t, k, start_time_t, end_time_t)
-                                                save_clip(y, start_time_t, end_time_t, os.path.join(save_subject_path_t_h, sub_dir))
+                                                save_clip(y, start_time_t, end_time_t, os.path.join(save_subject_path_t_h, sub_dir), time_shift)
         
     save_dir_list = utils.get_dir_list(os.path.split(save_path)[0])
     for save_dir in save_dir_list:
-        test.save_aLL_files_name(save_dir, keyword=save_format, name='file_name', shuffle=False)
+        dataset_utils.save_aLL_files_name(save_dir, keyword=save_format, name='file_name', shuffle=False)
 
 
 def get_audio_frequency_thrshold(waveform, sr, amplitude_factor, first_erosion, n_fft, hop_length, **kwargs):
@@ -639,6 +650,7 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2_shift'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2_shift_6dB'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
@@ -760,6 +772,20 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
     ax.set_title('Scores by group and gender')
     ax.legend()
     plt.show()
+
+
+def outer(a):
+    b = a
+    print(a)
+    def inner():
+        # nonlocal a
+        c = a + 3
+        d = a + 3
+        # a = 8
+        print(a)
+        print(c)
+    inner()
+    print(a)
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ import numpy as np
 from pprint import pprint
 import matplotlib.pyplot as plt
 import itertools
-    
+import torch.nn as nn    
 # def predict(filename, model):
 
 
@@ -111,6 +111,16 @@ class DictAsMember(dict):
 
 
 loggers = {}
+
+
+def get_loss(name):
+    if name == 'CrossEntropy':
+        loss_func = nn.CrossEntropyLoss()
+    elif name == 'BCE':
+        loss_func = nn.BCEWithLogitsLoss()
+    else:
+        raise ValueError('Unknown Loss name.')
+    return loss_func
 
 
 def load_checkpoint(checkpoint_path, model, optimizer=None,
