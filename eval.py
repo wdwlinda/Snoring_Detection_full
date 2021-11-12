@@ -9,7 +9,7 @@ from dataset.dataloader import AudioDataset
 from utils import train_utils
 from utils import metrics
 from utils import configuration
-import itertools
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import csv
@@ -53,7 +53,7 @@ def eval():
         prob_n = np.array([], dtype=np.float32)
         pred_filenames = np.array([], dtype=object)
         for i, data in enumerate(test_dataloader):
-            print('Sample: {}'.format(i+1))
+            print(f'Sample: {i+1}')
             inputs, labels = data['input'], data['gt']
             inputs = train_utils.minmax_norm(inputs)
             inputs, labels = inputs.to(device), labels.to(device)

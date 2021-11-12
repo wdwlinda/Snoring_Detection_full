@@ -10,7 +10,7 @@ import torch.optim as optim
 import numpy as np
 from pprint import pprint
 import matplotlib.pyplot as plt
-
+import itertools
     
 # def predict(filename, model):
 

@@ -171,8 +171,8 @@ def main(config_reference):
                 # test_writer.add_scalar('Loss/step', loss, test_n_iter)
 
                 # TODO: torch.nn.functional.sigmoid(outputs)
-                # prob = torch.nn.functional.softmax(outputs, dim=1)
-                prob = torch.sigmoid(outputs)
+                prob = torch.nn.functional.softmax(outputs, dim=1)
+                # prob = torch.sigmoid(outputs)
                 prediction = torch.argmax(prob, dim=1)
                 labels = torch.argmax(labels, dim=1)
                 labels = labels.cpu().detach().numpy()

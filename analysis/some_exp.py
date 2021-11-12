@@ -272,9 +272,9 @@ def show_frequency():
                    [1, 180],
                    [1, 180],
                   ]
-    filenames = data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630345236867', 'm4a')
-    filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630866536302', 'm4a'))
-    filenames.extend(data_splitting.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630600693454', 'm4a'))
+    filenames = dataset_utils.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630345236867', 'm4a')
+    filenames.extend(dataset_utils.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630866536302', 'm4a'))
+    filenames.extend(dataset_utils.get_files(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1630600693454', 'm4a'))
     time_ranges = [list([1, 180]) for _ in range(len(filenames))]
     # save_path = rf'C:\Users\test\Downloads\1018\test\result\meanspec'
 
@@ -308,37 +308,24 @@ def show_frequency():
                 get_audio_frequency_thrshold(y, waveform, sr, duration, frame_size, filename, save_path, time_range, amplitude_factor, first_erosion)
 
 
-# class Sound_peak_picking():
-#     def __init__(self, filename):
-#         self.filename = filename
-
-
-#     def get_peak_from_audio():
-#         pass
-
-#     def peak_statistics():
-#         pass
-
-#     def peak_plot():
-#         pass
-
 def main():
     load_format = 'm4a'
     save_format =  'wav'
     hop_length = 512
     n_fft = 2048
-    amplitude_factors = [2, 4]
-    first_erosions = [13, 21]
+    amplitude_factors = [2]
+    first_erosions = [21]
     sr = 16000
     channels = 1
     times = [1,2,3]
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
     annotation_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\annotations'
     save_with_hospital_label = True
+    root_save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift'
     
     for amplitude_factor in amplitude_factors:
         for first_erosion in first_erosions:
-            save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_ori\{amplitude_factor}_{first_erosion}\raw_f_mono_16k'
+            save_path = os.path.join(root_save_path, f'{amplitude_factor}_{first_erosion}', 'raw_f_mono_16k')
             get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr, channels,
                                                 hop_length=hop_length, n_fft=n_fft, amplitude_factor=amplitude_factor,
                                                 first_erosion=first_erosion, times=times, save_with_hospital_label=save_with_hospital_label)
@@ -373,7 +360,7 @@ def get_clip_from_frquency_thresholding(
         annotation = get_hospital_annotation(data_path, annotation_path)
                     
     for d in dir_list:
-        file_list = data_splitting.get_files(d, keys=load_format)
+        file_list = dataset_utils.get_files(d, keys=load_format)
         save_subject_path = os.path.join(save_path, os.path.basename(d))
         subject = os.path.basename(d).split('_')[0]
         if not os.path.isdir(save_subject_path):
@@ -393,11 +380,15 @@ def get_clip_from_frquency_thresholding(
 
             peak_times = get_audio_frequency_thrshold(waveform, sr, **kwargs)
 
-            def save_clip(y, start_time, end_time, save_path):
-                if start_time > 0 and end_time < y.duration_seconds:
-                    clip = utils.get_audio_clip(y, [start_time, end_time], 1000)
-                    save_name = f'{name}_{start_time:.2f}_{end_time:.2f}_{file_idx+1:03d}'
-                    clip.export(os.path.join(save_path, '.'.join([save_name, save_format])), save_format)
+
+            def save_clip(y, start_time, end_time, save_path, shift=1):
+                for s_t in range(-shift, shift+1, shift):
+                    start_time_s, end_time_s = start_time + s_t, end_time + s_t
+                    # print(start_time_s, end_time_s)
+                    if start_time_s > 0 and end_time_s < y.duration_seconds:
+                        clip = utils.get_audio_clip(y, [start_time_s, end_time_s], 1000)
+                        save_name = f'{name}_{start_time_s:.2f}_{end_time_s:.2f}_{file_idx+1:03d}'
+                        clip.export(os.path.join(save_path, '.'.join([save_name, save_format])), save_format)
 
             for file_idx, (start_time, end_time) in enumerate(zip(peak_times[::2], peak_times[1::2])):
                 save_clip(y, start_time, end_time, save_subject_path)
@@ -573,7 +564,7 @@ def plot_dir_number():
             if 'raw_f_h' in d2:
                 save_name = f'{os.path.split(d)[1]}_{os.path.split(d2)[1]}.png'
                 show_dir_info(d2, os.path.join(save_path, save_name))
-                file_list = data_splitting.get_files(d2, 'wav')
+                file_list = dataset_utils.get_files(d2, 'wav')
                 if '_1_' in d2:
                     _1sec.append(len(file_list))
                 elif '_2_' in d2:
@@ -647,6 +638,7 @@ def get_unconflicted_index():
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
     path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2'
+    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2_shift'
     train_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'train.txt'))
     train_idx.sort()
     valid_idx = dataset_utils.load_content_from_txt(os.path.join(path, 'valid.txt'))
@@ -669,7 +661,7 @@ def get_unconflicted_index():
           break
 
     new_train_idx = list(set(train_idx)-set(new_train_idx))
-    with open(os.path.join(path, 'vv.txt'), 'w+') as fw:
+    with open(os.path.join(path, 'train_new.txt'), 'w+') as fw:
       for f in new_train_idx:
         fw.write(f)
         fw.write('\n')
@@ -771,11 +763,11 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
 
 
 if __name__ == '__main__':
-    # get_unconflicted_index()
+    get_unconflicted_index()
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
-    main()
+    # main()
     # show_dir_info(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k', 
     #               rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k')
     # plot_dir_number()

@@ -27,6 +27,39 @@ import pandas as pd
 #     return input_paths, gt_paths
 
 
+def get_clips_from_audio(y, clip_time, hop_time):
+    clips = []
+    if y.duration_seconds >= clip_time:
+        for t in range(0, int(y.duration_seconds)-clip_time+1, hop_time):
+            start_t, end_t = t, t+clip_time
+            clip = y[1000*start_t:1000*end_t]
+            clips.append(clip)
+    return clips
+
+
+def continuous_split(path, clip_time, hop_time, sr, channels, output_format='wav'):
+    assert clip_time > 0 and hop_time > 0
+    file_name = os.path.basename(path)
+    file_format = file_name.split('.')[1]
+    y = load_audio_waveform(path, file_format, sr, channels)
+    save_path = os.path.join(os.path.split(path)[0], f'clips_{clip_time}_{hop_time}')
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+
+    y = y + 6
+    clips = get_clips_from_audio(y, clip_time, hop_time)
+    for idx, clip in enumerate(clips, 1):
+        clip.export(os.path.join(save_path, file_name.replace(f'.{file_format}', f'_{idx:03d}.{output_format}')), output_format)
+
+    # if y.duration_seconds >= clip_time:
+        # for idx, t in enumerate(range(0, int(y.duration_seconds)-clip_time+1, hop_time), 1):
+        #     start_t, end_t = t, t+clip_time
+        #     # print(idx, start_t, end_t)
+        #     clip = y[1000*start_t:1000*end_t]
+        #     clip.export(os.path.join(save_path, file_name.replace(f'.{file_format}', f'_{idx:03d}.{file_format}')), file_format)
+    return save_path
+
+
 def save_aLL_files_name(path, name='file_names', keyword=[], filtering_mode='in', is_fullpath=True, shuffle=True, save_path=None):
     # file_names = get_file_names(path, keyword, filtering_mode, is_fullpath, shuffle)
     file_names = get_files(path, keys=keyword, return_fullpath=True, sort=True)

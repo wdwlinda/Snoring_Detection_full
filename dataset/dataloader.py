@@ -152,7 +152,8 @@ class AudioDataset(AbstractDastaset):
                 
         # TODO: gt
         # judge return (data) or (data, label), data_split, use two dataset together?
-        if eval_mode:
+        self.eval_mode = eval_mode
+        if self.eval_mode:
             self.ground_truth_indices = [int(os.path.split(os.path.split(f)[0])[1]) for f in self.input_data_indices]
         else:
             self.ground_truth_indices = None
@@ -289,6 +290,68 @@ class AudioDataset(AbstractDastaset):
         # self.model_config.in_channels = self.model_config.in_channels * len(features)
         return audio_feature
 
+
+
+class SimpleAudioDataset(Dataset):
+    def __init__(self, config, path):
+        self.dataset_config = config.dataset
+        self.model_config = config.model
+        self.data_suffix = config.dataset.data_suffix
+        self.waveforms = self.get_waveforms_from_path(path)
+        self.transform_methods = config.dataset.transform_methods
+        self.transform_config = self.dataset_config.transform_config
+        print(f"Samples: {len(self.input_data_indices)}")
+        self.transform = transforms.Compose([transforms.ToTensor()])
+
+    def get_waveforms_from_path(self, data_path):
+        waveforms = []
+        audio_format = 'wav'
+        self.input_data_indices = dataset_utils.get_files(data_path, keys=audio_format)
+        for f in self.input_data_indices:
+            y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
+            waveforms.append((np.float32(np.array(y.get_array_of_samples())), y.frame_rate))
+
+        # x = []
+        # for f in self.input_data_indices:
+        #     y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
+        #     clips = dataset_utils.get_clips_from_audio(y, clip_time=2, hop_time=2)
+        #     for idx, clip in enumerate(clips, 1):
+        #         waveforms.append((np.float32(np.array(clip.get_array_of_samples())), clip.frame_rate))
+        #         x.append(f.replace('.m4a', f'_{idx:03d}.m4a'))
+        # self.input_data_indices = x
+        return waveforms
+
+    def __len__(self):
+        return len(self.input_data_indices)
+
+    def __getitem__(self, idx):
+        waveform, sr = self.waveforms[idx]
+        input_data = self.preprocess(waveform, sr)
+        return {'input': input_data}
+
+    def preprocess(self, waveform, sample_rate):
+        if len(waveform.shape) == 1:
+            waveform = np.expand_dims(waveform, axis=0)
+        features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
+        audio_feature = self.merge_audio_features(features)
+        audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
+        audio_feature = self.transform(audio_feature)
+        return audio_feature
+
+    def merge_audio_features(self, features):
+        if not isinstance(features, dict):
+            return features
+
+        reshape_f = []
+        for f in features.values():
+            # Average of channel
+            # print(f.size())
+            f = preprocess_utils.channel_fusion(
+                f, method=self.dataset_config.fuse_method, dim=0, reapeat_times=self.model_config.in_channels)
+            reshape_f.append(f)
+                
+        audio_feature = np.concatenate(reshape_f, axis=0)
+        return audio_feature
 
 if __name__ == "__main__":
     pass
