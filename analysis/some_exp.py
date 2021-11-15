@@ -774,6 +774,59 @@ def stacked_bar_graph(data, data2=None, labels=None, length=None, width=None, x_
     plt.show()
 
 
+def audio_clips_to_amplitude_dist(data_path, save_path, audio_format='wav', sr=16000, channels=1):
+    files = dataset_utils.get_files(data_path, keys=audio_format)
+    total_mean = np.array([], np.float32)
+    total_median = np.array([], np.float32)
+    for f in files:
+        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        total_mean = np.append(total_mean, np.mean(waveform))
+        total_median = np.append(total_median, np.median(waveform))
+    return total_mean, total_median
+
+
+def audio_clips_to_freq_dist(data_path, save_path, audio_format='wav', sr=16000, channels=1):
+    files = dataset_utils.get_files(data_path, keys=audio_format)
+    total_mean = np.array([], np.float32)
+    total_median = np.array([], np.float32)
+    for f in files:
+        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        S = librosa.feature.melspectrogram(waveform, sr=sr, n_fft=2048, hop_length=512)
+        total_mean = np.append(total_mean, np.mean(S))
+        total_median = np.append(total_median, np.median(waveform))
+    return total_mean, total_median
+
+
+def plot_histogram(data, color='g'):
+    n, bins, patches = plt.hist(data, 50, density=True, alpha=0.75, color=color)
+
+    plt.xlabel('Amplitude')
+    plt.ylabel('Times')
+    plt.title('Histogram of Audio Amplitude')
+    # plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
+    # plt.xlim(-40, 40)
+    # plt.ylim(0, 5)
+    plt.grid(True)
+    
+
+def test_dist(data_path, save_path, process_func, audio_format='wav', sr=16000, channels=1):
+    dir_list = utils.get_dir_list(data_path)
+    for idx, d in enumerate(dir_list, 1):
+        print(idx, d)
+        clip_mean, clip_median = process_func(d, save_path, audio_format=audio_format, sr=sr, channels=channels)
+        plot_histogram(clip_mean)
+
+    ios = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
+    android = rf'C:\Users\test\Downloads\1112\app_test\Android\clips_2_2_6dB'
+    ios_mean, ios_median = process_func(ios, save_path, audio_format=audio_format, sr=sr, channels=channels)
+    android_mean, android_median = process_func(android, save_path, audio_format=audio_format, sr=sr, channels=channels)
+    plot_histogram(ios_mean, color='r')
+    plot_histogram(android_mean, color='b')
+    plt.show()
+
+
 def outer(a):
     b = a
     print(a)
@@ -789,7 +842,7 @@ def outer(a):
 
 
 if __name__ == '__main__':
-    get_unconflicted_index()
+    # get_unconflicted_index()
     # first_order_filter()
     # show_frequency()
     # stacked_bar_graph()
@@ -797,4 +850,7 @@ if __name__ == '__main__':
     # show_dir_info(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k', 
     #               rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k')
     # plot_dir_number()
+    test_dist(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k', 
+              save_path=None,
+              process_func=audio_clips_to_freq_dist)
     pass
