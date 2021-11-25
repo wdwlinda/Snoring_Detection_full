@@ -27,6 +27,8 @@ logger = train_utils.get_logger('train')
 
 
 
+
+
 def main(config_reference):
     # Load and log experiment configuration
     config = configuration.load_config(config_reference)
@@ -69,12 +71,8 @@ def main(config_reference):
 
     # Start training
     training_samples = len(train_dataloader.dataset)
-    training_steps = int(training_samples/config.dataset.batch_size) if training_samples > config.dataset.batch_size else 1
     training_steps = max(training_samples//config.dataset.batch_size, 1)
-    # if training_samples%config.dataset.batch_size != 0:
-    #     training_steps += 1
     testing_samples = len(test_dataloader.dataset)
-    # displaying_step = train_utils.get_displaying_step(training_steps)
     show_times = 5
     displaying_step = max(training_steps//show_times//show_times*show_times, 1)
     
@@ -105,32 +103,45 @@ def main(config_reference):
         total_train_loss, total_test_loss = 0.0, 0.0
         print(60*"=")
         logger.info(f'Epoch {epoch}/{config.train.epoch}')
+        net.train()
         for i, data in enumerate(train_dataloader):
             n_iter += 1
-            net.train()
             
             inputs, labels = data['input'], data['gt']
             inputs = train_utils.minmax_norm(inputs)
-            # xx = torch.where(torch.isnan(inputs))
-            # plt.imshow(inputs[0,0])
-            # plt.title(f'{labels[0]}')
-            # import librosa
-            # fig, ax = plt.subplots(nrows=1, sharex=True, sharey=True)
-            # img1 = librosa.display.specshow(inputs[0,0].numpy(), x_axis='time', ax=ax)
-            # ax.set(title='RASTAMAT / Auditory toolbox (dct_type=2)')
-            # fig.colorbar(img1, ax=[ax])
-            # plt.show()
-            # if torch.sum(torch.isnan(inputs[0,0]))> 0:
-            #     plt.imshow(torch.where(torch.isnan(inputs[0,0]), 1, 0))
+
+            # img = inputs[0,0]
+            # # plot_specgram(img, sample_rate)
+            # def show_fig():
+            #     # min_val = 10 * np.log10(inputs.min())
+            #     # max_val = 10 * np.log10(inputs.max())
+            #     import cv2
+            #     # inputs = train_utils.minmax_norm(inputs)
+            #     img = inputs.numpy()[0,0]
+            #     # img = np.uint8(img*255)
+            #     # img = np.uint8(cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX))
+            #     # vv = 0.1
+            #     # uu = 0.5
+            #     # img[img<vv] = uu
+            #     # img = cv2.equalizeHist(img)   
+            #     # plt.hist(img)
+
+            #     # if i > 40:
+            #     import librosa
+            #     # librosa.display.specshow(img, sr=16000, fmin=1, fmax=8000, hop_length=1024)
+            #     fig, ax = plt.subplots(1,1)
+            #     img = librosa.power_to_db(img, ref=np.max)
+            #     imgshow = librosa.display.specshow(img, y_axis='log', sr=22050, hop_length=512,
+            #                             x_axis='time', ax=ax)
+            #     # plt.imshow(img)
+            #     ax.set(title='Log-frequency power spectrogram')
+            #     ax.label_outer()
+            #     fig.colorbar(imgshow, ax=ax, format="%+2.f dB")
+                
             #     plt.show()
-            #     plt.imshow(inputs[0,0])
-            #     plt.show()
-            # cc  = torch.unsqueeze(labels, 2)
-            # torch
-            # aa = torch.unsqueeze(torch.unsqueeze(inputs[2:], 0), 1).tolist()
-            # xx = torch.unsqueeze(torch.unsqueeze(labels, 2), 3).repeat()
-            # input_shape = inputs[0:1,0:1].size()
-            # labels = torch.unsqueeze(torch.unsqueeze(labels, 2), 3).repeat(input_shape)
+
+
+
             inputs, labels = inputs.to(device), labels.to(device)
             
             # # optimization if amp is not used

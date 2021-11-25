@@ -1,10 +1,12 @@
 
 import importlib
 import os
+import re
 import numpy as np
 import logging
 from pydub import AudioSegment
 import pandas as pd
+
 
 
 # TODO: General solution
@@ -25,6 +27,18 @@ import pandas as pd
 #                 else:
 #                     input_paths.append(fullpath)
 #     return input_paths, gt_paths
+
+
+def get_dir_list(data_path, full_path=True):
+    dir_list = np.array([], dtype=object)
+    for f in os.listdir(data_path):
+        folder_path = os.path.join(data_path, f)
+        if os.path.isdir(folder_path):
+            if full_path:
+                dir_list = np.append(dir_list, folder_path)
+            else:
+                dir_list = np.append(dir_list, os.path.split(folder_path)[1])
+    return list(dir_list)
 
 
 def get_clips_from_audio(y, clip_time, hop_time):
@@ -479,7 +493,50 @@ def save_content_in_txt(content, path, filter_bank=None, access_mode='a+', dir=N
                 fw.write(f'{c}\n')
 
 
+def get_path_generator_in_case_order(data_path, return_fullpath, load_format=[]):
+    dir_list = get_dir_list(data_path)
+    for d in dir_list:
+        file_list = get_files(d, keys=load_format, return_fullpath=return_fullpath)
+        for file_idx, f in enumerate(file_list):
+            yield (file_idx, f)
+
+
+def save_data_label_pair_in_csv(data_path, save_path=None, save_name=None, load_format='wav', return_fullpath=True):
+    path_loader = get_path_generator_in_case_order(data_path, return_fullpath, load_format=load_format)
+    nums, ids, labels = [], [], []
+    for idx, file_and_idx in enumerate(path_loader, 1):
+        file_idx, f = file_and_idx
+        file_path, file_name = os.path.split(f)
+        label = int(file_path[-1])
+        file_name = file_name.split('.')[0]
+        print(idx, file_name, label)
+        nums.append(file_idx)
+        ids.append(file_name)
+        labels.append(label)
+        
+    pair_dict = {'case_index': nums,
+                 'id': ids,
+                 'label': labels}
+    pair_df = pd.DataFrame(pair_dict)
+    if not save_name:
+       save_name = 'train.csv' 
+    if save_path is not None:
+        pair_df.to_csv(os.path.join(save_path, save_name))
+    else:
+        pair_df.to_csv(save_name)
+
+
 if __name__ == "__main__":
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
+    save_data_label_pair_in_csv(data_path, save_name='train1.csv')
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k'
+    save_data_label_pair_in_csv(data_path, save_name='train2.csv')
+    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50_16k\esc50_16k_2'
+    save_data_label_pair_in_csv(data_path, save_name='train3.csv')
+
+    
+
+
     # generate_kaggle_breast_ultrasound_index(
     #     data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Kaggle_Breast_Ultraound\archive\Dataset_BUSI_with_GT',
     #     data_split=(0.7, 0.3),

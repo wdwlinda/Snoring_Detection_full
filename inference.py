@@ -105,6 +105,7 @@ def pred():
     #     save_path = dataset_utils.continuous_split(f, clip_time=2, hop_time=2, sr=16000, channels=1, add_volume=6)
 
     data_path = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
+    data_path = rf'C:\Users\test\Desktop\Leon\Weekly\1112\3min_test'
     save_path = rf'C:\Users\test\Downloads\1112\app_test\iOS'
     config = configuration.load_config(CONFIG_PATH)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)

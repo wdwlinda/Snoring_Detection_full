@@ -13,7 +13,7 @@ import torchaudio.transforms as T
 import numpy as np
 from pprint import pprint
 from analysis.resample_test import DEFAULT_RESAMPLING_METHOD
-from dataset.dataset_utils import get_files, load_content_from_txt, save_content_in_txt
+from dataset.dataset_utils import get_files, load_content_from_txt, save_content_in_txt, get_dir_list
 from scipy import signal
 from pydub import AudioSegment
 import librosa
@@ -243,16 +243,7 @@ def f_high(y, sr):
 #     return y
 
 # +++ 11/3
-def get_dir_list(data_path, full_path=True):
-    dir_list = np.array([], dtype=object)
-    for f in os.listdir(data_path):
-        folder_path = os.path.join(data_path, f)
-        if os.path.isdir(folder_path):
-            if full_path:
-                dir_list = np.append(dir_list, folder_path)
-            else:
-                dir_list = np.append(dir_list, os.path.split(folder_path)[1])
-    return list(dir_list)
+
 
 
 def get_subject_path(data_path, subject_list):

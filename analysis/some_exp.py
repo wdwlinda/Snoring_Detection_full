@@ -335,7 +335,7 @@ def main():
 
 
 def get_hospital_annotation(data_path, annotation_path):
-    dir_list = utils.get_dir_list(data_path)
+    dir_list = dataset_utils.get_dir_list(data_path)
     ori_annotation_file_list = os.listdir(annotation_path)
     annotation_file_list = [f.split('.')[0].split('_')[0] for f in ori_annotation_file_list if 'csv' in f]
     df_dict = {}
@@ -355,7 +355,7 @@ def get_hospital_annotation(data_path, annotation_path):
 def get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, load_format, save_format, sr=None, channels=None, **kwargs):
     # TODO: code opt
     # TODO: some string process not general enough
-    dir_list = utils.get_dir_list(data_path)
+    dir_list = dataset_utils.get_dir_list(data_path)
     save_with_hospital_label = kwargs.get('save_with_hospital_label', False)
     time_shift = kwargs.get('time_shift', 0)
     add_volume = kwargs.get('add_volume', 0)
@@ -449,7 +449,7 @@ def get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, l
                                                 # print(t, k, start_time_t, end_time_t)
                                                 save_clip(y, start_time_t, end_time_t, os.path.join(save_subject_path_t_h, sub_dir), time_shift)
         
-    save_dir_list = utils.get_dir_list(os.path.split(save_path)[0])
+    save_dir_list = dataset_utils.get_dir_list(os.path.split(save_path)[0])
     for save_dir in save_dir_list:
         dataset_utils.save_aLL_files_name(save_dir, keyword=save_format, name='file_name', shuffle=False)
 
@@ -564,13 +564,13 @@ def plot_dir_number():
     data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit'
     save_path = rf'C:\Users\test\Downloads\1022\data_num\1102_nl'
     
-    dir_list = utils.get_dir_list(data_path)
+    dir_list = dataset_utils.get_dir_list(data_path)
     _1sec = []
     _2sec = []
     _3sec = []
 
     for d in dir_list:
-        dir_list2 = utils.get_dir_list(d)
+        dir_list2 = dataset_utils.get_dir_list(d)
         for d2 in dir_list2:
             if 'raw_f_h' in d2:
                 save_name = f'{os.path.split(d)[1]}_{os.path.split(d2)[1]}.png'
@@ -687,7 +687,7 @@ def show_dir_info(path, save_path):
     # path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq3\4_21\raw_f_h_1_mono_16k'
     # path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw'
     # dir_list = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
-    dir_list = utils.get_dir_list(path)
+    dir_list = dataset_utils.get_dir_list(path)
     acc, acc_p, acc_n, acc_balance = 0, 0, 0, 0
     total_p, total_n, total_balance = [], [], []
     for d in dir_list:
@@ -799,31 +799,122 @@ def audio_clips_to_freq_dist(data_path, save_path, audio_format='wav', sr=16000,
     return total_mean, total_median
 
 
-def plot_histogram(data, color='g'):
-    n, bins, patches = plt.hist(data, 50, density=True, alpha=0.75, color=color)
+def plot_histogram(data, color='g', zorder=None):
+    n, bins, patches = plt.hist(data, 100, density=False, alpha=1.0, color=color, zorder=zorder)
 
-    plt.xlabel('Amplitude')
+    plt.xlabel('Freq')
     plt.ylabel('Times')
-    plt.title('Histogram of Audio Amplitude')
-    # plt.text(60, .025, r'$\mu=100,\ \sigma=15$')
+    plt.title('Histogram of Audio Freq')
     # plt.xlim(-40, 40)
     # plt.ylim(0, 5)
     plt.grid(True)
     
 
 def test_dist(data_path, save_path, process_func, audio_format='wav', sr=16000, channels=1):
-    dir_list = utils.get_dir_list(data_path)
-    for idx, d in enumerate(dir_list, 1):
-        print(idx, d)
-        clip_mean, clip_median = process_func(d, save_path, audio_format=audio_format, sr=sr, channels=channels)
-        plot_histogram(clip_mean)
+    # dir_list = dataset_utils.get_dir_list(data_path)
+    # for idx, d in enumerate(dir_list, 1):
+    #     print(idx, d)
+    #     clip_mean, clip_median = process_func(d, save_path, audio_format=audio_format, sr=sr, channels=channels)
+    #     plot_histogram(clip_mean)
 
     ios = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
     android = rf'C:\Users\test\Downloads\1112\app_test\Android\clips_2_2_6dB'
     ios_mean, ios_median = process_func(ios, save_path, audio_format=audio_format, sr=sr, channels=channels)
     android_mean, android_median = process_func(android, save_path, audio_format=audio_format, sr=sr, channels=channels)
-    plot_histogram(ios_mean, color='r')
+    # plot_histogram(ios_mean, color='r')
+    # from scipy import stats   
+    # a = stats.mode(android_mean)[0][0]
     plot_histogram(android_mean, color='b')
+    plt.show()
+
+
+def audio_clips_to_melspec(data_path, audio_format='wav', sr=16000, channels=1):
+    files = dataset_utils.get_files(data_path, keys=audio_format)
+    total_spec, total_spec_n = None, None
+    idx_0, idx_1 = 0, 0
+    for idx, f in enumerate(files):
+        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        S = librosa.feature.melspectrogram(waveform, sr=sr, n_fft=2048, hop_length=512)
+        S = S[np.newaxis,...]
+        
+        if os.path.split(f)[0].endswith('0'):
+            idx_0 += 1
+            if total_spec_n is None:
+                total_spec_n = S
+            else:
+                total_spec_n = np.concatenate([total_spec_n, S], axis=0)
+        else:
+            idx_1 += 1
+            if total_spec is None:
+                total_spec = S
+            else:
+                total_spec = np.concatenate([total_spec, S], axis=0)
+        # else:
+        #     if os.path.split(f)[0].endswith('0'):
+        #         total_spec_n = np.concatenate([total_spec_n, S], axis=0)
+        #     else:
+        #         total_spec = np.concatenate([total_spec, S], axis=0)
+        if idx_0 > 150 and idx_1 > 150: break
+    return total_spec, total_spec_n
+
+
+
+def audio_clips_to_mfcc(data_path, audio_format='wav', sr=16000, channels=1):
+    files = dataset_utils.get_files(data_path, keys=audio_format)
+    total_spec, total_spec_n = None, None
+    idx_0, idx_1 = 0, 0
+    for idx, f in enumerate(files):
+        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        S = np.mean(librosa.feature.mfcc(y=waveform, sr=sr, n_mfcc=40).T, axis=0)
+        S = S[np.newaxis,...]
+        
+        if os.path.split(f)[0].endswith('0'):
+            idx_0 += 1
+            if total_spec_n is None:
+                total_spec_n = S
+            else:
+                total_spec_n = np.concatenate([total_spec_n, S], axis=0)
+        else:
+            idx_1 += 1
+            if total_spec is None:
+                total_spec = S
+            else:
+                total_spec = np.concatenate([total_spec, S], axis=0)
+        # else:
+        #     if os.path.split(f)[0].endswith('0'):
+        #         total_spec_n = np.concatenate([total_spec_n, S], axis=0)
+        #     else:
+        #         total_spec = np.concatenate([total_spec, S], axis=0)
+        if idx_0 > 200 and idx_1 > 200: break
+    return total_spec, total_spec_n
+
+
+def freq_compare(data_path, save_path, process_func, audio_format='wav', sr=16000, channels=1):
+    dir_list = dataset_utils.get_dir_list(data_path)
+    _, ax = plt.subplots(4, 1)
+    for idx, d in enumerate(dir_list, 1):
+        print(idx, d)
+        total_spec, total_spec_n = process_func(data_path, audio_format=audio_format, sr=sr, channels=channels)
+        if total_spec_n is not None:
+            for j, spec in enumerate(total_spec_n):
+                ax[0].plot(spec)
+        if total_spec is not None:
+            for j, spec in enumerate(total_spec):
+                ax[1].plot(spec)
+        # if idx > 3: break
+    ios = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB\0'
+    android = rf'C:\Users\test\Downloads\1112\app_test\Android\clips_2_2_6dB\0'
+    _, ios_mean = process_func(ios, audio_format=audio_format, sr=sr, channels=channels)
+    _, android_mean = process_func(android, audio_format=audio_format, sr=sr, channels=channels)
+    for spec in ios_mean: ax[2].plot(spec)
+    for spec in android_mean: ax[3].plot(spec)
+
+    ax[0].set_title('ASUS_non')
+    ax[1].set_title('ASUS_snore')
+    ax[2].set_title('iOS')
+    ax[3].set_title('Android')
     plt.show()
 
 
@@ -850,7 +941,11 @@ if __name__ == '__main__':
     # show_dir_info(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k', 
     #               rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\testing\raw_f_h_2_mono_16k')
     # plot_dir_number()
-    test_dist(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k', 
-              save_path=None,
-              process_func=audio_clips_to_freq_dist)
+    # test_dist(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k', 
+    #           save_path=None,
+    #           process_func=audio_clips_to_freq_dist)
+
+    freq_compare(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k', 
+                 save_path=None,
+                 process_func=audio_clips_to_melspec)
     pass

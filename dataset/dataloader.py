@@ -79,7 +79,7 @@ def convert_value(image, value_pair=None):
 # TODO: check whether python abc helpful?
 class AbstractDastaset(Dataset):
     def __init__(self, config, mode):
-        assert (mode=='train' or mode=='valid'), f'Unknown executing mode [{mode}].'
+        assert (mode=='train' or mode=='valid' or mode=='test'), f'Unknown executing mode [{mode}].'
         self.dataset_config = config.dataset
         self.model_config = config.model
         self.preprocess_config = self.dataset_config.preprocess_config
@@ -135,6 +135,26 @@ class AbstractDastaset(Dataset):
     #     return dataset_utils.generate_kaggle_breast_ultrasound_index
 
 
+def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
+    # waveform = waveform.numpy()
+
+    num_channels, num_frames = waveform.shape
+    time_axis = torch.arange(0, num_frames) / sample_rate
+
+    figure, axes = plt.subplots(num_channels, 1)
+    if num_channels == 1:
+        axes = [axes]
+    for c in range(num_channels):
+        spectrum, _, _, im = axes[c].specgram(waveform[c], Fs=sample_rate, NFFT=512, noverlap=256)
+        if num_channels > 1:
+            axes[c].set_ylabel(f'Channel {c+1}')
+        if xlim:
+            axes[c].set_xlim(xlim)
+    figure.suptitle(title)
+    plt.show(block=False)
+    return spectrum
+
+
 # TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode, eval_mode=True):
@@ -146,15 +166,28 @@ class AudioDataset(AbstractDastaset):
 
         # self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data()
         
-        self.data_suffix = config.dataset.data_suffix
+        self.data_suffix = self.dataset_config.data_suffix
         # self.input_data_indices = dataset_utils.load_content_from_txt(
         #         os.path.join(config.dataset.index_path, f'{mode}.txt'))
                 
-        self.input_data_indices = dataset_utils.load_content_from_txt(
-                os.path.join(config.dataset.index_path, 'train.txt'))
-        if mode == 'train':
-            self.input_data_indices = self.input_data_indices[:len(self.input_data_indices)*config.da]
-        
+        if mode in ('train', 'valid'):
+            self.input_data_indices = dataset_utils.load_content_from_txt(
+                    os.path.join(config.dataset.index_path, 'train.txt'))
+            # TODO:
+            np.random.shuffle(self.input_data_indices)
+            if mode == 'train':
+                # self.input_data_indices = self.input_data_indices[:int(len(self.input_data_indices)*self.dataset_config.data_split[0])]
+                self.input_data_indices = self.input_data_indices
+            else:
+                # self.input_data_indices = self.input_data_indices[int(len(self.input_data_indices)*self.dataset_config.data_split[0]):]
+                self.input_data_indices = dataset_utils.load_content_from_txt(
+                    os.path.join(config.dataset.index_path, 'test.txt'))
+        elif mode == 'test':
+            self.input_data_indices = dataset_utils.load_content_from_txt(
+                    os.path.join(config.dataset.index_path, 'test.txt'))
+        else:
+            raise ValueError('Unknown mode.')
+
         # TODO: gt
         # judge return (data) or (data, label), data_split, use two dataset together?
         self.eval_mode = eval_mode
@@ -168,10 +201,18 @@ class AudioDataset(AbstractDastaset):
         self.transform = transforms.Compose([transforms.ToTensor()])
 
     def data_loading_function(self, filename):
-        y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
-        sr = y.frame_rate
-        waveform = np.float32(np.array(y.get_array_of_samples()))
-        return waveform, sr
+        data = librosa.load(filename, self.dataset_config.sample_rate)
+        waveform = data[0][:160000]
+        data = (waveform, data[1])
+        return data
+
+    # def data_loading_function(self, filename):
+    #     y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
+    #     sr = y.frame_rate
+    #     # TODO:
+    #     y = y[:10000]
+    #     waveform = np.float32(np.array(y.get_array_of_samples()))
+    #     return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         if len(waveform.shape) == 1:
@@ -187,8 +228,30 @@ class AudioDataset(AbstractDastaset):
         features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
         audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
-        audio_feature = self.transform(audio_feature)
 
+
+
+        # import librosa
+        # img = audio_feature[...,0]
+        # # librosa.display.specshow(img, sr=16000, fmin=1, fmax=8000, hop_length=1024)
+        # fig, ax = plt.subplots(1,1)
+        # img = librosa.power_to_db(img, ref=np.max)
+        # # img = img[:64]
+
+        # img = plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None)
+        # img = 10. * np.log10(img)
+        # # imgshow = librosa.display.specshow(img, x_axis="time", y_axis="mel", sr=sample_rate)
+        # plt.imshow(img)
+        # ax.set(title='Log-frequency power spectrogram')
+        # ax.label_outer()
+        # # fig.colorbar(imgshow, ax=ax, format="%+2.f dB")
+
+        # # plt.hist(img)
+        # plt.show()
+
+
+
+        audio_feature = self.transform(audio_feature)
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
 
@@ -198,10 +261,11 @@ class AudioDataset(AbstractDastaset):
 
     def __getitem__(self, idx):
         waveform, sr = self.data_loading_function(self.input_data_indices[idx])
+        # print(idx, self.input_data_indices[idx])
 
         mix_waveform = None
         mix_up = self.dataset_config.preprocess_config.mix_up
-        if mix_up:
+        if mix_up and self.is_data_augmentation:
             if mix_up > random.random():
                 mix_idx = random.randint(0, len(self.input_data_indices)-1)
                 mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
@@ -212,21 +276,21 @@ class AudioDataset(AbstractDastaset):
             ground_truth = self.ground_truth_indices[idx]
             # TODO: binary to multi np.eye(2)
             ground_truth = np.eye(2)[ground_truth]
-            if mix_up:
+            if mix_up and self.is_data_augmentation:
                 if mix_lambda:
                     mix_ground_truth = np.eye(2)[self.ground_truth_indices[mix_idx]]
                     ground_truth = mix_lambda*ground_truth + (1-mix_lambda)*mix_ground_truth
         else:
             ground_truth = None
 
-        def test_data():
-            # print(input_data.max(), input_data.min())
-            if input_data.max() == input_data.min():
-                print('nan', input_data.max(), input_data.min(), self.input_data_indices[idx], np.max(waveform), np.min(waveform), np.sum(waveform))
-                # import matplotlib.pyplot as plt
-                # plt.imshow(input_data[0])
-                # plt.show()
-        test_data()
+        # def test_data():
+        #     # print(input_data.max(), input_data.min())
+        #     if input_data.max() == input_data.min():
+        #         print('nan', input_data.max(), input_data.min(), self.input_data_indices[idx], np.max(waveform), np.min(waveform), np.sum(waveform))
+        #         # import matplotlib.pyplot as plt
+        #         # plt.imshow(input_data[0])
+        #         # plt.show()
+        # test_data()
 
         if ground_truth is not None:
             return {'input': input_data, 'gt': ground_truth}
@@ -270,7 +334,10 @@ class SimpleAudioDataset(Dataset):
         for f in self.input_data_indices:
             y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
             waveforms.append((np.float32(np.array(y.get_array_of_samples())), y.frame_rate))
-
+        for idx, i in enumerate(waveforms[0][0]):
+            print(idx, i)
+            if idx>160:
+                break
         # x = []
         # for f in self.input_data_indices:
         #     y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
