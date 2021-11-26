@@ -184,7 +184,7 @@ def create_training_path(train_logdir):
 
 # TODO: different indent of dataset config, preprocess config, train config
 # TODO: recursively
-def _logging(path, config, access_mode):
+def config_logging(path, config, access_mode):
     with open(path, access_mode) as fw:
         for dict_key in config:
             dict_value = config[dict_key]
@@ -211,7 +211,7 @@ def train_logging(path, config):
             number = int(last_line.split(' ')[0][1:])
             fw.write('\n')
         local_time = time.ctime(time.time())
-        experiment = config['experiment']
+        experiment = os.path.basename(config['checkpoint_path'])
         cur_logging = f'#{number+1} {local_time} {experiment}'
         pprint(cur_logging)
         fw.write(cur_logging)

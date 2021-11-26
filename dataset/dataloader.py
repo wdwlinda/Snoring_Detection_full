@@ -176,12 +176,12 @@ class AudioDataset(AbstractDastaset):
             # TODO:
             np.random.shuffle(self.input_data_indices)
             if mode == 'train':
-                # self.input_data_indices = self.input_data_indices[:int(len(self.input_data_indices)*self.dataset_config.data_split[0])]
-                self.input_data_indices = self.input_data_indices
+                self.input_data_indices = self.input_data_indices[:int(len(self.input_data_indices)*self.dataset_config.data_split[0])]
+                # self.input_data_indices = self.input_data_indices
             else:
-                # self.input_data_indices = self.input_data_indices[int(len(self.input_data_indices)*self.dataset_config.data_split[0]):]
-                self.input_data_indices = dataset_utils.load_content_from_txt(
-                    os.path.join(config.dataset.index_path, 'test.txt'))
+                self.input_data_indices = self.input_data_indices[int(len(self.input_data_indices)*self.dataset_config.data_split[0]):]
+                # self.input_data_indices = dataset_utils.load_content_from_txt(
+                #     os.path.join(config.dataset.index_path, 'test.txt'))
         elif mode == 'test':
             self.input_data_indices = dataset_utils.load_content_from_txt(
                     os.path.join(config.dataset.index_path, 'test.txt'))
@@ -200,19 +200,20 @@ class AudioDataset(AbstractDastaset):
         print(f"Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
 
-    def data_loading_function(self, filename):
-        data = librosa.load(filename, self.dataset_config.sample_rate)
-        waveform = data[0][:160000]
-        data = (waveform, data[1])
-        return data
-
     # def data_loading_function(self, filename):
-    #     y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
-    #     sr = y.frame_rate
-    #     # TODO:
-    #     y = y[:10000]
-    #     waveform = np.float32(np.array(y.get_array_of_samples()))
-    #     return waveform, sr
+    #     data = librosa.load(filename, self.dataset_config.sample_rate)
+    #     # waveform = data[0][:160000]
+    #     waveform = data[0]
+    #     data = (waveform, data[1])
+    #     return data
+
+    def data_loading_function(self, filename):
+        y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
+        sr = y.frame_rate
+        # TODO:
+        # y = y[:10000]
+        waveform = np.float32(np.array(y.get_array_of_samples()))
+        return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         if len(waveform.shape) == 1:
@@ -235,14 +236,15 @@ class AudioDataset(AbstractDastaset):
         # img = audio_feature[...,0]
         # # librosa.display.specshow(img, sr=16000, fmin=1, fmax=8000, hop_length=1024)
         # fig, ax = plt.subplots(1,1)
-        # img = librosa.power_to_db(img, ref=np.max)
+        # # img = librosa.power_to_db(img, ref=np.max)
         # # img = img[:64]
 
-        # img = plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None)
-        # img = 10. * np.log10(img)
+        # # img = plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None)
+        # # img = 10. * np.log10(img)
         # # imgshow = librosa.display.specshow(img, x_axis="time", y_axis="mel", sr=sample_rate)
         # plt.imshow(img)
-        # ax.set(title='Log-frequency power spectrogram')
+        # # ax.set(title='Log-frequency power spectrogram')
+        # ax.set(title='Log-frequency Mel-spectrogram')
         # ax.label_outer()
         # # fig.colorbar(imgshow, ax=ax, format="%+2.f dB")
 

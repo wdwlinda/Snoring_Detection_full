@@ -47,8 +47,9 @@ def main(config_reference):
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-
-    checkpoint_path = train_utils.create_training_path(os.path.join(config.train.project_path, 'checkpoints'))
+    all_checkpoint_path = os.path.join(config.train.project_path, 'checkpoints')
+    checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
+    config['checkpoint_path'] = checkpoint_path
     # TODO: selective pretrained
     # TODO: dynamic output structure
     net = ImageClassifier(
@@ -64,7 +65,7 @@ def main(config_reference):
     train_dataloader = DataLoader(
         train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
     # TODO: config.dataset.preprocess_config.mix_up = None
-    config.dataset.preprocess_config.mix_up = None
+    # config.dataset.preprocess_config.mix_up = None
     test_dataset = AudioDataset(config, mode='valid')
     test_dataloader = DataLoader(
         test_dataset, batch_size=1, shuffle=False, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
@@ -83,13 +84,13 @@ def main(config_reference):
     logger.info("Training epoch: {} Batch size: {} Shuffling Data: {} Training Samples: {}".
             format(config.train.epoch, config.dataset.batch_size, config.dataset.shuffle, training_samples))
     
-    train_utils._logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
-    experiment = os.path.basename(checkpoint_path)
-    config['experiment'] = experiment
-    ckpt_dir = os.path.join(config.train.project_path, 'checkpoints')
-    if not os.path.isdir(ckpt_dir):
-        os.mkdir(ckpt_dir)
-    train_utils.train_logging(os.path.join(ckpt_dir, 'train_logging.txt'), config)
+    train_utils.config_logging(os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
+    # experiment = os.path.basename(checkpoint_path)
+    # config['experiment'] = experiment
+    # all_checkpoint_path = os.path.join(config.train.project_path, 'checkpoints')
+    # if not os.path.isdir(all_checkpoint_path):
+    #     os.mkdir(all_checkpoint_path)
+    # train_utils.train_logging(os.path.join(all_checkpoint_path, 'train_logging.txt'), config)
 
 
     print(60*"-")
@@ -104,7 +105,7 @@ def main(config_reference):
         print(60*"=")
         logger.info(f'Epoch {epoch}/{config.train.epoch}')
         net.train()
-        for i, data in enumerate(train_dataloader):
+        for i, data in enumerate(train_dataloader, 1):
             n_iter += 1
             
             inputs, labels = data['input'], data['gt']

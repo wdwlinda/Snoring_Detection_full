@@ -51,7 +51,8 @@ def spectrogram(waveform, n_fft, **kwargs):
 
 def mel_spec(waveform, sample_rate, **kwargs):
     waveform = waveform[0]
-    return librosa.feature.melspectrogram(y=waveform, sr=sample_rate, n_fft=256, hop_length=128, n_mels=128, fmax=8000)
+    return librosa.power_to_db(librosa.feature.melspectrogram(waveform, sample_rate), ref=np.max)
+    # return librosa.feature.melspectrogram(y=waveform, sr=sample_rate, n_fft=256, hop_length=128, n_mels=128, fmax=8000)
     # return librosa.feature.melspectrogram(y=waveform, sr=sample_rate)
 
 
