@@ -176,12 +176,12 @@ class AudioDataset(AbstractDastaset):
             # TODO:
             np.random.shuffle(self.input_data_indices)
             if mode == 'train':
-                self.input_data_indices = self.input_data_indices[:int(len(self.input_data_indices)*self.dataset_config.data_split[0])]
-                # self.input_data_indices = self.input_data_indices
+                # self.input_data_indices = self.input_data_indices[:int(len(self.input_data_indices)*self.dataset_config.data_split[0])]
+                self.input_data_indices = self.input_data_indices
             else:
-                self.input_data_indices = self.input_data_indices[int(len(self.input_data_indices)*self.dataset_config.data_split[0]):]
-                # self.input_data_indices = dataset_utils.load_content_from_txt(
-                #     os.path.join(config.dataset.index_path, 'test.txt'))
+                # self.input_data_indices = self.input_data_indices[int(len(self.input_data_indices)*self.dataset_config.data_split[0]):]
+                self.input_data_indices = dataset_utils.load_content_from_txt(
+                    os.path.join(config.dataset.index_path, 'test.txt'))
         elif mode == 'test':
             self.input_data_indices = dataset_utils.load_content_from_txt(
                     os.path.join(config.dataset.index_path, 'test.txt'))

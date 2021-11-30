@@ -6,12 +6,11 @@ import random
 from pprint import pprint
 from torch.utils.data import Dataset, DataLoader
 from dataset.dataloader import AudioDataset
-# from utils import train_utils
-from models.image_classification import img_classifier
 from utils import configuration
 CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_train_config.yml'
 
 sys.path.append("..")
+from modules.model import img_classifier
 from modules.train import trainer
 from modules.utils import train_utils
 
@@ -48,24 +47,35 @@ def main(config_reference):
 
     # Model
     model = img_classifier.ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
+        backbone=config.model.name, in_channels=config.model.in_channels,
         out_channels=config.model.out_channels, pretrained=config.model.pretrained, dim=1, output_structure=None)
 
     # Optimizer
     optimizer = train_utils.create_optimizer(config.optimizer_config, model)
 
-    # Criterion
-    criterion = train_utils.get_loss(config.train.loss)
+    # Criterion (Loss function)
+    def criterion_wrap(outputs, labels):
+        criterion = train_utils.create_criterion(config.train.loss)
+        if isinstance(criterion, torch.nn.CrossEntropyLoss):
+            loss = criterion(outputs, torch.argmax(labels.long(), axis=1))
+        else:
+            loss = criterion(outputs, labels)
+        return loss
+    # criterion = train_utils.create_criterion(config.train.loss)
+
+    # Final activation
+    activation_func = train_utils.create_activation(config.model.activation)
 
     # Training
     trainer_instance = trainer.Trainer(config,
                                        model, 
-                                       criterion, 
+                                       criterion_wrap, 
                                        optimizer, 
                                        train_dataloader, 
                                        valid_dataloader,
                                        logger,
                                        device=config.device,
+                                       activation_func=activation_func,
                                        )
 
     trainer_instance.fit()
