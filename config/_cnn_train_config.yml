@@ -3,21 +3,45 @@ dataset:
   # index_path: C:\Users\test\Downloads\0930\model_test2
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_train_ASUS_test
-  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_16k_train_ASUS_test
-  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_de
-  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_Kaggle_16k_train_ASUS_test
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_train_ASUS_m_test
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_min_balance
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_in
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_2_kaggle
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_45cases
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_KC3
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my3
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
+
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\index
+  # data_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h
+  
   data_split: 
-    - 0.7
-    - 0.3
-  sample_rate: null
+    - 0.8
+    - 0.2
+
+  # data_split: 
+  #   train: 0.7
+  #   valid: 0.1
+  #   test: 0.2
+  data_suffix: wav
+  sample_rate: 16000
   transform_methods:
-    - fbank
+    - mel-spec
   transform_config:
-    n_fft: 1024
+    n_fft: 2048
     win_length: null
-    hop_length: null
+    hop_length: 512
     n_mels: 128
-    n_mfcc: 128
+    n_mfcc: 40
+    mean_norm: True
   fuse_method: mean
   batch_size: 14
   shuffle: True
@@ -26,10 +50,11 @@ dataset:
     is_freq_masking: True
     is_time_masking: True
     is_time_strech: False 
-    freq_mask_param: 80
-    time_mask_param: 80
+    freq_mask_param: 32
+    time_mask_param: 24
     min_rate: 0.9
     max_rate: 1.1
+    mix_up: null
 # use a fixed random seed to guarantee that when you run the code twice you will get the same outcome
 manual_seed: 0
 # model configuration
@@ -40,24 +65,27 @@ model:
   in_channels: 1
   # number of output channels
   out_channels: 2
-  # determines the order of operators in a single layer (gcr - GroupNorm+Conv3d+ReLU)
-  # layer_order: gcr
-  # feature maps scale factor
-  # f_maps: 32
-  # number of groups in the groupnorm
-  # num_groups: 8
-  # apply element-wise nn.Sigmoid after the final 1x1 convolution, otherwise apply nn.Softmax
-  activation: null
-  # if True applies the final normalization layer (sigmoid or softmax), otherwise the networks returns the output from the final convolution layer; use False for regression problems, e.g. de-noising
-  # is_segmentation: true
+  activation: softmax
   output_strides: 16
-  pretrained: True
+  pretrained: False
+
+optimizer_config:
+  optimizer: Adam
+  learning_rate: 5.0e-5
+  weight_decay: 0
+  momentum: 0
+  betas:
+    - 0.9
+    - 0.99
 
 # training configuration
 train:
-  loss: CrossEntropy
-  optimizer: Adam
-  epoch: 300
-  learning_rate: 0.0000005
+  loss: BCE
+  # optimizer: Adam
+  epoch: 100
+  # learning_rate: 1.0e-5
   project_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection
-  checkpoint_saving_steps: 50
+  checkpoint_saving_steps: 100
+  num_workers: 0
+  pin_memory: True
+

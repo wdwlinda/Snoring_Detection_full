@@ -5,11 +5,12 @@ import numpy as np
 import random
 from pprint import pprint
 from torch.utils.data import Dataset, DataLoader
+
+import site_path
 from dataset.dataloader import AudioDataset
 from utils import configuration
 CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_train_config.yml'
 
-sys.path.append("..")
 from modules.model import img_classifier
 from modules.train import trainer
 from modules.utils import train_utils
@@ -51,7 +52,7 @@ def main(config_reference):
         out_channels=config.model.out_channels, pretrained=config.model.pretrained, dim=1, output_structure=None)
 
     # Optimizer
-    optimizer = train_utils.create_optimizer(config.optimizer_config, model)
+    optimizer = train_utils.create_optimizer_temp(config.optimizer_config, model)
 
     # Criterion (Loss function)
     def criterion_wrap(outputs, labels):

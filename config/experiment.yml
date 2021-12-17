@@ -1,12 +1,35 @@
 # TODO: mutiple vars in one exp
 
+
+# experiment 1
+exp1:
+  dataset:
+    index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc
+    
+
 # experiment 2
 exp2:
   # factor 1
-  dataset:
-    is_data_augmentation:
-        # - True
-        - False
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
+
+
+# # experiment 1
+# exp1:
+#   # factor 1
+#   dataset:
+#     transform_methods:
+#       - 
+#         - mel-spec
+#       - 
+#         - MFCC
+        
+# # experiment 2
+# exp2:
+#   # factor 1
+#   dataset:
+#     is_data_augmentation:
+#         - True
+#         - False
 
 
 # experiment 2

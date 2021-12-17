@@ -1,0 +1,178 @@
+dataset:
+  data_name: BU
+  data_split:
+  - 0.7
+  - 0.3
+  index_path: C:\Users\test\Downloads\0930\model_test2
+  train:
+    batch_size: 14
+    dir_key: ''
+    file_key: mask
+    is_data_augmentation: true
+    preprocess_config:
+      GaussianBlur: false
+      HorizontalFlip: false
+      PadToSquare: false
+      RandCrop: true
+      RandRotate: false
+      RandScale: false
+      ScaleLimitSize: true
+      ScaleToSize: false
+      crop_size:
+      - 128
+      - 128
+      flip_prob: 0.5
+      max_angle: 45
+      max_scale_factor: 1.25
+      min_angle: -45
+      min_scale_factor: 1.0
+      padding_height: 512
+      padding_value: 0.0
+      padding_width: 512
+      resize_method: Bilinear
+      show_preprocess: false
+      step_size: 0.125
+    shuffle: true
+  transform:
+  - melspec
+  val:
+    batch_size: 1
+    dir_key: ''
+    file_key: mask
+    is_data_augmentation: false
+    preprocess_config:
+      GaussianBlur: false
+      RandCrop: true
+      RandFlip: true
+      RandRotate: true
+      RandScale: false
+      ScaleLimitSize: true
+      crop_size:
+      - 128
+      - 128
+      flip_prob: 0.5
+      max_angle: 45
+      max_resize_value: 512
+      max_scale_factor: 1.25
+      min_angle: -45
+      min_resize_value: 384
+      min_scale_factor: 1.0
+      padding_value: 0.0
+      resize_method: Bilinear
+      scale_factor_step_size: 32
+      show_preprocess: false
+      step_size: 0.125
+    shuffle: false
+eval:
+  checkpoint_name: ckpt_best.pth
+  eval_dir_key: null
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_003
+  running_mode: valid
+  save_prediciton_only: false
+  save_segmentation_result: false
+  show_segmentation_result: false
+eval_metric:
+  ignore_index: null
+  name: MeanIoU
+loaders:
+  dataset: StandardHDF5Dataset
+  label_internal_path: label
+  num_workers: 4
+  raw_internal_path: raw
+  train:
+    file_paths:
+    - PATH_TO_THE_TRAIN_SET
+    slice_builder:
+      name: SliceBuilder
+      patch_shape:
+      - 32
+      - 64
+      - 64
+      stride_shape:
+      - 8
+      - 16
+      - 16
+    transformer:
+      label:
+      - name: RandomFlip
+      - name: RandomRotate90
+      - angle_spectrum: 15
+        axes:
+        - - 2
+          - 1
+        mode: reflect
+        name: RandomRotate
+      - name: ElasticDeformation
+        spline_order: 0
+      - expand_dims: true
+        name: ToTensor
+      raw:
+      - name: Standardize
+      - name: RandomFlip
+      - name: RandomRotate90
+      - angle_spectrum: 15
+        axes:
+        - - 2
+          - 1
+        mode: reflect
+        name: RandomRotate
+      - name: ElasticDeformation
+        spline_order: 3
+      - name: RandomContrast
+      - name: AdditiveGaussianNoise
+      - name: AdditivePoissonNoise
+      - expand_dims: true
+        name: ToTensor
+  val:
+    file_paths:
+    - PATH_TO_THE_VAL_SET
+    slice_builder:
+      name: SliceBuilder
+      patch_shape:
+      - 32
+      - 64
+      - 64
+      stride_shape:
+      - 32
+      - 64
+      - 64
+    transformer:
+      label:
+      - expand_dims: true
+        name: ToTensor
+      raw:
+      - name: Standardize
+      - expand_dims: true
+        name: ToTensor
+  weight_internal_path: null
+loss:
+  ignore_index: null
+  name: DiceLoss
+  weight: null
+lr_scheduler:
+  gamma: 0.2
+  milestones:
+  - 10
+  - 30
+  - 60
+  name: resnet50
+manual_seed: 0
+model:
+  activation: null
+  in_channels: 3
+  name: efficient_b0
+  out_channels: 2
+  output_strides: 16
+  pretrained: true
+optimizer:
+  learning_rate: 0.0002
+  weight_decay: 0.0001
+trainer:
+  checkpoint_dir: CHECKPOINT_DIR
+  eval_score_higher_is_better: true
+  log_after_iters: 20
+  max_num_epochs: 50
+  max_num_iterations: 100000
+  pre_trained: null
+  resume: null
+  validate_after_iters: 20

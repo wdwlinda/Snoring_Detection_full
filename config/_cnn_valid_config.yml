@@ -3,25 +3,47 @@ dataset:
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_snoring
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_de
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\cases\1620055140118_ASUS_I002D
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training\1598482996718_NA
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training\1606921286802_sargo
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training\1620055140118_ASUS_I002D
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test2_2
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring_16k
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_KC2
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my3
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_12remain
+  # index_path: C:\Users\test\Downloads\1112\KC_testing\clips_2_2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_in
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_45cases
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring_full
+
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_train_ASUS_m_test
+  data_suffix: wav
   data_split: 
     - 0.7
     - 0.3
-  sample_rate: 16000  
+  sample_rate: null  
   transform_methods:
-    - MFCC
+    - mel-spec
   transform_config:
-    n_fft: 1024
+    n_fft: 2048
     win_length: null
-    hop_length: null
+    hop_length: 512
     n_mels: 128
-    n_mfcc: 128
+    n_mfcc: 40
+    mean_norm: True
   fuse_method: mean
   batch_size: 1
   shuffle: False
   is_data_augmentation: False
   preprocess_config:
+    mix_up: null
     
-
 # use a fixed random seed to guarantee that when you run the code twice you will get the same outcome
 manual_seed: 0
 # model configuration
@@ -32,16 +54,7 @@ model:
   in_channels: 1
   # number of output channels
   out_channels: 2
-  # determines the order of operators in a single layer (gcr - GroupNorm+Conv3d+ReLU)
-  # layer_order: gcr
-  # feature maps scale factor
-  # f_maps: 32
-  # number of groups in the groupnorm
-  # num_groups: 8
-  # apply element-wise nn.Sigmoid after the final 1x1 convolution, otherwise apply nn.Softmax
   activation: null
-  # if True applies the final normalization layer (sigmoid or softmax), otherwise the networks returns the output from the final convolution layer; use False for regression problems, e.g. de-noising
-  # is_segmentation: true
   output_strides: 16
   pretrained: True
 
@@ -49,8 +62,8 @@ eval:
   show_segmentation_result: False # TODO: change name
   save_segmentation_result: False
   save_prediciton_only: False
-  running_mode: valid
-  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_037
+  running_mode: test
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_319
   checkpoint_name: ckpt_best.pth
   eval_dir_key:
   
