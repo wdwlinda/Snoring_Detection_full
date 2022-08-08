@@ -6,11 +6,10 @@ from utils import train_utils
 logger = train_utils.get_logger('ConfigLoader')
 
 
-def get_device(config):
+def get_device(device_str=None):
     # Get a device to train on
-    device_str = config.get('device', None)
     if device_str is not None:
-        logger.info(f"Device specified in config: '{device_str}'")
+        logger.info(f"Device: '{device_str}'")
         if device_str.startswith('cuda') and not torch.cuda.is_available():
             logger.warn('CUDA not available, using CPU')
             device_str = 'cpu'
@@ -19,11 +18,10 @@ def get_device(config):
         logger.info(f"Using '{device_str}' device")
 
     device = torch.device(device_str)
-    config['device'] = device
-    return config
+    return device
 
 
-def load_config(config_reference=None):
+def load_config(config_reference=None, dict_as_member=False):
     if isinstance(config_reference, str):
         parser = argparse.ArgumentParser(description='DL')
         if config_reference is not None:
@@ -35,8 +33,8 @@ def load_config(config_reference=None):
     elif isinstance(config_reference, dict):
         config = config_reference
 
-    config = get_device(config)
-    config = train_utils.DictAsMember(config)
+    if dict_as_member:
+        config = train_utils.DictAsMember(config)
     return config
 
 

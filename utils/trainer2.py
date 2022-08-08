@@ -326,13 +326,13 @@ if __name__ == "__main__":
     config = configuration.load_config(CONFIG_PATH)
     test_dataset = AudioDataset(config, data_path)
     test_dataloader = DataLoader(
-        test_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=config.train.pin_memory, num_workers=config.train.num_workers)
+        test_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, pin_memory=config.TRAIN.pin_memory, num_workers=config.TRAIN.num_workers)
     
     net = ImageClassifier(
         backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
         out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None)
 
-    loss_func = train_utils.get_loss(config.train.loss)    
+    loss_func = train_utils.get_loss(config.TRAIN.loss)    
     if torch.cuda.is_available():
         net.cuda()
     optimizer = train_utils.create_optimizer(config.optimizer_config, net)

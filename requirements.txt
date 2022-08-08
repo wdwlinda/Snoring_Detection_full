@@ -1,0 +1,32 @@
+# CV
+numpy==1.19.5
+scipy==1.5.4
+scikit-image==0.18.3
+scikit-learn
+matplotlib
+opencv-python==4.5.4.60
+pandas==1.1.5
+tqdm==4.62.3
+glob2
+
+
+# Medical
+MedPy==0.4.0
+pylidc==0.2.2
+SimpleITK==2.1.1
+pynrrd
+
+# 3D data
+connected-components-3d
+
+# Visualization
+# tensorboardX==2.4
+
+# Model serving
+onnx
+onnxruntime
+pyinstaller
+
+# Audio
+librosa
+pydub

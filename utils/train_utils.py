@@ -99,10 +99,18 @@ def replace_item(obj, key, replace_value):
 
 def get_optimizer(name, net, config):
     if name == 'Adam':
-        return optim.Adam(net.parameters(), lr=config.train.learning_rate)
+        return optim.Adam(net.parameters(), lr=config.TRAIN.learning_rate)
 
-# TODO: understand this code
+
 class DictAsMember(dict):
+    def __setattr__(self, __name, __value) -> None:
+        if __name in self:
+            self.__setitem__(__name, __value)
+            print(3)
+        else:
+            self.__name = __value
+
+
     def __getattr__(self, name):
         value = self[name]
         if isinstance(value, dict):
@@ -310,5 +318,5 @@ def load_content_from_txt(path, access_mode='r'):
 
 
 if __name__ == '__main__':
-    PROJECT_PATH = "C:\\Users\\test\\Desktop\\Leon\\Projects\\Breast_Ultrasound\\"
+    PROJECT_PATH = r"C:\Users\test\Desktop\Leon\Projects\Breast_Ultrasound"
     create_training_path(os.path.join(PROJECT_PATH, 'models'))

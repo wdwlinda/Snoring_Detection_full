@@ -536,38 +536,3 @@ if __name__ == "__main__":
 
     
 
-
-    # generate_kaggle_breast_ultrasound_index(
-    #     data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Kaggle_Breast_Ultraound\archive\Dataset_BUSI_with_GT',
-    #     data_split=(0.7, 0.3),
-    #     save_path=rf'C:\Users\test\Desktop\Leon\Projects\Breast_Ultrasound\dataset\index\test')
-
-    # get_data_indices(
-    #     data_name='BU', 
-    #     data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Kaggle_Breast_Ultraound\archive\Dataset_BUSI_with_GT', 
-    #     save_path=rf'C:\Users\test\Desktop\Leon\Projects\Breast_Ultrasound\dataset\index\test',
-    #     mode='valid',
-    #     data_split=(0.7, 0.3), 
-    #     generate_index_func=generate_kaggle_breast_ultrasound_index)
-
-
-    # filenames = generate_filenames(path=rf'C:\Users\test\Desktop\Leon\Datasets\Kaggle_Breast_Ultraound\archive\Dataset_BUSI_with_GT',
-    #                                keys=['mask', 'png'], 
-    #                                include_or_exclude=['include', 'include'], 
-    #                                is_fullpath=True)
-    # a = 3
-    
-
-    # generate_kaggle_snoring_index(
-    #     data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1',
-    #     save_path=rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\dataset',
-    #     data_split=(0.7, 0.3))
-
-    # get_data_indices(
-    #     data_name='Snoring', 
-    #     data_path=rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset', 
-    #     save_path=rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\dataset',
-    #     mode='valid',
-    #     data_split=(0.7, 0.3), 
-    #     generate_index_func=generate_kaggle_snoring_index)
-    pass

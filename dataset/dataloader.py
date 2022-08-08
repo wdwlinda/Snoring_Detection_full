@@ -4,7 +4,7 @@
 # from cfg import DATA_PATH
 from typing import AbstractSet
 import random
-import librosa
+# import librosa
 from scipy.ndimage.measurements import label
 import torch
 import torchaudio
@@ -167,6 +167,7 @@ class AudioDataset(AbstractDastaset):
         # self.input_data_indices, self.ground_truth_indices = dataset_utils.load_input_data()
         
         self.data_suffix = self.dataset_config.data_suffix
+        self.in_channels = config.model.in_channels
         # self.input_data_indices = dataset_utils.load_content_from_txt(
         #         os.path.join(config.dataset.index_path, f'{mode}.txt'))
                 
@@ -228,37 +229,13 @@ class AudioDataset(AbstractDastaset):
 
         features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
-        audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
-
-
-
-        # import librosa
-        # img = audio_feature[...,0]
-        # # librosa.display.specshow(img, sr=16000, fmin=1, fmax=8000, hop_length=1024)
-        # fig, ax = plt.subplots(1,1)
-        # # img = librosa.power_to_db(img, ref=np.max)
-        # # img = img[:64]
-
-        # # img = plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None)
-        # # img = 10. * np.log10(img)
-        # # imgshow = librosa.display.specshow(img, x_axis="time", y_axis="mel", sr=sample_rate)
-        # plt.imshow(img)
-        # # ax.set(title='Log-frequency power spectrogram')
-        # ax.set(title='Log-frequency Mel-spectrogram')
-        # ax.label_outer()
-        # # fig.colorbar(imgshow, ax=ax, format="%+2.f dB")
-
-        # # plt.hist(img)
-        # plt.show()
-
-
+        audio_feature = np.transpose(audio_feature, (1, 2, 0))
+        # audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
 
         audio_feature = self.transform(audio_feature)
         if self.is_data_augmentation:
             audio_feature = input_preprocess.spectrogram_augmentation(audio_feature, **self.preprocess_config)
 
-        # if np.sum(np.isnan(audio_feature))> 0:
-        #     print(waveform.min(), waveform.max(), audio_feature.min(), audio_feature.max(), '+++')
         return audio_feature, mix_lambda
 
     def __getitem__(self, idx):
@@ -273,6 +250,9 @@ class AudioDataset(AbstractDastaset):
                 mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
 
         input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
+        # TODO: bad implementation
+        if self.in_channels == 3:
+            input_data = torch.tile(input_data, (3, 1, 1))
 
         if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
@@ -285,17 +265,12 @@ class AudioDataset(AbstractDastaset):
         else:
             ground_truth = None
 
-        # def test_data():
-        #     # print(input_data.max(), input_data.min())
-        #     if input_data.max() == input_data.min():
-        #         print('nan', input_data.max(), input_data.min(), self.input_data_indices[idx], np.max(waveform), np.min(waveform), np.sum(waveform))
-        #         # import matplotlib.pyplot as plt
-        #         # plt.imshow(input_data[0])
-        #         # plt.show()
-        # test_data()
+        # plt.title(str(ground_truth))
+        # plt.imshow(input_data[0])
+        # plt.show()
 
         if ground_truth is not None:
-            return {'input': input_data, 'gt': ground_truth}
+            return {'input': input_data, 'target': ground_truth}
         else:
             return {'input': input_data}
 
