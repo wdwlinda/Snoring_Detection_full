@@ -107,27 +107,31 @@ if __name__ == '__main__':
     # Configuration
     config = configuration.load_config(CONFIG_PATH, dict_as_member=False)
     all_checkpoint_path = os.path.join(config['TRAIN']['project_path'], 'checkpoints')
-    checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
-    config['CHECKPOINT_PATH'] = checkpoint_path
-    pprint(config)
+    
 
     dataset1 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
     dataset2 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc'
     config_list = []
-    for model_name in [
-        'resnetv2_101', 'resnetv2_50', 
-        'seresnext101_32x4d', 'seresnext50_32x4d',
-        'resnext101_32x4d', 'resnext50_32x4d',
-        'efficientnet_b4', 'efficientnet_b7']:
+    for model_name in ['resnext50_32x4d', 'efficientnet_b4']:
+    # for model_name in [
+    #     'resnetv2_101', 'resnetv2_50', 
+    #     'seresnext101_32x4d', 'seresnext50_32x4d',
+    #     'resnext101_32x4d', 'resnext50_32x4d',
+    #     'efficientnet_b4', 'efficientnet_b7']:
         for is_aug in [True, False]:
-            for index_path in [dataset1, dataset2]:
-                config = copy.deepcopy(config)
-                config['model']['name'] = model_name
-                config['dataset']['is_data_augmentation'] = is_aug
-                config['dataset']['index_path'] = index_path
-                config_list.append(config)
+            for index_path in [dataset2]:
+                for feature in ['MFCC', 'mel-spec']:
+                    config = copy.deepcopy(config)
+                    config['model']['name'] = model_name
+                    config['dataset']['index_path'] = index_path
+                    config['dataset']['is_data_augmentation'] = is_aug
+                    config['dataset']['transform_methods'] = feature
+                    checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
+                    config['CHECKPOINT_PATH'] = checkpoint_path
+                    config_list.append(config)
 
     for config in config_list:
+        # pprint(config)
         try:
             dataset = os.path.split(config['dataset']['index_path'])[1]
             mlflow.set_experiment("Snoring_Detection")
@@ -135,6 +139,7 @@ if __name__ == '__main__':
                 mlflow.log_param('dataset', dataset)
                 mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
                 mlflow.log_param('pretrained', config['model']['pretrained'])
+                mlflow.log_param('feature', config['dataset']['transform_methods'])
                 config = local_train_utils.DictAsMember(config)
                 main(config)
         except:

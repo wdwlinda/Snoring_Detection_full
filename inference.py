@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import torch
 from torch.serialization import save
 from torch.utils.data import Dataset, DataLoader
-from models.image_classification import img_classifier
+import site_path
+from modules.model.image_calssification import img_classifier
+# from models.image_classification import img_classifier
 from dataset.dataloader import AudioDataset, SimpleAudioDataset
 from utils import train_utils
 from utils import metrics
@@ -24,18 +26,13 @@ ImageClassifier = img_classifier.ImageClassifier
 CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_valid_config.yml'
 
 
-# TODO:
-# from torchsummary import summary
-# summary(net, (1,128,63))
-
-
 class build_inferencer():
     def __init__(self, config, dataset, model, save_path=None, batch_size=1, shuffle=False):
         self.config = config
         self.dataset = dataset
         self.data_loader = DataLoader(self.dataset, batch_size, shuffle)
         self.model = model
-        self.device = self.config.device
+        self.device = configuration.get_device()
         self.save_path = save_path
 
     def restore(self):
@@ -68,8 +65,7 @@ class build_inferencer():
                 # total_prob.append([os.path.basename(test_dataset.input_data_indices[i-1]), prob[0,1].item(), test_dataset.input_data_indices[i-1]])
                 # total_prob.append([os.path.basename(self.dataset.input_data_indices[i-1]), prob, self.dataset.input_data_indices[i-1]])
                 self.record_prediction(i-1, prob_p, prediction)
-                # if i > 10:
-                #     break
+                
     
     def record_prediction(self, index, prob, pred):
         # if prediction[0] == 1:
@@ -98,16 +94,8 @@ class build_inferencer():
         #         writer.writerow([os.path.basename(self.dataset.input_data_indices[index-1]), prob[0,1].item(), self.dataset.input_data_indices[index-1]])
         
         
-def pred():
-    # data_path = rf'C:\Users\test\Downloads\1112\app_test\iOS'
-    # files = dataset_utils.get_files(data_path, 'wav')
-    # for f in files:
-    #     save_path = dataset_utils.continuous_split(f, clip_time=2, hop_time=2, sr=16000, channels=1, add_volume=6)
-
-    data_path = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
-    data_path = rf'C:\Users\test\Desktop\Leon\Weekly\1112\3min_test'
-    save_path = rf'C:\Users\test\Downloads\1112\app_test\iOS'
-    config = configuration.load_config(CONFIG_PATH)
+def pred(data_path, save_path):
+    config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
     test_dataset = SimpleAudioDataset(config, data_path)
     net = ImageClassifier(
@@ -119,5 +107,9 @@ def pred():
 
 
 if __name__ == "__main__":
-    pred()
+    data_path = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
+    data_path = rf'C:\Users\test\Desktop\Leon\Weekly\1112\3min_test'
+    save_path = rf'C:\Users\test\Downloads\1112\app_test\iOS'
+    pred(data_path, save_path)
+    
     

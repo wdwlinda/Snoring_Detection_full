@@ -297,6 +297,7 @@ class SimpleAudioDataset(Dataset):
     def __init__(self, config, path):
         self.dataset_config = config.dataset
         self.model_config = config.model
+        self.in_channels = self.model_config.in_channels
         self.data_suffix = config.dataset.data_suffix
         self.waveforms = self.get_waveforms_from_path(path)
         self.transform_methods = config.dataset.transform_methods
@@ -311,10 +312,10 @@ class SimpleAudioDataset(Dataset):
         for f in self.input_data_indices:
             y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
             waveforms.append((np.float32(np.array(y.get_array_of_samples())), y.frame_rate))
-        for idx, i in enumerate(waveforms[0][0]):
-            print(idx, i)
-            if idx>160:
-                break
+        # for idx, i in enumerate(waveforms[0][0]):
+        #     print(idx, i)
+        #     if idx>160:
+        #         break
         # x = []
         # for f in self.input_data_indices:
         #     y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
@@ -331,6 +332,8 @@ class SimpleAudioDataset(Dataset):
     def __getitem__(self, idx):
         waveform, sr = self.waveforms[idx]
         input_data = self.preprocess(waveform, sr)
+        if self.in_channels == 3:
+            input_data = torch.tile(input_data, (3, 1, 1))
         return {'input': input_data}
 
     def preprocess(self, waveform, sample_rate):

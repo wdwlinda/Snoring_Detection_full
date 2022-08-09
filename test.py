@@ -11,23 +11,6 @@ from dataset import dataset_utils
 from analysis import utils
 import shutil
 
-# def get_file_names(path, keyword=None, filtering_mode='in', is_fullpath=True, shuffle=True):
-#     files = os.listdir(path)
-#     # files.sort(key=len)
-#     file_names = []
-#     for f in files:
-#         if keyword:
-#             if filtering_mode == 'in':
-#                 if keyword not in f: continue
-#             elif filtering_mode == 'out':
-#                 if keyword in f: continue
-
-#         if is_fullpath:
-#             file_names.append(os.path.join(path, f))
-#         else:
-#             file_names.append(f)
-#     if shuffle: random.shuffle(file_names)
-#     return file_names
 
 
 def generate_index_for_subject():
@@ -372,7 +355,8 @@ if __name__ == '__main__':
     # try_noisereduce()
     # re_split()
 
-    dataset_utils.save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k', keyword='wav', name='file_names', shuffle=False)
+    dataset_utils.save_aLL_files_name(
+        r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k', keyword='wav', name='file_names', shuffle=False)
     
     # convert_KC_testing()
 
