@@ -96,4 +96,4 @@ def MFCC(waveform, sample_rate, n_mfcc, **kwargs):
     # return T.MFCC(sample_rate, n_mfcc, melkwargs=melkwargs)(waveform)
     # TODO: check feature extraction method
     waveform = waveform[0]
-    return librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=n_mfcc)
+    return librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=n_mfcc, **kwargs)

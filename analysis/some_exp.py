@@ -1,29 +1,31 @@
 from __future__ import print_function
-import librosa
-from librosa.core import audio
-import librosa.display
+import os
+import time
+import datetime
+import random
+import array
+
+# import librosa
+# from librosa.core import audio
+# import librosa.display
+# from librosa.feature import mfcc
+import numpy as np
 from numpy.core.numeric import _outer_dispatcher
 from numpy.lib.npyio import save
 import soundfile as sf
-import numpy as np
-import datetime
-import time
-import csv
 import pydub
 from pydub import AudioSegment
 import matplotlib.pyplot as plt
-import os
 from scipy import signal
 from scipy import ndimage
-import random
 from scipy.io.wavfile import read
-from analysis import data_splitting
 import pandas as pd
-import test
 from pprint import pprint
+
+# import test
 from analysis import utils
+# from analysis import data_splitting
 from dataset import dataset_utils
-import array
 
 
 def audio_loading_exp():
@@ -932,6 +934,186 @@ def outer(a):
     print(a)
 
 
+
+def mel_compare():
+    from dataset import transformations, dataset_utils
+    import torch
+    import torchaudio
+    import pandas as pd
+    import librosa
+
+    f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\_2sec.wav'
+    sample_rate = 16000
+    # n_mfcc = 13
+    y = dataset_utils.load_audio_waveform(
+        f, 'wav', sample_rate, channels=1)
+    waveform = np.float32(np.array(y.get_array_of_samples()))
+
+    df = pd.read_csv(f.replace('.wav', '.csv'))
+    cpp_melspec = df.to_numpy().T
+    # plt.imshow(mfcc_c)
+    # plt.show()
+
+    # n_fft = 512
+    # win_length = 400
+    # hop_length = 160
+    # fmin = 50
+    # fmax = 8000
+    # n_mels = 40
+
+    n_fft = 2048
+    win_length = None
+    hop_length = None
+    n_mels = 128
+
+    torchaudio_melspec = torchaudio.transforms.MelSpectrogram(
+        sample_rate=sample_rate,
+        n_fft=n_fft,
+        win_length=n_fft,
+        hop_length=512,
+        center=True,
+        pad_mode="reflect",
+        power=2.0,
+        norm='slaney',
+        onesided=True,
+        n_mels=n_mels,
+    )(torch.from_numpy(waveform))
+    torchaudio_melspec = torchaudio_melspec.detach().cpu().numpy()
+
+    librosa_melspec = librosa.feature.melspectrogram(
+        waveform,
+        sr=sample_rate,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        win_length=win_length,
+        center=True,
+        pad_mode="reflect",
+        power=2.0,
+        norm='slaney',
+        htk=True,
+        n_mels=n_mels,
+    )
+
+    librosa_melspec = librosa.power_to_db(librosa_melspec)
+    torchaudio_melspec = librosa.power_to_db(torchaudio_melspec)
+
+    # norm = lambda x: (x-np.min(x))/(np.max(x)-np.min(x))
+    # librosa_melspec = norm(librosa_melspec)
+    # cpp_melspec = norm(cpp_melspec)
+
+    fig, ax = plt.subplots(1,3)
+    ax[0].imshow(librosa_melspec)
+    ax[1].imshow(torchaudio_melspec)
+    ax[2].imshow(cpp_melspec)
+    # ax[3].imshow(np.abs(librosa_melspec[:, 2:-2]-cpp_melspec))
+    ax[0].set_title(f'librosa ({librosa_melspec.shape})')
+    ax[1].set_title(f'torchaudio ({torchaudio_melspec.shape})')
+    ax[2].set_title(f'c++ ({cpp_melspec.shape})')
+    # ax[3].set_title(f'librosa and c++ difference')
+    fig.show()
+
+    print(librosa_melspec.shape, torchaudio_melspec.shape, cpp_melspec.shape)
+    print(f'librosa {librosa_melspec.max()} {librosa_melspec.min()} {np.mean(librosa_melspec)}')
+    print(f'torchaudio {torchaudio_melspec.max()} {torchaudio_melspec.min()} {np.mean(torchaudio_melspec)}')
+    print(f'c++ {cpp_melspec.max()} {cpp_melspec.min()} {np.mean(cpp_melspec)}')
+    print(torchaudio_melspec.shape)
+
+
+def mfcc_compare():
+    from dataset import transformations, dataset_utils
+    import torch
+    import torchaudio
+    import pandas as pd
+
+    f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\_2sec.wav'
+    sample_rate = 16000
+    n_mfcc = 13
+    y = dataset_utils.load_audio_waveform(
+        f, 'wav', sample_rate, channels=1)
+    waveform = [np.float32(np.array(y.get_array_of_samples()))]
+
+    df = pd.read_csv(f.replace('.wav', '_mfcc.csv'))
+    mfcc_c = df.to_numpy().T
+    # plt.imshow(mfcc_c)
+    # plt.show()
+
+    n_fft = 512
+    win_length = 400
+    hop_length = 160
+    fmin = 50
+    fmax = 8000
+    n_mels = 40
+
+    mfcc = transformations.MFCC(
+        waveform, sample_rate, n_mfcc, n_fft=n_fft, win_length=win_length,
+        hop_length=hop_length, fmin=fmin, fmax=fmax, n_mels=n_mels)
+
+    mel_kwargs = {
+        'n_fft': n_fft, 
+        'win_length': win_length,
+        'hop_length': hop_length, 
+        'f_min': fmin, 
+        'f_max': fmax, 
+        'n_mels': n_mels
+    }
+    mfcc_op = torchaudio.transforms.MFCC(sample_rate, n_mfcc=n_mfcc, melkwargs=mel_kwargs)
+    mfcc_t = mfcc_op(torch.from_numpy(waveform[0]))
+    mfcc_t = mfcc_t.detach().cpu().numpy()
+    fig, ax = plt.subplots(3, 1)
+    ax[0].imshow(mfcc)
+    ax[1].imshow(mfcc_t)
+    ax[2].imshow(mfcc_c)
+    # ax[2].imshow(np.abs(mfcc_t-mfcc))
+    ax[0].set_title('librosa')
+    ax[1].set_title('torchaudio')
+    ax[2].set_title('c++')
+    fig.show()
+
+    print(mfcc.shape, mfcc_t.shape, mfcc_c.shape)
+    print(f'librosa {mfcc.max()} {mfcc.min()} {np.mean(mfcc)}')
+    print(f'torchaudio {mfcc_t.max()} {mfcc_t.min()} {np.mean(mfcc_t)}')
+    print(f'c++ {mfcc_c.max()} {mfcc_c.min()} {np.mean(mfcc_c)}')
+    print(mfcc_t.shape)
+            
+
+def cpp_melspec_reimplement():
+    # from dataset import transformations, dataset_utils
+    import torch
+    import torchaudio
+    import pandas as pd
+
+    f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\_2sec.wav'
+    sample_rate = 16000
+    # n_mfcc = 13
+    y = dataset_utils.load_audio_waveform(
+        f, 'wav', sample_rate, channels=1)
+    waveform = np.float32(np.array(y.get_array_of_samples()))
+
+    df = pd.read_csv(f.replace('.wav', '.csv'))
+    cpp_melspec = df.to_numpy().T
+    
+    n_fft = 512
+    win_length = 400
+    hop_length = 160
+    fmin = 50
+    fmax = 8000
+    n_mels = 40
+
+    torchaudio_stft = torch.stft(
+        input=torch.from_numpy(waveform),
+        # sample_rate=sample_rate,
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        # center=True,
+        # pad_mode="reflect",
+        # power=2.0,
+        # norm='slaney',
+        # onesided=True,
+    )
+    torchaudio_stft = torchaudio_stft.detach().cpu().numpy()
+
+
 if __name__ == '__main__':
     # get_unconflicted_index()
     # first_order_filter()
@@ -945,7 +1127,11 @@ if __name__ == '__main__':
     #           save_path=None,
     #           process_func=audio_clips_to_freq_dist)
 
-    freq_compare(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k', 
-                 save_path=None,
-                 process_func=audio_clips_to_melspec)
+    # freq_compare(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k', 
+    #              save_path=None,
+    #              process_func=audio_clips_to_melspec)
+
+    # mfcc_compare()
+    mel_compare()
+    # cpp_melspec_reimplement()
     pass

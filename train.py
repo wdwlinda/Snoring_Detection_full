@@ -2,6 +2,7 @@ import sys
 import os
 import random
 import copy
+from datetime import datetime
 
 from pprint import pprint
 import numpy as np
@@ -101,6 +102,8 @@ def main(config):
 
 
 if __name__ == '__main__':
+    today = datetime.today()
+    now = datetime.now()
     # mlflow.set_tracking_uri("file:/.mlruns")
     # mlflow.set_tracking_uri("https://my-tracking-server:5000") <- set to remote server
     
@@ -112,15 +115,15 @@ if __name__ == '__main__':
     dataset1 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
     dataset2 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc'
     config_list = []
-    for model_name in ['resnext50_32x4d', 'efficientnet_b4']:
+    for model_name in ['resnext50_32x4d', 'resnetv2_50', 'seresnext50_32x4d', 'efficientnet_b4']:
     # for model_name in [
     #     'resnetv2_101', 'resnetv2_50', 
     #     'seresnext101_32x4d', 'seresnext50_32x4d',
     #     'resnext101_32x4d', 'resnext50_32x4d',
     #     'efficientnet_b4', 'efficientnet_b7']:
         for is_aug in [True, False]:
-            for index_path in [dataset2]:
-                for feature in ['MFCC', 'mel-spec']:
+            for index_path in [dataset1]:
+                for feature in ['mel-spec']:
                     config = copy.deepcopy(config)
                     config['model']['name'] = model_name
                     config['dataset']['index_path'] = index_path
@@ -128,18 +131,26 @@ if __name__ == '__main__':
                     config['dataset']['transform_methods'] = feature
                     checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
                     config['CHECKPOINT_PATH'] = checkpoint_path
+                    
                     config_list.append(config)
 
     for config in config_list:
         # pprint(config)
         try:
             dataset = os.path.split(config['dataset']['index_path'])[1]
-            mlflow.set_experiment("Snoring_Detection")
+            checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
+            now = datetime.now()
+            currentDay = str(now.day)
+            currentMonth = str(now.month)
+            currentYear = str(now.year)
+            exp_name = f"Snoring_Detection_{currentYear}_{currentMonth}_{currentDay}"
+            mlflow.set_experiment(exp_name)
             with mlflow.start_run(run_name=config['model']['name']):
                 mlflow.log_param('dataset', dataset)
                 mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
                 mlflow.log_param('pretrained', config['model']['pretrained'])
                 mlflow.log_param('feature', config['dataset']['transform_methods'])
+                mlflow.log_param('checkpoint', checkpoint_dir)
                 config = local_train_utils.DictAsMember(config)
                 main(config)
         except:

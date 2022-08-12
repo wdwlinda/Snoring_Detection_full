@@ -1,11 +1,15 @@
 
 import importlib
+from pathlib import Path
 import os
 import re
+
 import numpy as np
 import logging
 from pydub import AudioSegment
 import pandas as pd
+import glob
+import cv2
 
 
 
@@ -27,6 +31,55 @@ import pandas as pd
 #                 else:
 #                     input_paths.append(fullpath)
 #     return input_paths, gt_paths
+
+
+def get_melspec_from_cpp(wav_list_path, out_dir):
+    # Generate output path list (wav -> csv)
+    out_path_list = []
+    wav_list_dir, wav_list_filename = os.path.split(wav_list_path)
+    with open(wav_list_path, 'r') as fw:
+        in_path_list = fw.readlines()
+
+    csv_out_dir = out_path = os.path.join(out_dir, 'csv')
+    os.makedirs(csv_out_dir, exist_ok=True)
+    for in_path in in_path_list:
+        in_dir, in_file = os.path.split(in_path)
+        out_path = os.path.join(csv_out_dir, in_file.replace('wav', 'csv'))
+        out_path_list.append(out_path)
+
+    csv_list_path = os.path.join(csv_out_dir, wav_list_filename)
+    with open(csv_list_path, 'w+') as fw:
+        # for path in out_path_list:
+        fw.writelines(out_path_list)
+
+    # Cpp MelSpectrogram
+    exe_file = Path(r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\compute-mfcc.exe')
+    inputlist = Path(wav_list_path)
+    outputlist = Path(csv_list_path)
+    command = (
+        f'{exe_file.as_posix()} '
+        f'--inputlist "{inputlist.as_posix()}" '
+        f'--outputlist "{outputlist.as_posix()}"'
+    )
+    os.system(command)
+
+    # csv to image
+    csv_list = glob.glob(os.path.join(csv_out_dir, '*.csv'))
+    img_out_dir = os.path.join(out_dir, 'img', wav_list_filename[:-4])
+    os.makedirs(img_out_dir, exist_ok=True)
+    img_save_paths = []
+    for csv_f in csv_list:
+        _, filename = os.path.split(csv_f)
+        df = pd.read_csv(csv_f)
+        data = df.to_numpy().T
+        # cv2.imwrite(os.path.join(img_out_dir, filename.replace('csv', 'png')), data)
+        save_path = os.path.join(img_out_dir, filename.replace('csv', 'npy'))
+        img_save_paths.append(save_path)
+        np.save(save_path, data)
+        
+
+    with open(os.path.join(csv_out_dir, wav_list_filename), 'w+') as fw:
+        fw.writelines(img_save_paths)
 
 
 def get_dir_list(data_path, full_path=True):
@@ -527,12 +580,23 @@ def save_data_label_pair_in_csv(data_path, save_path=None, save_name=None, load_
 
 
 if __name__ == "__main__":
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
-    save_data_label_pair_in_csv(data_path, save_name='train1.csv')
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k'
-    save_data_label_pair_in_csv(data_path, save_name='train2.csv')
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50_16k\esc50_16k_2'
-    save_data_label_pair_in_csv(data_path, save_name='train3.csv')
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
+    # save_data_label_pair_in_csv(data_path, save_name='train1.csv')
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k'
+    # save_data_label_pair_in_csv(data_path, save_name='train2.csv')
+    # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50_16k\esc50_16k_2'
+    # save_data_label_pair_in_csv(data_path, save_name='train3.csv')
 
+    train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
+    test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
+    out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
+    get_melspec_from_cpp(train_wav_list_path, out_dir)
+    get_melspec_from_cpp(test_wav_list_path, out_dir)
+
+    # import matplotlib.pyplot as plt
+    # f = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\test\1620231545598_10_80.69_82.69_015.npy'
+    # img = np.load(f)
+    # plt.imshow(img)
+    # plt.show()
     
 
