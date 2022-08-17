@@ -4,6 +4,7 @@
 # from cfg import DATA_PATH
 from typing import AbstractSet
 import random
+
 # import librosa
 from scipy.ndimage.measurements import label
 import torch
@@ -16,7 +17,10 @@ import csv
 import pandas as df
 import os
 import cv2
+import glob
 import matplotlib.pyplot as plt
+import pandas as pd
+
 # from analysis.data_splitting import get_files
 from dataset import preprocess_utils
 from dataset import input_preprocess
@@ -155,6 +159,8 @@ def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
     return spectrum
 
 
+
+
 # TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode, eval_mode=True):
@@ -227,7 +233,8 @@ class AudioDataset(AbstractDastaset):
         else:
             mix_lambda = None
 
-        features = transformations.get_audio_features(waveform, sample_rate, self.transform_methods, self.transform_config)
+        features = transformations.get_audio_features(
+            waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
         audio_feature = np.transpose(audio_feature, (1, 2, 0))
         # audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
@@ -292,6 +299,98 @@ class AudioDataset(AbstractDastaset):
         return audio_feature
 
 
+class AudioDatasetfromNumpy(Dataset):
+    def __init__(self, config, mode, eval_mode=True):
+        self.dataset_config = config.dataset
+        self.model_config = config.model
+        self.data_suffix = self.dataset_config.data_suffix
+        self.in_channels = config.model.in_channels
+        # self.input_data_indices = dataset_utils.load_content_from_txt(
+        #         os.path.join(config.dataset.index_path, f'{mode}.txt'))
+        self.preprocess_config = self.dataset_config.preprocess_config
+        if mode == 'train':
+            self.is_data_augmentation = self.dataset_config.is_data_augmentation
+        else:
+            self.is_data_augmentation = False
+
+        if mode == 'train':
+            dirname = 'train'
+        elif mode in ('valid', 'test'):
+            dirname = 'test'
+        else:
+            raise ValueError('Unknown mode.')
+        self.input_data_indices = pd.read_csv(
+            os.path.join(config.dataset.index_path, f'{dirname}.csv'))
+
+        self.eval_mode = eval_mode
+        self.transform_methods = config.dataset.transform_methods
+        self.transform_config = self.dataset_config.transform_config
+        print(f"Samples: {self.input_data_indices.shape[0]}")
+        self.transform = transforms.Compose([transforms.ToTensor()])
+
+    def __len__(self):
+        return self.input_data_indices.shape[0]
+
+    def __getitem__(self, idx):
+        df = self.input_data_indices.iloc[idx]
+        input_data = np.load(df['img_path'])
+        input_data = input_data[np.newaxis]
+        
+        input_data = np.transpose(input_data, (1, 2, 0))
+        input_data = self.transform(input_data)
+        if self.is_data_augmentation:
+            input_data = input_preprocess.spectrogram_augmentation(
+                input_data, **self.preprocess_config)
+
+        if self.in_channels == 3:
+            input_data = torch.tile(input_data, (3, 1, 1))
+        
+
+        if 'label' in df:
+            ground_truth = df['label']
+            ground_truth = np.eye(2)[ground_truth]
+        else:
+            ground_truth = None
+
+        if ground_truth is not None:
+            return {'input': input_data, 'target': ground_truth}
+        else:
+            return {'input': input_data}
+
+
+
+class SimpleAudioDatasetfromNumpy(Dataset):
+    def __init__(self, config, path):
+        self.dataset_config = config.dataset
+        self.model_config = config.model
+        self.in_channels = self.model_config.in_channels
+        self.data_suffix = config.dataset.data_suffix
+        self.features = self.get_waveforms_from_path(path)
+        self.transform_methods = config.dataset.transform_methods
+        self.transform_config = self.dataset_config.transform_config
+        print(f"Samples: {len(self.input_data_indices)}")
+        self.transform = transforms.Compose([transforms.ToTensor()])
+
+    def get_waveforms_from_path(self, data_path):
+        features = []
+        audio_format = 'npy'
+        self.input_data_indices = dataset_utils.get_files(data_path, keys=audio_format)
+        for f in self.input_data_indices:
+            y = np.load(f)
+            features.append(np.float32(y))
+        return features
+
+    def __len__(self):
+        return len(self.input_data_indices)
+
+    def __getitem__(self, idx):
+        input_data = self.features[idx]
+        input_data = input_data[...,np.newaxis]
+        input_data = self.transform(input_data)
+        if self.in_channels == 3:
+            input_data = torch.tile(input_data, (3, 1, 1))
+        return {'input': input_data}
+
 
 class SimpleAudioDataset(Dataset):
     def __init__(self, config, path):
@@ -312,18 +411,6 @@ class SimpleAudioDataset(Dataset):
         for f in self.input_data_indices:
             y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
             waveforms.append((np.float32(np.array(y.get_array_of_samples())), y.frame_rate))
-        # for idx, i in enumerate(waveforms[0][0]):
-        #     print(idx, i)
-        #     if idx>160:
-        #         break
-        # x = []
-        # for f in self.input_data_indices:
-        #     y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
-        #     clips = dataset_utils.get_clips_from_audio(y, clip_time=2, hop_time=2)
-        #     for idx, clip in enumerate(clips, 1):
-        #         waveforms.append((np.float32(np.array(clip.get_array_of_samples())), clip.frame_rate))
-        #         x.append(f.replace('.m4a', f'_{idx:03d}.m4a'))
-        # self.input_data_indices = x
         return waveforms
 
     def __len__(self):

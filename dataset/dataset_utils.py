@@ -33,24 +33,34 @@ import cv2
 #     return input_paths, gt_paths
 
 
-def get_melspec_from_cpp(wav_list_path, out_dir):
+def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
     # Generate output path list (wav -> csv)
     out_path_list = []
     wav_list_dir, wav_list_filename = os.path.split(wav_list_path)
     with open(wav_list_path, 'r') as fw:
         in_path_list = fw.readlines()
+    in_path_list = [f if f[-3:] == 'wav' else f[:-1] for f in in_path_list]
+    # TODO: temp test
+    # in_path_list = in_path_list[:200]
 
-    csv_out_dir = out_path = os.path.join(out_dir, 'csv')
+    csv_out_dir = os.path.join(out_dir, 'csv', wav_list_filename[:-4])
     os.makedirs(csv_out_dir, exist_ok=True)
+    data_pair = {}
     for in_path in in_path_list:
         in_dir, in_file = os.path.split(in_path)
-        out_path = os.path.join(csv_out_dir, in_file.replace('wav', 'csv'))
+        out_file = in_file.replace('wav', 'csv')
+        out_path = os.path.join(csv_out_dir, out_file)
         out_path_list.append(out_path)
+
+        key = out_file[:-4]
+        # label = int(os.path.split(in_dir)[1])
+        label = 0
+        data_pair[key] = {'label': label}
 
     csv_list_path = os.path.join(csv_out_dir, wav_list_filename)
     with open(csv_list_path, 'w+') as fw:
-        # for path in out_path_list:
-        fw.writelines(out_path_list)
+        for path in out_path_list:
+            fw.write(f'{path}\n')
 
     # Cpp MelSpectrogram
     exe_file = Path(r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\compute-mfcc.exe')
@@ -59,27 +69,54 @@ def get_melspec_from_cpp(wav_list_path, out_dir):
     command = (
         f'{exe_file.as_posix()} '
         f'--inputlist "{inputlist.as_posix()}" '
-        f'--outputlist "{outputlist.as_posix()}"'
+        f'--outputlist "{outputlist.as_posix()}" '
     )
+    if sampling_rate is not None:
+        command += f'--samplingrate {sampling_rate} '
     os.system(command)
 
-    # csv to image
-    csv_list = glob.glob(os.path.join(csv_out_dir, '*.csv'))
+    # Save CPP feature (csv -> npy)
+    # csv_list = glob.glob(os.path.join(csv_out_dir, '*.csv'))
+    csv_list = out_path_list
     img_out_dir = os.path.join(out_dir, 'img', wav_list_filename[:-4])
     os.makedirs(img_out_dir, exist_ok=True)
     img_save_paths = []
-    for csv_f in csv_list:
+    for idx, csv_f in enumerate(csv_list):
+        # if idx>10:break
         _, filename = os.path.split(csv_f)
-        df = pd.read_csv(csv_f)
-        data = df.to_numpy().T
-        # cv2.imwrite(os.path.join(img_out_dir, filename.replace('csv', 'png')), data)
+        try:
+            df = pd.read_csv(csv_f)
+            data = df.to_numpy().T
+        except pd.errors.EmptyDataError:
+            print(f'- Empty pandas data {csv_f}')
+            data = np.zeros(1)
+
         save_path = os.path.join(img_out_dir, filename.replace('csv', 'npy'))
         img_save_paths.append(save_path)
+        data_pair[filename[:-4]]['path'] = save_path
         np.save(save_path, data)
         
 
-    with open(os.path.join(csv_out_dir, wav_list_filename), 'w+') as fw:
+    with open(os.path.join(out_dir, wav_list_filename), 'w+') as fw:
         fw.writelines(img_save_paths)
+
+    inputs, paths, labels = [], [], []
+    for k, v in data_pair.items():
+        inputs.append(k[:-4])
+        if 'path' in v:
+            paths.append(v['path'])
+        else:
+            paths.append('')
+        if 'label' in v:
+            labels.append(v['label'])
+        else:
+            labels.append('')
+        # labels.append(v['label'])
+    df = pd.DataFrame({
+        'input': inputs, 'img_path': paths, 'label': labels
+    })
+    df.to_csv(os.path.join(out_dir, wav_list_filename).replace('txt', 'csv'))
+
 
 
 def get_dir_list(data_path, full_path=True):
@@ -579,6 +616,17 @@ def save_data_label_pair_in_csv(data_path, save_path=None, save_name=None, load_
         pair_df.to_csv(save_name)
 
 
+def save_fileanmes_in_txt(glob_path, save_path=None, recursive=True):
+    files = glob.glob(glob_path, recursive=recursive)
+    if not save_path:
+        save_path = 'filenames.txt'
+
+    with open(save_path, 'w') as fw:
+        for file in files:
+            fw.write(f'{file}\n')
+    return files
+
+
 if __name__ == "__main__":
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
     # save_data_label_pair_in_csv(data_path, save_name='train1.csv')
@@ -587,16 +635,44 @@ if __name__ == "__main__":
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50_16k\esc50_16k_2'
     # save_data_label_pair_in_csv(data_path, save_name='train3.csv')
 
-    train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
-    test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
-    out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
-    get_melspec_from_cpp(train_wav_list_path, out_dir)
-    get_melspec_from_cpp(test_wav_list_path, out_dir)
 
-    # import matplotlib.pyplot as plt
-    # f = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\test\1620231545598_10_80.69_82.69_015.npy'
-    # img = np.load(f)
-    # plt.imshow(img)
-    # plt.show()
-    
+    # ASUS snoring
+    # train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
+    # test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
+    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
+    # get_melspec_from_cpp(train_wav_list_path, out_dir)
+    # get_melspec_from_cpp(test_wav_list_path, out_dir)
+
+
+    # ESC-50
+    # # wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2\test.txt'
+    # wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2\file_names.txt'
+    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100'
+    # get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=44100)
+
+
+    # Kaggle snoring
+    # wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring_full\valid.txt'
+    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\kaggle'
+    # get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=48000)
+
+
+    # ASUS new
+    redmi = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889529250_RedmiNote8\0'
+    pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889531056_Pixel4XL\0'
+    iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889531172_iPhone11\0'
+    sr = 16000
+
+    # for data_path in [redmi, pixel, iphone]:
+    for data_path in [redmi]:
+        split = os.path.split(os.path.split(data_path)[0])[1]
+        glob_path = os.path.join(data_path, '*.wav')
+        save_path = os.path.join(data_path, 'filenames.txt')
+        save_fileanmes_in_txt(glob_path, recursive=True, save_path=save_path)
+
+        wav_list_path = save_path
+        out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
+        out_dir = os.path.join(out_dir, split, str(sr))
+        get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=sr)
+
 

@@ -6,9 +6,14 @@ scikit-learn
 matplotlib
 opencv-python==4.5.4.60
 pandas==1.1.5
+
+# Tools
 tqdm==4.62.3
 glob2
+pprintpp
 
+# Pytorch related
+timm
 
 # Medical
 MedPy==0.4.0

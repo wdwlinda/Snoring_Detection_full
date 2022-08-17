@@ -14,7 +14,10 @@ dataset:
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq\4_21_1s_45cases
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_KC3
-  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
+  index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
+
+  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2_shift
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my3
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc
@@ -45,13 +48,13 @@ dataset:
   fuse_method: mean
   batch_size: 14
   shuffle: True
-  is_data_augmentation: True
+  is_data_augmentation: False
   preprocess_config:
     is_freq_masking: True
     is_time_masking: True
     is_time_strech: False 
-    freq_mask_param: 32
-    time_mask_param: 24
+    freq_mask_param: 16
+    time_mask_param: 12
     min_rate: 0.9
     max_rate: 1.1
     mix_up: null
@@ -61,17 +64,22 @@ manual_seed: 0
 model:
   # model class, e.g. UNet3D, ResidualUNet3D
   name: resnet50
+  # name: resnetv2_50
   # number of input channels to the model
-  in_channels: 1
+  in_channels: 3
   # number of output channels
   out_channels: 2
-  activation: softmax
+  activation: sigmoid
   output_strides: 16
-  pretrained: False
+  pretrained: True
 
 optimizer_config:
   optimizer: Adam
-  learning_rate: 5.0e-5
+  lr_config:
+    name: 'StepLR'
+    learning_rate: 2.0e-5
+    gamma: 0.8
+    step_size: 50
   weight_decay: 0
   momentum: 0
   betas:
@@ -79,13 +87,15 @@ optimizer_config:
     - 0.99
 
 # training configuration
-train:
+TRAIN:
   loss: BCE
   # optimizer: Adam
-  epoch: 100
+  EPOCH: 200
   # learning_rate: 1.0e-5
   project_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection
-  checkpoint_saving_steps: 100
+  # checkpoint_saving_steps: 100
   num_workers: 0
   pin_memory: True
-
+  CHECKPOINT_SAVING_STEPS: 50
+  INIT_CHECKPOINT: null
+  PATIENCE: 20

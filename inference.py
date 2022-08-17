@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 import site_path
 from modules.model.image_calssification import img_classifier
 # from models.image_classification import img_classifier
-from dataset.dataloader import AudioDataset, SimpleAudioDataset
+from dataset.dataloader import AudioDataset, SimpleAudioDataset, SimpleAudioDatasetfromNumpy
 from utils import train_utils
 from utils import metrics
 from utils import configuration
@@ -98,6 +98,18 @@ def pred(data_path, save_path):
     config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
     test_dataset = SimpleAudioDataset(config, data_path)
+    net = ImageClassifier(
+        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
+        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None)
+
+    inferencer = build_inferencer(config, dataset=test_dataset, model=net, save_path=save_path)
+    inferencer.inference()
+
+
+def pred_from_feature(data_path, save_path):
+    config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
+    # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
+    test_dataset = SimpleAudioDatasetfromNumpy(config, data_path)
     net = ImageClassifier(
         backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
         out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None)

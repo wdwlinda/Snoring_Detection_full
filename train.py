@@ -11,7 +11,7 @@ import mlflow
 
 from torch.utils.data import Dataset, DataLoader
 import site_path
-from dataset.dataloader import AudioDataset
+from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
 from utils import configuration
 from utils import train_utils as local_train_utils
 CONFIG_PATH = 'config/_cnn_train_config.yml'
@@ -31,8 +31,10 @@ def main(config):
         train_utils.set_deterministic(manual_seed, random, np, torch)
             
     # Dataloader
-    train_dataset = AudioDataset(config, mode='train')
-    valid_dataset = AudioDataset(config, mode='valid')
+    train_dataset = AudioDatasetfromNumpy(config, mode='train')
+    valid_dataset = AudioDatasetfromNumpy(config, mode='valid')
+    # train_dataset = AudioDataset(config, mode='train')
+    # valid_dataset = AudioDataset(config, mode='valid')
 
     train_dataloader = DataLoader(
         train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, 
@@ -114,6 +116,7 @@ if __name__ == '__main__':
 
     dataset1 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
     dataset2 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc'
+    dataset3 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
     config_list = []
     for model_name in ['resnext50_32x4d', 'resnetv2_50', 'seresnext50_32x4d', 'efficientnet_b4']:
     # for model_name in [
@@ -122,7 +125,7 @@ if __name__ == '__main__':
     #     'resnext101_32x4d', 'resnext50_32x4d',
     #     'efficientnet_b4', 'efficientnet_b7']:
         for is_aug in [True, False]:
-            for index_path in [dataset1]:
+            for index_path in [dataset3]:
                 for feature in ['mel-spec']:
                     config = copy.deepcopy(config)
                     config['model']['name'] = model_name

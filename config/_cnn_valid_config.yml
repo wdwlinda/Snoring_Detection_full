@@ -49,9 +49,9 @@ manual_seed: 0
 # model configuration
 model:
   # model class, e.g. UNet3D, ResidualUNet3D
-  name: resnet50
+  name: resnext50_32x4d
   # number of input channels to the model
-  in_channels: 1
+  in_channels: 3
   # number of output channels
   out_channels: 2
   activation: null
@@ -63,7 +63,7 @@ eval:
   save_segmentation_result: False
   save_prediciton_only: False
   running_mode: test
-  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_319
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_206
   checkpoint_name: ckpt_best.pth
   eval_dir_key:
   
