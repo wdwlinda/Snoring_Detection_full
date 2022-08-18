@@ -21,6 +21,7 @@ from scipy import ndimage
 from scipy.io.wavfile import read
 import pandas as pd
 from pprint import pprint
+import glob
 
 # import test
 from analysis import utils
@@ -1114,6 +1115,45 @@ def cpp_melspec_reimplement():
     torchaudio_stft = torchaudio_stft.detach().cpu().numpy()
 
 
+def spectrogram_threshold():
+    """
+    In: spec: [freq, time]
+    """
+    import torch
+    import torchaudio
+    _dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\wave'
+    files = glob.glob(os.path.join(_dir, '*.wav'))
+    f = files[2]
+
+    sample_rate = 16000
+    y = dataset_utils.load_audio_waveform(
+        f, 'wav', sample_rate, channels=1)
+    waveform = np.float32(np.array(y.get_array_of_samples()))
+    n_fft = 2048
+    win_length = None
+    hop_length = None
+    n_mels = 128
+
+    torchaudio_melspec = torchaudio.transforms.MelSpectrogram(
+        sample_rate=sample_rate,
+        n_fft=n_fft,
+        win_length=n_fft,
+        hop_length=512,
+        center=True,
+        pad_mode="reflect",
+        power=2.0,
+        norm='slaney',
+        onesided=True,
+        n_mels=n_mels,
+    )(torch.from_numpy(waveform))
+    spec = torchaudio_melspec.detach().cpu().numpy()
+    """"""
+
+    mean_freq = np.mean(spec, axis=0)
+    plt.plot(mean_freq)
+    plt.show()
+
+
 if __name__ == '__main__':
     # get_unconflicted_index()
     # first_order_filter()
@@ -1132,6 +1172,8 @@ if __name__ == '__main__':
     #              process_func=audio_clips_to_melspec)
 
     # mfcc_compare()
-    mel_compare()
+    # mel_compare()
     # cpp_melspec_reimplement()
+
+    spectrogram_threshold()
     pass

@@ -272,10 +272,6 @@ class AudioDataset(AbstractDastaset):
         else:
             ground_truth = None
 
-        # plt.title(str(ground_truth))
-        # plt.imshow(input_data[0])
-        # plt.show()
-
         if ground_truth is not None:
             return {'input': input_data, 'target': ground_truth}
         else:
@@ -345,7 +341,6 @@ class AudioDatasetfromNumpy(Dataset):
         if self.in_channels == 3:
             input_data = torch.tile(input_data, (3, 1, 1))
         
-
         if 'label' in df:
             ground_truth = df['label']
             ground_truth = np.eye(2)[ground_truth]
@@ -365,6 +360,7 @@ class SimpleAudioDatasetfromNumpy(Dataset):
         self.model_config = config.model
         self.in_channels = self.model_config.in_channels
         self.data_suffix = config.dataset.data_suffix
+        
         self.features = self.get_waveforms_from_path(path)
         self.transform_methods = config.dataset.transform_methods
         self.transform_config = self.dataset_config.transform_config

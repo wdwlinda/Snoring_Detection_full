@@ -34,15 +34,17 @@ class build_inferencer():
         self.model = model
         self.device = configuration.get_device()
         self.save_path = save_path
+        self.prediction = {}
+        self.restore()
 
     def restore(self):
-        checkpoint = os.path.join(self.config.eval.restore_checkpoint_path, self.config.eval.checkpoint_name)
+        checkpoint = os.path.join(
+            self.config.eval.restore_checkpoint_path, self.config.eval.checkpoint_name)
         state_key = torch.load(checkpoint, map_location=self.device)
         self.model.load_state_dict(state_key['net'])
         self.model = self.model.to(self.device)
 
     def inference(self):
-        self.restore()
         with torch.no_grad():
             self.model.eval()
 
@@ -51,21 +53,20 @@ class build_inferencer():
 
             total_prob = []
             for i, data in enumerate(self.data_loader, 1):
+                # if i>10: break
                 inputs = data['input']
-                inputs = train_utils.minmax_norm(inputs)
+                # inputs = train_utils.minmax_norm(inputs)
                 inputs = inputs.to(self.device)
                 output = self.model(inputs)
                 prob = torch.sigmoid(output)
                 # prob = torch.nn.functional.softmax(output)
                 prediction = torch.argmax(prob, dim=1).item()
                 # prediction = prediction.cpu().detach().numpy()
-                prob_p = prob[0,1].item()
+                prob = prob.detach().cpu().numpy()
+                prob_p = prob[0,1]
                 print(f'Sample: {i}', prob_p, prediction, self.dataset.input_data_indices[i-1])
-
-                # total_prob.append([os.path.basename(test_dataset.input_data_indices[i-1]), prob[0,1].item(), test_dataset.input_data_indices[i-1]])
-                # total_prob.append([os.path.basename(self.dataset.input_data_indices[i-1]), prob, self.dataset.input_data_indices[i-1]])
-                self.record_prediction(i-1, prob_p, prediction)
-                
+                self.record_prediction(i-1, prob, prediction)
+        return self.prediction        
     
     def record_prediction(self, index, prob, pred):
         # if prediction[0] == 1:
@@ -84,15 +85,10 @@ class build_inferencer():
 
         with open(os.path.join(path, name), mode='a+', newline='') as csv_file:
             writer = csv.writer(csv_file)
+            sample_name = os.path.basename(self.dataset.input_data_indices[index])[:-4]
             writer.writerow(
-                [os.path.basename(self.dataset.input_data_indices[index]), prob, pred, self.dataset.input_data_indices[index]])
-                # [os.path.basename(self.dataset.input_data_indices[index-1]), prob, pred, self.dataset.input_data_indices[index-1]])
-        
-        # if prediction[0] == 0:
-        #     with open(rf'C:\Users\test\Downloads\1112\0.csv', mode='a+', newline='') as csv_file:
-        #         writer = csv.writer(csv_file)
-        #         writer.writerow([os.path.basename(self.dataset.input_data_indices[index-1]), prob[0,1].item(), self.dataset.input_data_indices[index-1]])
-        
+                [sample_name, prob, pred, self.dataset.input_data_indices[index]])
+        self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
 def pred(data_path, save_path):
     config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
@@ -115,7 +111,8 @@ def pred_from_feature(data_path, save_path):
         out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None)
 
     inferencer = build_inferencer(config, dataset=test_dataset, model=net, save_path=save_path)
-    inferencer.inference()
+    prediction = inferencer.inference()
+    return prediction
 
 
 if __name__ == "__main__":

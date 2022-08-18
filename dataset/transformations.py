@@ -20,7 +20,8 @@ def pcm2wave(pcm_path, sr=16000, dist_dir=None):
         dist_dir = pcm_dir
 
     with wave.open(os.path.join(dist_dir, pcm_file.replace('.pcm', '.wav')), 'wb') as wavfile:
-        wavfile.setparams((1, 2, sr, 0, 'NONE', 'NONE'))
+        # (nchannels, sampwidth, framerate, nframes, comptype, compname)
+        wavfile.setparams((1, 2, sr, 0, 'NONE', 'NONE')) 
         wavfile.writeframes(pcmdata)
 
 

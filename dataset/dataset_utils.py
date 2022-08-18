@@ -96,7 +96,6 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
         data_pair[filename[:-4]]['path'] = save_path
         np.save(save_path, data)
         
-
     with open(os.path.join(out_dir, wav_list_filename), 'w+') as fw:
         fw.writelines(img_save_paths)
 
