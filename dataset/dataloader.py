@@ -309,14 +309,12 @@ class AudioDatasetfromNumpy(Dataset):
         else:
             self.is_data_augmentation = False
 
-        if mode == 'train':
-            dirname = 'train'
-        elif mode in ('valid', 'test'):
-            dirname = 'test'
-        else:
-            raise ValueError('Unknown mode.')
-        self.input_data_indices = pd.read_csv(
-            os.path.join(config.dataset.index_path, f'{dirname}.csv'))
+        all_dfs = []
+        index_paths = config.dataset.index_path[mode]
+        for dataset_name, index_path in index_paths.items():
+            df = pd.read_csv(index_path)
+            all_dfs.append(df)
+        self.input_data_indices = pd.concat(all_dfs, axis=0)
 
         self.eval_mode = eval_mode
         self.transform_methods = config.dataset.transform_methods
@@ -354,6 +352,38 @@ class AudioDatasetfromNumpy(Dataset):
 
 
 
+
+class SimpleAudioDatasetfromNumpy_csv(Dataset):
+    def __init__(self, config, path):
+        self.dataset_config = config.dataset
+        self.model_config = config.model
+        self.in_channels = self.model_config.in_channels
+        self.data_suffix = config.dataset.data_suffix
+        self.input_data_indices = pd.read_csv(path)
+        self.input_data_indices = self.input_data_indices['img_path'].tolist()
+        
+        # self.features = self.get_waveforms_from_path(path)
+        self.transform_methods = config.dataset.transform_methods
+        self.transform_config = self.dataset_config.transform_config
+        print(f"Samples: {len(self.input_data_indices)}")
+        self.transform = transforms.Compose([transforms.ToTensor()])
+
+
+    def __len__(self):
+        return len(self.input_data_indices)
+
+    def __getitem__(self, idx):
+        # df = self.input_data_indices.iloc[idx]
+        # input_data = np.load(df['img_path'])
+        input_data = np.load(self.input_data_indices[idx])
+        input_data = input_data[...,np.newaxis]
+        input_data = self.transform(input_data)
+        if self.in_channels == 3:
+            input_data = torch.tile(input_data, (3, 1, 1))
+        input_data = np.float32(input_data)
+        return {'input': input_data}
+
+
 class SimpleAudioDatasetfromNumpy(Dataset):
     def __init__(self, config, path):
         self.dataset_config = config.dataset
@@ -364,7 +394,7 @@ class SimpleAudioDatasetfromNumpy(Dataset):
         self.features = self.get_waveforms_from_path(path)
         self.transform_methods = config.dataset.transform_methods
         self.transform_config = self.dataset_config.transform_config
-        print(f"Samples: {len(self.input_data_indices)}")
+        # print(f"Samples: {len(self.input_data_indices)}")
         self.transform = transforms.Compose([transforms.ToTensor()])
 
     def get_waveforms_from_path(self, data_path):

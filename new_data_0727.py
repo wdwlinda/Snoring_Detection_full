@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dataset.transformations import pcm2wave
-from inference import pred, pred_from_feature
+from inference import pred, pred_from_feature, pred_once
 from dataset.dataset_utils import save_fileanmes_in_txt, get_melspec_from_cpp
 
 
@@ -93,7 +93,7 @@ def data_preprocess(data_paths, preprocess_dir):
 
         # pcm files to wav files
         wav_data_path = os.path.join(out_dir, 'wave')
-        pcm_data_convert(raw_data_path, wav_data_path=wav_data_path)
+        pcm_data_convert(raw_data_path, dist_dir=wav_data_path)
 
         # split wav files
         split_data_path = os.path.join(out_dir, 'wave_split')
@@ -115,9 +115,9 @@ def data_preprocess(data_paths, preprocess_dir):
 
 def main():
     # 0727 data
-    redmi = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave\1658889529250_RedmiNote8'
-    pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave\1658889531056_Pixel4XL'
-    iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave\1658889531172_iPhone11'
+    redmi = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\1658889529250_RedmiNote8'
+    pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\1658889531056_Pixel4XL'
+    iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\1658889531172_iPhone11'
 
     # 0811 data
     Mi11_night = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0811\20220811_testing\Mi11_night\1660060671210_thres0.55'
@@ -137,7 +137,8 @@ def main():
         'Samsung_Note10Plus_night': Samsung_Note10Plus_night
     }
     # data_paths = _0727_data.update(_0811_data)
-    data_paths = _0811_data
+    data_paths = _0727_data
+    # data_paths = _0811_data
     preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
     data_preprocess(data_paths, preprocess_dir)
 
@@ -145,21 +146,23 @@ def main():
 def pred_data():
     total_data_info = {}
 
-    preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
-    _0727_data = ['1658889529250_RedmiNote8', '1658889531056_Pixel4XL', '1658889531172_iPhone11']
-    for dataset in _0727_data:
-        src_dir = os.path.join(preprocess_dir, dataset, '16000', 'img', 'filenames')
-        dist_dir = os.path.join(preprocess_dir, dataset, '16000', 'pred')
-        gt_dir = os.path.join(preprocess_dir, dataset, '16000', 'filenames.csv')
-        total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
-
-    # preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
-    # _0811_data = ['Mi11_night', 'Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
-    # for dataset in _0811_data:
-    #     src_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'img', 'filenames')
-    #     dist_dir = os.path.join(preprocess_dir, dataset, 'pred')
-    #     gt_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'filenames.csv')
+    # preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
+    # _0727_data = ['1658889529250_RedmiNote8', '1658889531056_Pixel4XL', '1658889531172_iPhone11']
+    # for dataset in _0727_data:
+    #     src_dir = os.path.join(preprocess_dir, dataset, '16000', 'img', 'filenames')
+    #     dist_dir = os.path.join(preprocess_dir, dataset, '16000', 'pred')
+    #     gt_dir = os.path.join(preprocess_dir, dataset, '16000', 'filenames.csv')
     #     total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
+
+    preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
+    # _0811_data = ['Samsung_Note10Plus_night']
+    _0811_data = ['Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
+    # _0811_data = ['Mi11_night', 'Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
+    for dataset in _0811_data:
+        src_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'img', 'filenames')
+        dist_dir = os.path.join(preprocess_dir, dataset, 'pred3')
+        gt_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'filenames.csv')
+        total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
 
     # test = {'Test': {
     #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\temp_test',

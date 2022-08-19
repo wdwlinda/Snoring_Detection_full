@@ -1,14 +1,19 @@
 
 import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.serialization import save
+from sklearn.metrics import (
+    accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_score, recall_score
+)
 from torch.utils.data import Dataset, DataLoader
+
 import site_path
 from modules.model.image_calssification import img_classifier
 # from models.image_classification import img_classifier
-from dataset.dataloader import AudioDataset, SimpleAudioDataset, SimpleAudioDatasetfromNumpy
+from dataset.dataloader import AudioDataset, SimpleAudioDataset, SimpleAudioDatasetfromNumpy, SimpleAudioDatasetfromNumpy_csv
 from utils import train_utils
 from utils import metrics
 from utils import configuration
@@ -16,7 +21,7 @@ import itertools
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import csv
-import train
+# import train
 from dataset import dataset_utils
 ImageClassifier = img_classifier.ImageClassifier
 
@@ -64,7 +69,7 @@ class build_inferencer():
                 # prediction = prediction.cpu().detach().numpy()
                 prob = prob.detach().cpu().numpy()
                 prob_p = prob[0,1]
-                print(f'Sample: {i}', prob_p, prediction, self.dataset.input_data_indices[i-1])
+                # print(f'Sample: {i}', prob_p, prediction, self.dataset.input_data_indices[i-1])
                 self.record_prediction(i-1, prob, prediction)
         return self.prediction        
     
@@ -76,7 +81,8 @@ class build_inferencer():
             path = os.path.join(self.config.eval.restore_checkpoint_path, self.config.eval.running_mode, os.path.basename(self.config.dataset.index_path))
         if not os.path.isdir(path):
             os.makedirs(path)
-        name = f'{os.path.basename(self.config.dataset.index_path)}_pred.csv'
+        name = f'pred.csv'
+        # name = f'{os.path.basename(self.config.dataset.index_path)}_pred.csv'
         # name = f'{os.path.basename(self.dataset.path)}_pred .csv'
         if index == 0:
             with open(os.path.join(path, name), mode='w+', newline='') as csv_file:
@@ -87,7 +93,7 @@ class build_inferencer():
             writer = csv.writer(csv_file)
             sample_name = os.path.basename(self.dataset.input_data_indices[index])[:-4]
             writer.writerow(
-                [sample_name, prob, pred, self.dataset.input_data_indices[index]])
+                [sample_name, prob[0, 1], pred, self.dataset.input_data_indices[index]])
         self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
 def pred(data_path, save_path):
@@ -102,10 +108,12 @@ def pred(data_path, save_path):
     inferencer.inference()
 
 
-def pred_from_feature(data_path, save_path):
-    config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
+def pred_from_feature(data_path, save_path, config=None):
+    if config is not None:
+        config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
-    test_dataset = SimpleAudioDatasetfromNumpy(config, data_path)
+    # test_dataset = SimpleAudioDatasetfromNumpy(config, data_path)
+    test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
     net = ImageClassifier(
         backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
         out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None)
@@ -113,6 +121,21 @@ def pred_from_feature(data_path, save_path):
     inferencer = build_inferencer(config, dataset=test_dataset, model=net, save_path=save_path)
     prediction = inferencer.inference()
     return prediction
+
+
+def pred_once(src_dir, dist_dir, config):
+    prediction = pred_from_feature(src_dir, dist_dir, config)
+    y_true, y_pred, confidence = [], [], []
+    true_val = 0
+    for index, sample in prediction.items():
+        y_pred.append(sample['pred'])
+        y_true.append(true_val)
+        confidence.append(sample['prob'][0, true_val])
+
+    acc = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, zero_division=0)
+    recall = recall_score(y_true, y_pred, zero_division=0)
+    return acc, precision, recall
 
 
 if __name__ == "__main__":

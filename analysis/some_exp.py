@@ -1121,38 +1121,43 @@ def spectrogram_threshold():
     """
     import torch
     import torchaudio
-    _dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\wave'
-    files = glob.glob(os.path.join(_dir, '*.wav'))
-    f = files[2]
-
-    sample_rate = 16000
-    y = dataset_utils.load_audio_waveform(
-        f, 'wav', sample_rate, channels=1)
-    waveform = np.float32(np.array(y.get_array_of_samples()))
-    n_fft = 2048
-    win_length = None
-    hop_length = None
-    n_mels = 128
-
-    torchaudio_melspec = torchaudio.transforms.MelSpectrogram(
-        sample_rate=sample_rate,
-        n_fft=n_fft,
-        win_length=n_fft,
-        hop_length=512,
-        center=True,
-        pad_mode="reflect",
-        power=2.0,
-        norm='slaney',
-        onesided=True,
-        n_mels=n_mels,
-    )(torch.from_numpy(waveform))
-    spec = torchaudio_melspec.detach().cpu().numpy()
+    _dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\train'
+    _dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\img\filenames'
+    files = glob.glob(os.path.join(_dir, '*.npy'))
     """"""
 
-    mean_freq = np.mean(spec, axis=0)
-    plt.plot(mean_freq)
-    plt.show()
+    # mean_freq = np.mean(spec, axis=0)
+    # plt.plot(mean_freq)
+    for f in files:
+        _, name = os.path.split(f)
+        spec = np.load(f)
+        plt.imshow(spec)
+        plt.title(name)
+        plt.show()
 
+
+def split_df():
+    """split data frame to training and testing
+    """
+    path = ''
+    train_ratio = 0.7
+
+    ESC50 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv'
+    Mi11_night = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\filenames.csv'
+    Samsung_Note10Plus_night = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\filenames.csv'
+    pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\melspec\filenames.csv'
+    iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\melspec\filenames.csv'
+    paths = [ESC50, Mi11_night, Samsung_Note10Plus_night, pixel, iphone]
+
+    for path in paths:
+        _dir = os.path.dirname(path)
+        df = pd.read_csv(path)
+        num_samples = df.shape[0]
+        train_samples = int(num_samples*train_ratio)
+        train_df = df.sample(n=train_samples)
+        test_df = df[~df.apply(tuple,1).isin(train_df.apply(tuple,1))]
+        train_df.to_csv(os.path.join(_dir, 'train.csv'))
+        test_df.to_csv(os.path.join(_dir, 'test.csv'))
 
 if __name__ == '__main__':
     # get_unconflicted_index()
@@ -1175,5 +1180,7 @@ if __name__ == '__main__':
     # mel_compare()
     # cpp_melspec_reimplement()
 
-    spectrogram_threshold()
+    # spectrogram_threshold()
+    # split_df()
+    check_data_cases()
     pass

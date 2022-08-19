@@ -14,6 +14,7 @@ import site_path
 from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
 from utils import configuration
 from utils import train_utils as local_train_utils
+from inference import pred_once
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 
 from modules.model.image_calssification import img_classifier
@@ -117,15 +118,95 @@ if __name__ == '__main__':
     dataset1 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
     dataset2 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc'
     dataset3 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
+    dataset4 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+            # 'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\filenames.csv',
+            # 'Mi11_office': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\melspec\filenames.csv',
+            # 'Redmi_Note8_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\melspec\filenames.csv',
+            # 'Samsung_Note10Plus_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\filenames.csv'
+        }
+    }
+    dataset5 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        }
+    }
+    dataset6 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
+            'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\test.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        }
+    }
+    dataset7 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
+            'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\test.csv',
+            'Samsung_Note10Plus_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\test.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        }
+    }
+    dataset8 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
+            'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\test.csv',
+            'Samsung_Note10Plus_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\test.csv',
+            'pixel': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\melspec\filenames.csv',
+            'iphone': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\melspec\filenames.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        }
+    }
+    dataset9 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\test.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        }
+    }
+    dataset10 = {
+        'train': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'Samsung_Note10Plus_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\test.csv',
+        },
+        'valid': {
+            'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        }
+    }
+    test_dataset = {
+        'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\train.csv',
+        'Mi11_office': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\melspec\filenames.csv',
+        'Redmi_Note8_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\melspec\filenames.csv',
+        'Samsung_Note10Plus_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\train.csv',
+    }
     config_list = []
-    for model_name in ['resnext50_32x4d', 'resnetv2_50', 'seresnext50_32x4d', 'efficientnet_b4']:
+    for model_name in ['resnetv2_50']:
     # for model_name in [
     #     'resnetv2_101', 'resnetv2_50', 
     #     'seresnext101_32x4d', 'seresnext50_32x4d',
     #     'resnext101_32x4d', 'resnext50_32x4d',
     #     'efficientnet_b4', 'efficientnet_b7']:
         for is_aug in [True, False]:
-            for index_path in [dataset3]:
+            for index_path in [dataset4, dataset5, dataset6, dataset7, dataset8, dataset9, dataset10]:
                 for feature in ['mel-spec']:
                     config = copy.deepcopy(config)
                     config['model']['name'] = model_name
@@ -138,9 +219,8 @@ if __name__ == '__main__':
                     config_list.append(config)
 
     for config in config_list:
-        # pprint(config)
-        try:
-            dataset = os.path.split(config['dataset']['index_path'])[1]
+        # try:
+            dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
             checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
             now = datetime.now()
             currentDay = str(now.day)
@@ -155,7 +235,18 @@ if __name__ == '__main__':
                 mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
                 config = local_train_utils.DictAsMember(config)
+
+                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_314'
                 main(config)
-        except:
-            # TODO: log the error
-            print('log error')
+                for test_data_name, test_path in test_dataset.items():
+                    src_dir = test_path
+                    dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
+                    acc, precision, recall = pred_once(src_dir, dist_dir, config)
+                    with open(os.path.join(config['CHECKPOINT_PATH'], 'result.txt'), 'w') as fw:
+                        fw.write(f'Precision {precision:.4f}\n')
+                        fw.write(f'Recall {recall:.4f}\n')
+                        fw.write(f'Accuracy {acc:.4f}\n')
+                    mlflow.log_metric(f'{test_data_name}_test_acc', acc)
+
+        # except RuntimeError:
+        #     print('RuntimeError')
