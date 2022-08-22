@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dataset.transformations import pcm2wave
-from inference import pred, pred_from_feature, pred_once
+from inference import pred, pred_from_feature, test, plot_confusion_matrix
 from dataset.dataset_utils import save_fileanmes_in_txt, get_melspec_from_cpp
 
 
@@ -142,6 +142,7 @@ def main():
     preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
     data_preprocess(data_paths, preprocess_dir)
 
+    
 
 def pred_data():
     total_data_info = {}
@@ -221,16 +222,12 @@ def pred_data():
             fw.write(f'Accuracy {acc:.4f}\n')
         # print(acc)
 
-        cm = confusion_matrix(y_true, y_pred)
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-        disp.plot()
-        plt.savefig(os.path.join(data_info['dist'], 'cm.png'))
-
+        plot_confusion_matrix(y_true, y_pred, save_path=data_info['dist'])
         total_confidence[dataset] = confidence
 
     fig, ax = plt.subplots(1, 1)
     for idx, (dataset, confidence) in enumerate(total_confidence.items(), 1):
-        ax.scatter(np.ones_like(confidence, dtype=np.int32)*idx, confidence, s=0.5)
+        ax.scatter(np.ones_like(confidence, dtype=np.int32)*idx, confidence, s=0.5, alpha=0.5)
     ax.set_xlabel('dataset')
     ax.set_ylabel('probability')
     ax.set_title('Prediction confidence comparision')

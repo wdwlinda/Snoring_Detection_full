@@ -831,69 +831,6 @@ def test_dist(data_path, save_path, process_func, audio_format='wav', sr=16000, 
     plt.show()
 
 
-def audio_clips_to_melspec(data_path, audio_format='wav', sr=16000, channels=1):
-    files = dataset_utils.get_files(data_path, keys=audio_format)
-    total_spec, total_spec_n = None, None
-    idx_0, idx_1 = 0, 0
-    for idx, f in enumerate(files):
-        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
-        waveform = np.float32(np.array(y.get_array_of_samples()))
-        S = librosa.feature.melspectrogram(waveform, sr=sr, n_fft=2048, hop_length=512)
-        S = S[np.newaxis,...]
-        
-        if os.path.split(f)[0].endswith('0'):
-            idx_0 += 1
-            if total_spec_n is None:
-                total_spec_n = S
-            else:
-                total_spec_n = np.concatenate([total_spec_n, S], axis=0)
-        else:
-            idx_1 += 1
-            if total_spec is None:
-                total_spec = S
-            else:
-                total_spec = np.concatenate([total_spec, S], axis=0)
-        # else:
-        #     if os.path.split(f)[0].endswith('0'):
-        #         total_spec_n = np.concatenate([total_spec_n, S], axis=0)
-        #     else:
-        #         total_spec = np.concatenate([total_spec, S], axis=0)
-        if idx_0 > 150 and idx_1 > 150: break
-    return total_spec, total_spec_n
-
-
-
-def audio_clips_to_mfcc(data_path, audio_format='wav', sr=16000, channels=1):
-    files = dataset_utils.get_files(data_path, keys=audio_format)
-    total_spec, total_spec_n = None, None
-    idx_0, idx_1 = 0, 0
-    for idx, f in enumerate(files):
-        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
-        waveform = np.float32(np.array(y.get_array_of_samples()))
-        S = np.mean(librosa.feature.mfcc(y=waveform, sr=sr, n_mfcc=40).T, axis=0)
-        S = S[np.newaxis,...]
-        
-        if os.path.split(f)[0].endswith('0'):
-            idx_0 += 1
-            if total_spec_n is None:
-                total_spec_n = S
-            else:
-                total_spec_n = np.concatenate([total_spec_n, S], axis=0)
-        else:
-            idx_1 += 1
-            if total_spec is None:
-                total_spec = S
-            else:
-                total_spec = np.concatenate([total_spec, S], axis=0)
-        # else:
-        #     if os.path.split(f)[0].endswith('0'):
-        #         total_spec_n = np.concatenate([total_spec_n, S], axis=0)
-        #     else:
-        #         total_spec = np.concatenate([total_spec, S], axis=0)
-        if idx_0 > 200 and idx_1 > 200: break
-    return total_spec, total_spec_n
-
-
 def freq_compare(data_path, save_path, process_func, audio_format='wav', sr=16000, channels=1):
     dir_list = dataset_utils.get_dir_list(data_path)
     _, ax = plt.subplots(4, 1)
@@ -919,21 +856,6 @@ def freq_compare(data_path, save_path, process_func, audio_format='wav', sr=1600
     ax[2].set_title('iOS')
     ax[3].set_title('Android')
     plt.show()
-
-
-def outer(a):
-    b = a
-    print(a)
-    def inner():
-        # nonlocal a
-        c = a + 3
-        d = a + 3
-        # a = 8
-        print(a)
-        print(c)
-    inner()
-    print(a)
-
 
 
 def mel_compare():
@@ -1077,44 +999,6 @@ def mfcc_compare():
     print(mfcc_t.shape)
             
 
-def cpp_melspec_reimplement():
-    # from dataset import transformations, dataset_utils
-    import torch
-    import torchaudio
-    import pandas as pd
-
-    f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\_2sec.wav'
-    sample_rate = 16000
-    # n_mfcc = 13
-    y = dataset_utils.load_audio_waveform(
-        f, 'wav', sample_rate, channels=1)
-    waveform = np.float32(np.array(y.get_array_of_samples()))
-
-    df = pd.read_csv(f.replace('.wav', '.csv'))
-    cpp_melspec = df.to_numpy().T
-    
-    n_fft = 512
-    win_length = 400
-    hop_length = 160
-    fmin = 50
-    fmax = 8000
-    n_mels = 40
-
-    torchaudio_stft = torch.stft(
-        input=torch.from_numpy(waveform),
-        # sample_rate=sample_rate,
-        n_fft=n_fft,
-        win_length=win_length,
-        hop_length=hop_length,
-        # center=True,
-        # pad_mode="reflect",
-        # power=2.0,
-        # norm='slaney',
-        # onesided=True,
-    )
-    torchaudio_stft = torchaudio_stft.detach().cpu().numpy()
-
-
 def spectrogram_threshold():
     """
     In: spec: [freq, time]
@@ -1136,28 +1020,19 @@ def spectrogram_threshold():
         plt.show()
 
 
-def split_df():
-    """split data frame to training and testing
+def split_df(path, train_ratio):
+    """split data frame to training and testing and save it in the same directory
     """
-    path = ''
-    train_ratio = 0.7
+    _dir = os.path.dirname(path)
+    df = pd.read_csv(path)
+    num_samples = df.shape[0]
+    train_samples = int(num_samples*train_ratio)
+    train_df = df.sample(n=train_samples)
+    test_df = df[~df.apply(tuple,1).isin(train_df.apply(tuple,1))]
+    train_df.to_csv(os.path.join(_dir, 'train.csv'))
+    test_df.to_csv(os.path.join(_dir, 'test.csv'))
+    
 
-    ESC50 = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv'
-    Mi11_night = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\filenames.csv'
-    Samsung_Note10Plus_night = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\filenames.csv'
-    pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\melspec\filenames.csv'
-    iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\melspec\filenames.csv'
-    paths = [ESC50, Mi11_night, Samsung_Note10Plus_night, pixel, iphone]
-
-    for path in paths:
-        _dir = os.path.dirname(path)
-        df = pd.read_csv(path)
-        num_samples = df.shape[0]
-        train_samples = int(num_samples*train_ratio)
-        train_df = df.sample(n=train_samples)
-        test_df = df[~df.apply(tuple,1).isin(train_df.apply(tuple,1))]
-        train_df.to_csv(os.path.join(_dir, 'train.csv'))
-        test_df.to_csv(os.path.join(_dir, 'test.csv'))
 
 if __name__ == '__main__':
     # get_unconflicted_index()

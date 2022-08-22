@@ -96,6 +96,7 @@ class build_inferencer():
                 [sample_name, prob[0, 1], pred, self.dataset.input_data_indices[index]])
         self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
+
 def pred(data_path, save_path):
     config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
@@ -109,7 +110,7 @@ def pred(data_path, save_path):
 
 
 def pred_from_feature(data_path, save_path, config=None):
-    if config is not None:
+    if not config:
         config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
     # test_dataset = SimpleAudioDatasetfromNumpy(config, data_path)
@@ -123,9 +124,25 @@ def pred_from_feature(data_path, save_path, config=None):
     return prediction
 
 
-def pred_once(src_dir, dist_dir, config):
+def plot_confusion_matrix(y_true, y_pred, save_path=''):
+    cm = confusion_matrix(y_true, y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot()
+    plt.savefig(os.path.join(save_path, 'cm.png'))
+
+
+def test(src_dir, dist_dir, config):
     prediction = pred_from_feature(src_dir, dist_dir, config)
     y_true, y_pred, confidence = [], [], []
+
+    # df = pd.read_csv(data_info['gt'])
+    # for index, sample_gt in df.iterrows():
+    #     if prediction.get(sample_gt['input'], None):
+    #         true_val = sample_gt['label']
+    #         y_true.append(true_val)
+    #         y_pred.append(prediction[sample_gt['input']]['pred'])
+    #         confidence.append(sample['prob'][0, true_val])
+            
     true_val = 0
     for index, sample in prediction.items():
         y_pred.append(sample['pred'])
@@ -135,6 +152,8 @@ def pred_once(src_dir, dist_dir, config):
     acc = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
+
+    plot_confusion_matrix(y_true, y_pred, save_path=dist_dir)
     return acc, precision, recall
 
 

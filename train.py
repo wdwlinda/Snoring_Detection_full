@@ -14,7 +14,7 @@ import site_path
 from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
 from utils import configuration
 from utils import train_utils as local_train_utils
-from inference import pred_once
+from inference import test
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 
 from modules.model.image_calssification import img_classifier
@@ -192,11 +192,14 @@ if __name__ == '__main__':
         }
     }
     test_dataset = {
-        'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+        'ASUS_snoring_train': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+        'ASUS_snoring_test': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
         'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\train.csv',
         'Mi11_office': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\melspec\filenames.csv',
         'Redmi_Note8_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\melspec\filenames.csv',
         'Samsung_Note10Plus_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\train.csv',
+        'pixel': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\melspec\filenames.csv',
+        'iphone': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\melspec\filenames.csv',
     }
     config_list = []
     for model_name in ['resnetv2_50']:
@@ -206,7 +209,7 @@ if __name__ == '__main__':
     #     'resnext101_32x4d', 'resnext50_32x4d',
     #     'efficientnet_b4', 'efficientnet_b7']:
         for is_aug in [True, False]:
-            for index_path in [dataset4, dataset5, dataset6, dataset7, dataset8, dataset9, dataset10]:
+            for index_path in [dataset8, dataset9, dataset10, dataset5, dataset6, dataset7, dataset4]:
                 for feature in ['mel-spec']:
                     config = copy.deepcopy(config)
                     config['model']['name'] = model_name
@@ -234,19 +237,26 @@ if __name__ == '__main__':
                 mlflow.log_param('pretrained', config['model']['pretrained'])
                 mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
+                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_496'
+                config['eval'] = {
+                    'restore_checkpoint_path': config['CHECKPOINT_PATH'],
+                    'checkpoint_name': r'ckpt_best.pth'
+                }
                 config = local_train_utils.DictAsMember(config)
 
-                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_314'
-                main(config)
+                # main(config)
                 for test_data_name, test_path in test_dataset.items():
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-                    acc, precision, recall = pred_once(src_dir, dist_dir, config)
-                    with open(os.path.join(config['CHECKPOINT_PATH'], 'result.txt'), 'w') as fw:
-                        fw.write(f'Precision {precision:.4f}\n')
-                        fw.write(f'Recall {recall:.4f}\n')
-                        fw.write(f'Accuracy {acc:.4f}\n')
+                    acc, precision, recall = test(src_dir, dist_dir, config)
+                    # # TODO: txt just for temporally
+                    # with open(os.path.join(dist_dir, 'result.txt'), 'w') as fw:
+                    #     fw.write(f'Precision {precision:.4f}\n')
+                    #     fw.write(f'Recall {recall:.4f}\n')
+                    #     fw.write(f'Accuracy {acc:.4f}\n')
                     mlflow.log_metric(f'{test_data_name}_test_acc', acc)
-
+                    mlflow.log_metric(f'{test_data_name}_test_precision', precision)
+                    mlflow.log_metric(f'{test_data_name}_test_recall', recall)
+                    
         # except RuntimeError:
         #     print('RuntimeError')
