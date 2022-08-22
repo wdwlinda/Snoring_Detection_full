@@ -117,7 +117,6 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
     df.to_csv(os.path.join(out_dir, wav_list_filename).replace('txt', 'csv'))
 
 
-
 def get_dir_list(data_path, full_path=True):
     dir_list = np.array([], dtype=object)
     for f in os.listdir(data_path):
@@ -624,6 +623,11 @@ def save_fileanmes_in_txt(glob_path, save_path=None, recursive=True):
         for file in files:
             fw.write(f'{file}\n')
     return files
+
+
+def generate_gt_csv_for_data(id_to_label, save_path):
+    pass
+    
 
 
 if __name__ == "__main__":

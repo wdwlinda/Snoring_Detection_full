@@ -143,6 +143,7 @@ def test(src_dir, dist_dir, config):
     #         y_pred.append(prediction[sample_gt['input']]['pred'])
     #         confidence.append(sample['prob'][0, true_val])
             
+    # TODO:
     true_val = 0
     for index, sample in prediction.items():
         y_pred.append(sample['pred'])

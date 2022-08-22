@@ -240,5 +240,5 @@ def pred_data():
 
 
 if __name__ == '__main__':
-    # main()
-    pred_data()
+    main()
+    # pred_data()
