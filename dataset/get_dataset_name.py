@@ -1,7 +1,7 @@
 from utils.configuration import load_config
 
 def get_dataset():
-    name_to_path = load_config('dataset/dataset.yml')
+    name_to_path = load_config('dataset/dataset.yml')['dataset']
     dataset1 = {
         'train': ['ASUS_snoring_train'],
         'valid': ['ASUS_snoring_test'],
@@ -35,7 +35,7 @@ def get_dataset():
     }
 
     datasets = [dataset1, dataset2, dataset3, dataset4, dataset5, dataset6]
-    dataset_pair = {}
+    dataset_pair = []
     for dataset in datasets:
         dataset_path_format = {}
         for state, names in dataset.items():

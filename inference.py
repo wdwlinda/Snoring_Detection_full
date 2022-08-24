@@ -9,6 +9,7 @@ from sklearn.metrics import (
     accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_score, recall_score
 )
 from torch.utils.data import Dataset, DataLoader
+import pandas as pd
 
 import site_path
 from modules.model.image_calssification import img_classifier
@@ -135,20 +136,28 @@ def test(src_dir, dist_dir, config):
     prediction = pred_from_feature(src_dir, dist_dir, config)
     y_true, y_pred, confidence = [], [], []
 
-    # df = pd.read_csv(data_info['gt'])
-    # for index, sample_gt in df.iterrows():
-    #     if prediction.get(sample_gt['input'], None):
-    #         true_val = sample_gt['label']
-    #         y_true.append(true_val)
-    #         y_pred.append(prediction[sample_gt['input']]['pred'])
-    #         confidence.append(sample['prob'][0, true_val])
-            
-    # TODO:
-    true_val = 0
-    for index, sample in prediction.items():
-        y_pred.append(sample['pred'])
-        y_true.append(true_val)
-        confidence.append(sample['prob'][0, true_val])
+    dataset_name = os.path.split(dist_dir)[1]
+
+    # XXX:
+    if dataset_name in ['ASUS_snoring_train', 'ASUS_snoring_test', 'ESC50']:
+        path_map = {
+            'ASUS_snoring_train': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
+            'ASUS_snoring_test': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+            'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
+        }
+        df = pd.read_csv(path_map[dataset_name])
+        for index, sample_gt in df.iterrows():
+            if prediction.get(sample_gt['input'], None):
+                true_val = sample_gt['label']
+                y_true.append(true_val)
+                y_pred.append(prediction[sample_gt['input']]['pred'])
+                confidence.append(prediction[sample_gt['input']]['prob'][0, true_val])
+    else:
+        true_val = 0
+        for index, sample in prediction.items():
+            y_pred.append(sample['pred'])
+            y_true.append(true_val)
+            confidence.append(sample['prob'][0, true_val])
 
     acc = accuracy_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred, zero_division=0)

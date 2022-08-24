@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 import timm
-from models import utils
+from . import utils
 get_activation = utils.get_activation
 
 
@@ -44,18 +44,13 @@ class PytorchResnetBuilder(nn.Module):
         if self.in_channels != 3:
             model_list = list(model.children())
             conv1 = model_list[0]
-            conv1_out_c = conv1.out_channels
-            conv1_ks = conv1.kernel_size
-            conv1_stride = conv1.stride
-            conv1_padding = conv1.padding
-            # model_list[0] = torch.nn.Conv1d(
-            #     self.in_channels, conv1_out_c, conv1_ks, conv1_stride, conv1_padding, bias=False)
-            # model = nn.Sequential(*model_list)
-            model.conv1 = torch.nn.Conv1d(
-                self.in_channels, conv1_out_c, conv1_ks, conv1_stride, conv1_padding, bias=False)
+            new_conv1 = torch.nn.Conv2d(
+                self.in_channels, conv1.out_channels, conv1.kernel_size, conv1.stride, conv1.padding, bias=False)
+            model = torch.nn.Sequential(new_conv1, *model_list[1:])
         return model
 
     def forward(self, x):
+        a = (x.min(), x.max())
         return self.model(x)
 
 

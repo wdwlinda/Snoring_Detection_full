@@ -15,7 +15,7 @@ from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
 from utils import configuration
 from utils import train_utils as local_train_utils
 from inference import test
-from dataset import get_dataset_name
+from dataset.get_dataset_name import get_dataset
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 
 from modules.model.image_calssification import img_classifier
@@ -51,8 +51,8 @@ def run_train(config):
                  f'Batch size: {config.dataset.batch_size} '
                  f'Shuffling Data: {config.dataset.shuffle} '
                  f' Training Samples: {len(train_dataloader.dataset)}'))
-    train_utils.config_logging(
-        os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
+    # train_utils.config_logging(
+    #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
     model = img_classifier.ImageClassifier(
@@ -113,25 +113,23 @@ def run_train(config):
 
 
 def main():
-    today = datetime.today()
     now = datetime.now()
-    # mlflow.set_tracking_uri("file:/.mlruns")
-    # mlflow.set_tracking_uri("https://my-tracking-server:5000") <- set to remote server
     
     # Configuration
     config = configuration.load_config(CONFIG_PATH, dict_as_member=False)
     all_checkpoint_path = os.path.join(config['TRAIN']['project_path'], 'checkpoints')
+    train_utils.clear_empty_dir(all_checkpoint_path)
     
     # train & valid dataset
-    dataset_paths = get_dataset_name()
+    dataset_paths = get_dataset()
     # test dataset
     test_dataset = configuration.load_config('dataset/dataset.yml')
 
     config_list = []
     for model_name in [
-        'tf_efficientnet_b4_ns', 'mobilevit_s', 
+        'edgenext_small', 'mobilevit_s', 
         'convnext_tiny_384_in22ft1k', 'vit_small_patch16_384',
-        'swinv2_tiny_window16_256', 'mobilevitv2_150_384_in22ft1k',
+        'swinv2_tiny_window16_256', 'tf_efficientnet_b4_ns'
         'resnetv2_50'
     ]:
     # for model_name in [
@@ -160,7 +158,7 @@ def main():
             currentDay = str(now.day)
             currentMonth = str(now.month)
             currentYear = str(now.year)
-            exp_name = f"Snoring_Detection_{currentYear}_{currentMonth}_{currentDay}"
+            exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
             mlflow.set_experiment(exp_name)
             with mlflow.start_run(run_name=config['model']['name']):
                 mlflow.log_param('dataset', dataset)
@@ -168,7 +166,7 @@ def main():
                 mlflow.log_param('pretrained', config['model']['pretrained'])
                 mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
-                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_496'
+                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_496'
                 config['eval'] = {
                     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                     'checkpoint_name': r'ckpt_best.pth'
@@ -176,14 +174,18 @@ def main():
                 config = local_train_utils.DictAsMember(config)
 
                 run_train(config)
-                for test_data_name, test_path in test_dataset.items():
+                total_acc = []
+                for test_data_name, test_path in test_dataset['dataset'].items():
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
                     acc, precision, recall = test(src_dir, dist_dir, config)
-                    mlflow.log_metric(f'{test_data_name}_test_acc', acc)
+                    mlflow.log_metric(f'{test_data_name}_acc', acc)
                     if test_data_name in ['ASUS_snoring_train', 'ASUS_snoring_test', 'ESC50']:
-                        mlflow.log_metric(f'{test_data_name}_test_precision', precision)
-                        mlflow.log_metric(f'{test_data_name}_test_recall', recall)
+                        mlflow.log_metric(f'{test_data_name}_precision', precision)
+                        mlflow.log_metric(f'{test_data_name}_recall', recall)
+                    total_acc.append(acc)
+                acc_mean = sum(total_acc) / len(total_acc)
+                mlflow.log_metric(f'mean_acc', acc_mean)
                     
         # except RuntimeError:
         #     print('RuntimeError')
