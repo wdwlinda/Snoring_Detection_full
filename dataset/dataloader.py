@@ -219,7 +219,7 @@ class AudioDataset(AbstractDastaset):
         sr = y.frame_rate
         # TODO:
         # y = y[:10000]
-        waveform = np.float32(np.array(y.get_array_of_samples()))
+        waveform = np.float32(y.get_array_of_samples())
         return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
@@ -433,10 +433,10 @@ class SimpleAudioDataset(Dataset):
     def get_waveforms_from_path(self, data_path):
         waveforms = []
         audio_format = 'wav'
-        self.input_data_indices = dataset_utils.get_files(data_path, keys=audio_format)
+        self.input_data_indices = glob.glob(os.path.join(data_path, '*.wav'))
         for f in self.input_data_indices:
             y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
-            waveforms.append((np.float32(np.array(y.get_array_of_samples())), y.frame_rate))
+            waveforms.append((np.float32(y.get_array_of_samples()), y.frame_rate))
         return waveforms
 
     def __len__(self):

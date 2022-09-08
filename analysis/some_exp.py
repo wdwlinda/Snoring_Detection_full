@@ -872,7 +872,7 @@ def mel_compare():
         f, 'wav', sample_rate, channels=1)
     waveform = np.float32(np.array(y.get_array_of_samples()))
 
-    df = pd.read_csv(f.replace('.wav', '.csv'))
+    df = pd.read_csv(f.replace('.wav', '.csv'), header=None)
     cpp_melspec = df.to_numpy().T
     # plt.imshow(mfcc_c)
     # plt.show()
@@ -955,7 +955,7 @@ def mfcc_compare():
         f, 'wav', sample_rate, channels=1)
     waveform = [np.float32(np.array(y.get_array_of_samples()))]
 
-    df = pd.read_csv(f.replace('.wav', '_mfcc.csv'))
+    df = pd.read_csv(f.replace('.wav', '_mfcc.csv'), header=None)
     mfcc_c = df.to_numpy().T
     # plt.imshow(mfcc_c)
     # plt.show()
@@ -1032,6 +1032,27 @@ def split_df(path, train_ratio):
     train_df.to_csv(os.path.join(_dir, 'train.csv'))
     test_df.to_csv(os.path.join(_dir, 'test.csv'))
     
+
+def check_data_cases():
+    from deploy.onnx_model import ONNX_inference
+    _dir = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\data\test'
+    # files = glob.glob(os.path.join(_dir, '*.csv'))
+    files = glob.glob(os.path.join(_dir, '*.npy'))
+    onnx_model = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_050\snoring.onnx'
+
+    for f in files:
+        # df = pd.read_csv(f, header=None)
+        # data = df.to_numpy()
+        data = np.load(f)
+
+        # data = data.T
+        data = np.float32(data)
+        data = np.tile(data[None, None], [1, 3, 1, 1])
+        # data = np.transpose(data, (0,1,3,2))
+
+        pred = ONNX_inference([data], onnx_model)
+        # pred = 1 / (1+np.exp(-pred[0]))
+        print(os.path.basename(f), pred)
 
 
 if __name__ == '__main__':

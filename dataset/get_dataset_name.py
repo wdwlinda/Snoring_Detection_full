@@ -34,7 +34,8 @@ def get_dataset():
         'valid': ['ASUS_snoring_test'],
     }
 
-    datasets = [dataset1, dataset2, dataset3, dataset4, dataset5, dataset6]
+    datasets = [dataset6, dataset4]
+    # datasets = [dataset1, dataset2, dataset3, dataset4, dataset5, dataset6]
     dataset_pair = []
     for dataset in datasets:
         dataset_path_format = {}

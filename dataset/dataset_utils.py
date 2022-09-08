@@ -63,7 +63,7 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
             fw.write(f'{path}\n')
 
     # Cpp MelSpectrogram
-    exe_file = Path(r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\compute-mfcc.exe')
+    exe_file = Path(r'compute-mfcc.exe')
     inputlist = Path(wav_list_path)
     outputlist = Path(csv_list_path)
     command = (
@@ -85,7 +85,7 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
         # if idx>10:break
         _, filename = os.path.split(csv_f)
         try:
-            df = pd.read_csv(csv_f)
+            df = pd.read_csv(csv_f, header=None)
             data = df.to_numpy().T
         except pd.errors.EmptyDataError:
             print(f'- Empty pandas data {csv_f}')

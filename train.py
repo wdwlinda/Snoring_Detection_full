@@ -127,10 +127,12 @@ def main():
 
     config_list = []
     for model_name in [
-        'edgenext_small', 'mobilevit_s', 
-        'convnext_tiny_384_in22ft1k', 'vit_small_patch16_384',
-        'swinv2_tiny_window16_256', 'tf_efficientnet_b4_ns'
-        'resnetv2_50'
+        'convnext_tiny_384_in22ft1k', 
+        'edgenext_small', 
+        # 'mobilevit_s', 
+        # 'vit_small_patch16_384',
+        # 'swinv2_tiny_window16_256', 'tf_efficientnet_b4_ns'
+        # 'resnetv2_50'
     ]:
     # for model_name in [
     #     'resnetv2_101', 'resnetv2_50', 
@@ -158,8 +160,10 @@ def main():
             currentDay = str(now.day)
             currentMonth = str(now.month)
             currentYear = str(now.year)
-            exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
+            # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
+            exp_name = f"Replace GeLU with ReLU"
             mlflow.set_experiment(exp_name)
+            # TODO: add model name as param and change run_name
             with mlflow.start_run(run_name=config['model']['name']):
                 mlflow.log_param('dataset', dataset)
                 mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])

@@ -130,18 +130,26 @@ def main():
         'pixel': pixel, 
         'iphone': iphone
     }
+
     _0811_data = {
         'Mi11_night': Mi11_night, 
         'Mi11_office': Mi11_office, 
         'Redmi_Note8_night': Redmi_Note8_night, 
         'Samsung_Note10Plus_night': Samsung_Note10Plus_night
     }
+    
+    _0908_data = {
+        'pixel_0908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908\1662605121213_pixel4xl',
+        'iphone11_0908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908\1662604080863_iphone11'
+    }
+    
     # data_paths = _0727_data.update(_0811_data)
-    data_paths = _0727_data
-    # data_paths = _0811_data
     preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
+
+    data_paths = _0908_data
     data_preprocess(data_paths, preprocess_dir)
 
+    # data_paths = _0811_data
     
 
 def pred_data():
