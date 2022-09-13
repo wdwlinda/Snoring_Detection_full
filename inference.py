@@ -273,7 +273,7 @@ def pred_tflite(config, dataset_mapping, tflite_path):
 
         p = 0
         for i, data in enumerate(test_dataloader):
-            if i < len(test_dataset)-30: continue
+            # if i > 30: break
             input_data = data['input']
             input_data = input_data.detach().cpu().numpy()
             prediction = tflite_inference(input_data, interpreter)
@@ -338,9 +338,9 @@ def inference_test(config, test_dataset):
 
 if __name__ == "__main__":
     CONFIG_PATH = 'config/_cnn_train_config.yml'
-    checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_026'
+    checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082'
     model_name = 'convnext_tiny_384_in22ft1k'
-    model_name = 'edgenext_small'
+    # model_name = 'edgenext_small'
     test_dataset = configuration.load_config('dataset/dataset.yml')
     # test_dataset['dataset'].pop('ASUS_snoring_train')
     # test_dataset['dataset'].pop('ESC50')
@@ -348,11 +348,11 @@ if __name__ == "__main__":
     config = configuration.load_config(CONFIG_PATH, dict_as_member=False)
     config['CHECKPOINT_PATH'] = checkpoint
     config['model']['name'] = model_name
-    inference_test(config, test_dataset)
+    # inference_test(config, test_dataset)
 
 
-    # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_050\snoring.tflite'
-    # pred_tflite(config, test_dataset, tflite_path)
+    tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082\snoring_relu_trained.tflite'
+    pred_tflite(config, test_dataset, tflite_path)
 
     # data_path = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
     # data_path = rf'C:\Users\test\Desktop\Leon\Weekly\1112\3min_test'

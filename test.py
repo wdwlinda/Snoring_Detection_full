@@ -140,7 +140,7 @@ def data_analysis(path, threshold, single_length, data_format, test_amplitude):
                         if f.endswith(data_format):
                             print(f'{idx+1}/{len(sample_list)}', dir, f)
                             x = AudioSegment.from_file(os.path.join(dir, f), format='m4a').get_array_of_samples()
-                            x = np.float32(np.array(x))
+                            x = np.array(x, np.float32)
                             max_temp_amplitude.append(np.max(x))
                             min_temp_amplitude.append(np.min(x))
                     max_amplitude.append(np.max(max_temp_amplitude))
@@ -295,7 +295,7 @@ def save_audio_fig():
                     if f.endswith(data_format):
                         print(f'{idx+1}/{len(sample_list)}', dir, f)
                         x = AudioSegment.from_file(os.path.join(dir, f), format='m4a').get_array_of_samples()
-                        x = np.float32(np.array(x))
+                        x = np.array(x, np.float32)
                         plt.figure(figsize=(14, 5))
                         librosa.display.waveplot(x, 44100)
                         plt.savefig(os.path.join(save_path, dir, f'{f}.png'))

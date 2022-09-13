@@ -42,6 +42,7 @@ def wav_data_split(wav_file, split_duration, dist_dir=None):
             start_time = start_time - (end_time - sound_duration)
         # print(idx, start_time)
         clip = sound[start_time:start_time+split_duration]
+        clip_data = np.array(clip.get_array_of_samples(), np.float32)
         split_filename = f'{filename}-{idx:03d}.wav'
         clip.export(os.path.join(dist_dir, split_filename), format='wav')
 
@@ -143,11 +144,16 @@ def main():
         'pixel_0908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908\1662605121213_pixel4xl',
         'iphone11_0908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908\1662604080863_iphone11'
     }
+
+    _0908_data_2 = {
+        'pixel_0908_2': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908_2\1662633178747_pixel4xl',
+        'iphone11_0908_2': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908_2\1662632007621_iphone11_2'
+    }
     
     # data_paths = _0727_data.update(_0811_data)
     preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
 
-    data_paths = _0908_data
+    data_paths = _0908_data_2
     data_preprocess(data_paths, preprocess_dir)
 
     # data_paths = _0811_data

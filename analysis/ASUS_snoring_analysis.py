@@ -217,8 +217,8 @@ def check_two_channels():
     y, sr = utils.load_audio_waveform(filename, 'm4a')
     print(f'Sample rate: {y.frame_rate} Channel: {y.channels}')
     left, right = y.split_to_mono()
-    left = np.float32(np.array(left.get_array_of_samples()))
-    right = np.float32(np.array(right.get_array_of_samples()))
+    left = np.array(left.get_array_of_samples(), np.float32)
+    right = np.array(right.get_array_of_samples(), np.float32)
 
     # librosa.display.waveplot(left, sr, x_axis='s')
     # plt.show()

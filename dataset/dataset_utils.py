@@ -79,6 +79,8 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
     img_out_dir = os.path.join(out_dir, 'img', wav_list_filename[:-4])
     os.makedirs(img_out_dir, exist_ok=True)
     img_save_paths = []
+    # XXX: delete
+    max_val, min_val = -1000, 1000
     for idx, csv_f in enumerate(csv_list):
         # if idx>10:break
         _, filename = os.path.split(csv_f)
@@ -88,6 +90,17 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
         except pd.errors.EmptyDataError:
             print(f'- Empty pandas data {csv_f}')
             data = np.zeros(1)
+
+        # XXX: delete
+        check = np.ones_like(data) * 14.7630777359008
+        check = np.ones_like(data) * 13.525399208068
+        error = np.abs(data - check)
+        if np.sum(error<0.000001):
+            print(csv_f)
+        if np.min(data) < min_val:
+            min_val = np.min(data)
+        if np.max(data) > max_val:
+            max_val = np.max(data)
 
         save_path = os.path.join(img_out_dir, filename.replace('csv', 'npy'))
         img_save_paths.append(save_path)
