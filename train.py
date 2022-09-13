@@ -18,7 +18,7 @@ from inference import test
 from dataset.get_dataset_name import get_dataset
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 
-from modules.model.image_calssification import img_classifier
+from models.image_classification.img_classifier import ImageClassifier
 from modules.train import trainer
 from modules.utils import train_utils
 
@@ -55,7 +55,7 @@ def run_train(config):
     #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
-    model = img_classifier.ImageClassifier(
+    model = ImageClassifier(
         backbone=config.model.name, in_channels=config.model.in_channels,
         out_channels=config.model.out_channels, pretrained=config.model.pretrained, 
         dim=1, output_structure=None)

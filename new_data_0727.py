@@ -92,6 +92,7 @@ def data_preprocess(data_paths, preprocess_dir):
         out_dir = os.path.join(preprocess_dir, dataset)
 
         # pcm files to wav files
+        # TODO: if only wave
         wav_data_path = os.path.join(out_dir, 'wave')
         pcm_data_convert(raw_data_path, dist_dir=wav_data_path)
 
@@ -151,100 +152,6 @@ def main():
 
     # data_paths = _0811_data
     
-
-def pred_data():
-    total_data_info = {}
-
-    # preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
-    # _0727_data = ['1658889529250_RedmiNote8', '1658889531056_Pixel4XL', '1658889531172_iPhone11']
-    # for dataset in _0727_data:
-    #     src_dir = os.path.join(preprocess_dir, dataset, '16000', 'img', 'filenames')
-    #     dist_dir = os.path.join(preprocess_dir, dataset, '16000', 'pred')
-    #     gt_dir = os.path.join(preprocess_dir, dataset, '16000', 'filenames.csv')
-    #     total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
-
-    preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
-    # _0811_data = ['Samsung_Note10Plus_night']
-    _0811_data = ['Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
-    # _0811_data = ['Mi11_night', 'Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
-    for dataset in _0811_data:
-        src_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'img', 'filenames')
-        dist_dir = os.path.join(preprocess_dir, dataset, 'pred3')
-        gt_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'filenames.csv')
-        total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
-
-    # test = {'Test': {
-    #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\temp_test',
-    #     'dist': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\temp_test',
-    #     'gt': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
-    #     }
-    # }
-    # total_data_info.update(test)
-
-    # esc50 = {'ESC-50': {
-    #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\img\file_names',
-    #     'dist': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\pred',
-    #     'gt': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
-    #     }
-    # }
-    # total_data_info.update(esc50)
-
-    # asus_snoring = {'ASUS_snoring': {
-    #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\test',
-    #     'dist': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\pred',
-    #     'gt': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
-    #     }
-    # }
-    # total_data_info.update(asus_snoring)
-
-    total_confidence = {}
-    data_names = []
-    for dataset, data_info in total_data_info.items():
-        data_names.append(dataset)
-        src_dir = data_info['src']
-        dist_dir = data_info['dist']
-        prediction = pred_from_feature(src_dir, dist_dir)
-
-        y_true, y_pred, confidence = [], [], []
-    
-        # df = pd.read_csv(data_info['gt'])
-        # for index, sample_gt in df.iterrows():
-        #     if prediction.get(sample_gt['input'], None):
-        #         true_val = sample_gt['label']
-        #         y_true.append(true_val)
-        #         y_pred.append(prediction[sample_gt['input']]['pred'])
-        #         confidence.append(sample['prob'][0, true_val])
-
-        true_val = 0
-        for index, sample in prediction.items():
-            y_pred.append(sample['pred'])
-            y_true.append(true_val)
-            confidence.append(sample['prob'][0, true_val])
-
-        acc = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, zero_division=0)
-        recall = recall_score(y_true, y_pred, zero_division=0)
-        with open(os.path.join(data_info['dist'], 'result.txt'), 'w') as fw:
-            fw.write(f'Precision {precision:.4f}\n')
-            fw.write(f'Recall {recall:.4f}\n')
-            fw.write(f'Accuracy {acc:.4f}\n')
-        # print(acc)
-
-        plot_confusion_matrix(y_true, y_pred, save_path=data_info['dist'])
-        total_confidence[dataset] = confidence
-
-    fig, ax = plt.subplots(1, 1)
-    for idx, (dataset, confidence) in enumerate(total_confidence.items(), 1):
-        ax.scatter(np.ones_like(confidence, dtype=np.int32)*idx, confidence, s=0.5, alpha=0.5)
-    ax.set_xlabel('dataset')
-    ax.set_ylabel('probability')
-    ax.set_title('Prediction confidence comparision')
-    ax.set_xticks(np.arange(1, len(total_confidence)+1), data_names)
-    ax.plot([1, len(total_confidence)+1], [0.5, 0.5], 'k--')
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-             rotation_mode="anchor")
-    fig.tight_layout()
-    fig.savefig(os.path.join(data_info['dist'], 'confidence_comp.png'))
 
 
 if __name__ == '__main__':

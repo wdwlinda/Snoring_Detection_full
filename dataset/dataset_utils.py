@@ -40,8 +40,6 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
     with open(wav_list_path, 'r') as fw:
         in_path_list = fw.readlines()
     in_path_list = [f if f[-3:] == 'wav' else f[:-1] for f in in_path_list]
-    # TODO: temp test
-    # in_path_list = in_path_list[:200]
 
     csv_out_dir = os.path.join(out_dir, 'csv', wav_list_filename[:-4])
     os.makedirs(csv_out_dir, exist_ok=True)
@@ -640,11 +638,11 @@ if __name__ == "__main__":
 
 
     # ASUS snoring
-    # train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
-    # test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
-    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
-    # get_melspec_from_cpp(train_wav_list_path, out_dir)
-    # get_melspec_from_cpp(test_wav_list_path, out_dir)
+    train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
+    test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
+    out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
+    get_melspec_from_cpp(train_wav_list_path, out_dir)
+    get_melspec_from_cpp(test_wav_list_path, out_dir)
 
 
     # ESC-50

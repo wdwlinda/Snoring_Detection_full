@@ -57,8 +57,8 @@ def main():
     # save_filename = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_018\snoring.onnx'
     
     timm_model_name = 'convnext_tiny_384_in22ft1k'
-    checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082\ckpt_best.pth'
-    save_filename = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082\snoring.onnx'
+    checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_083\ckpt_best.pth'
+    save_filename = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_083\snoring.onnx'
     
     onnx_model_deploy(timm_model_name, in_channels, out_channels, checkpoint, save_filename)
 

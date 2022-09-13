@@ -19,22 +19,21 @@ MultiLayerPerceptron = layers.MultiLayerPerceptron
 class ImageClassifier(nn.Module):
     def __init__(self, in_channels, out_channels, output_structure=None, activation=None, 
                  backbone='resnet50', pretrained=True, restore_path=None, device='cuda:0',
-                 strict=True,
+                 strict=True, replace_gelu=True,
                  *args, **kwargs):
         super(ImageClassifier, self).__init__()
         self.out_channels = out_channels
         self.output_structure = output_structure
         self.strict = strict
         self.encoder = timm.create_model(backbone, pretrained)
-        
-        
-        # XXX:
-        self.replace_layers(
-            self.encoder, 
-            timm.models.layers.activations.GELU(), 
-            nn.ReLU(),
-            sets=True
-        )
+    
+        if replace_gelu:
+            self.replace_layers(
+                self.encoder, 
+                timm.models.layers.activations.GELU(), 
+                nn.ReLU(),
+                sets=True
+            )
 
         self.restore_path = restore_path
         self.device = device
