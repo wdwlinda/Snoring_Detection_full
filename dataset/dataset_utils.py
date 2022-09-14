@@ -79,28 +79,17 @@ def get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=None):
     img_out_dir = os.path.join(out_dir, 'img', wav_list_filename[:-4])
     os.makedirs(img_out_dir, exist_ok=True)
     img_save_paths = []
-    # XXX: delete
-    max_val, min_val = -1000, 1000
     for idx, csv_f in enumerate(csv_list):
         # if idx>10:break
         _, filename = os.path.split(csv_f)
         try:
-            df = pd.read_csv(csv_f, header=None)
+            df = pd.read_csv(csv_f)
+            # XXX: wrong data extraction for temp using
+            # df = pd.read_csv(csv_f, header=None)
             data = df.to_numpy().T
         except pd.errors.EmptyDataError:
             print(f'- Empty pandas data {csv_f}')
             data = np.zeros(1)
-
-        # XXX: delete
-        check = np.ones_like(data) * 14.7630777359008
-        check = np.ones_like(data) * 13.525399208068
-        error = np.abs(data - check)
-        if np.sum(error<0.000001):
-            print(csv_f)
-        if np.min(data) < min_val:
-            min_val = np.min(data)
-        if np.max(data) > max_val:
-            max_val = np.max(data)
 
         save_path = os.path.join(img_out_dir, filename.replace('csv', 'npy'))
         img_save_paths.append(save_path)
@@ -642,6 +631,9 @@ def generate_gt_csv_for_data(id_to_label, save_path):
 
 
 if __name__ == "__main__":
+    from dataset.melspec import melspec
+    melspec()
+
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
     # save_data_label_pair_in_csv(data_path, save_name='train1.csv')
     # data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k'
@@ -650,18 +642,20 @@ if __name__ == "__main__":
     # save_data_label_pair_in_csv(data_path, save_name='train3.csv')
 
 
-    # ASUS snoring
-    train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
-    test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
-    out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
-    get_melspec_from_cpp(train_wav_list_path, out_dir)
-    get_melspec_from_cpp(test_wav_list_path, out_dir)
+    # # ASUS snoring
+    # train_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt'
+    # test_wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt'
+    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\2_21_2s_my2'
+    # # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2'
+    # get_melspec_from_cpp(train_wav_list_path, out_dir)
+    # get_melspec_from_cpp(test_wav_list_path, out_dir)
 
 
-    # ESC-50
+    # # ESC-50
     # # wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2\test.txt'
     # wav_list_path = r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2\file_names.txt'
-    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100'
+    # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\esc50\44100'
+    # # out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100'
     # get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=44100)
 
 
@@ -671,22 +665,22 @@ if __name__ == "__main__":
     # get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=48000)
 
 
-    # ASUS new
-    redmi = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889529250_RedmiNote8\0'
-    pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889531056_Pixel4XL\0'
-    iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889531172_iPhone11\0'
-    sr = 16000
+    # # ASUS new
+    # redmi = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889529250_RedmiNote8\0'
+    # pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889531056_Pixel4XL\0'
+    # iphone = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\wave_split\1658889531172_iPhone11\0'
+    # sr = 16000
 
-    # for data_path in [redmi, pixel, iphone]:
-    for data_path in [redmi]:
-        split = os.path.split(os.path.split(data_path)[0])[1]
-        glob_path = os.path.join(data_path, '*.wav')
-        save_path = os.path.join(data_path, 'filenames.txt')
-        save_fileanmes_in_txt(glob_path, recursive=True, save_path=save_path)
+    # # for data_path in [redmi, pixel, iphone]:
+    # for data_path in [redmi]:
+    #     split = os.path.split(os.path.split(data_path)[0])[1]
+    #     glob_path = os.path.join(data_path, '*.wav')
+    #     save_path = os.path.join(data_path, 'filenames.txt')
+    #     save_fileanmes_in_txt(glob_path, recursive=True, save_path=save_path)
 
-        wav_list_path = save_path
-        out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
-        out_dir = os.path.join(out_dir, split, str(sr))
-        get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=sr)
+    #     wav_list_path = save_path
+    #     out_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
+    #     out_dir = os.path.join(out_dir, split, str(sr))
+    #     get_melspec_from_cpp(wav_list_path, out_dir, sampling_rate=sr)
 
 

@@ -33,17 +33,18 @@ def run_train(config):
         train_utils.set_deterministic(manual_seed, random, np, torch)
             
     # Dataloader
-    train_dataset = AudioDatasetfromNumpy(config, mode='train')
-    valid_dataset = AudioDatasetfromNumpy(config, mode='valid')
-    # train_dataset = AudioDataset(config, mode='train')
-    # valid_dataset = AudioDataset(config, mode='valid')
+    # train_dataset = AudioDatasetfromNumpy(config, mode='train')
+    # valid_dataset = AudioDatasetfromNumpy(config, mode='valid')
+    train_dataset = AudioDataset(config, mode='train')
+    valid_dataset = AudioDataset(config, mode='valid')
 
+    drop_last = True if config['TRAIN']['MIXUP'] else False
     train_dataloader = DataLoader(
         train_dataset, batch_size=config.dataset.batch_size, shuffle=config.dataset.shuffle, 
-        pin_memory=config.TRAIN.pin_memory, num_workers=config.TRAIN.num_workers)
+        pin_memory=config.TRAIN.pin_memory, num_workers=config.TRAIN.num_workers, drop_last=drop_last)
     valid_dataloader = DataLoader(
         valid_dataset, batch_size=1, shuffle=False, pin_memory=config.TRAIN.pin_memory, 
-        num_workers=config.TRAIN.num_workers)
+        num_workers=config.TRAIN.num_workers, drop_last=drop_last)
 
     # Logger
     logger.info('Start Training!!')
@@ -89,7 +90,8 @@ def run_train(config):
         'valid_activation': valid_activation,
         'checkpoint_saving_steps': config.TRAIN.CHECKPOINT_SAVING_STEPS,
         'history': config.TRAIN.INIT_CHECKPOINT,
-        'patience': config.TRAIN.PATIENCE
+        'patience': config.TRAIN.PATIENCE,
+        'mixup': config.TRAIN.MIXUP,
     }
     trainer_instance = trainer.Trainer(
         model, 
@@ -128,7 +130,7 @@ def main():
     config_list = []
     for model_name in [
         'convnext_tiny_384_in22ft1k', 
-        'edgenext_small', 
+        # 'edgenext_small', 
         # 'mobilevit_s', 
         # 'vit_small_patch16_384',
         # 'swinv2_tiny_window16_256', 'tf_efficientnet_b4_ns'
@@ -141,19 +143,23 @@ def main():
     #     'efficientnet_b4', 'efficientnet_b7', 'tf_efficientnet_b4_ns']:
         for is_aug in [True, False]:
             for index_path in dataset_paths:
-                for feature in ['mel-spec']:
+                for mixup in [True, False]: 
+                # for feature in ['mel-spec']:
                     config = copy.deepcopy(config)
                     config['model']['name'] = model_name
                     config['dataset']['index_path'] = index_path
                     config['dataset']['is_data_augmentation'] = is_aug
-                    config['dataset']['transform_methods'] = feature
+                    # config['dataset']['transform_methods'] = feature
+                    config['TRAIN']['MIXUP'] = mixup
                     checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
                     config['CHECKPOINT_PATH'] = checkpoint_path
                     
                     config_list.append(config)
 
-    for config in config_list:
+    for run_idx, config in enumerate(config_list):
         # try:
+            # XXX: 
+            if run_idx == 0: continue
             dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
             checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
             now = datetime.now()
@@ -161,14 +167,15 @@ def main():
             currentMonth = str(now.month)
             currentYear = str(now.year)
             # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-            exp_name = f"Replace GeLU with ReLU"
+            exp_name = f"Snoring_mixup"
             mlflow.set_experiment(exp_name)
             # TODO: add model name as param and change run_name
             with mlflow.start_run(run_name=config['model']['name']):
                 mlflow.log_param('dataset', dataset)
                 mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
                 mlflow.log_param('pretrained', config['model']['pretrained'])
-                mlflow.log_param('feature', config['dataset']['transform_methods'])
+                mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
+                # mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
                 # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_496'
                 config['eval'] = {

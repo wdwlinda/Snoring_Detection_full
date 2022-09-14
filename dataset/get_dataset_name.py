@@ -34,7 +34,35 @@ def get_dataset():
         'valid': ['ASUS_snoring_test'],
     }
 
-    datasets = [dataset6, dataset4]
+    dataset7 = {
+        'train': ['ASUS_snoring_train', 'pixel', 'iphone', 
+                  'Mi11_night_test', 'Mi11_office', 
+                  'Redmi_Note8_night', 'Samsung_Note10Plus_night_test'],
+        'valid': ['ASUS_snoring_test'],
+    }
+
+    dataset8 = {
+        'train': ['ASUS_snoring_train', 'pixel', 'iphone', 
+                  'Mi11_night_test', 'Mi11_office', 
+                  'Redmi_Note8_night', 'Samsung_Note10Plus_night_test',
+                  ],
+        'valid': ['ASUS_snoring_test'],
+    }
+
+    dataset9 = {
+        'train': ['ASUS_snoring_train', 'pixel', 'iphone', 
+                  'Mi11_night_test', 'Mi11_office', 
+                  'Redmi_Note8_night', 'Samsung_Note10Plus_night_test',
+                  'pixel_0908', 'iphone11_0908'],
+        'valid': ['ASUS_snoring_test'],
+    }
+
+    dataset10 = {
+        'train': ['ASUS_snoring_train', 'Mi11_office'],
+        'valid': ['ASUS_snoring_test'],
+    }
+
+    datasets = [dataset9, dataset8, dataset4]
     # datasets = [dataset1, dataset2, dataset3, dataset4, dataset5, dataset6]
     dataset_pair = []
     for dataset in datasets:

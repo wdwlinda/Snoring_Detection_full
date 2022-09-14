@@ -4,19 +4,6 @@ import numpy as np
 from dataset import transformations
 
 
-
-def audio_preprocess(waveform, sample_rate, mix_waveform, transform_methods, transform_config, preprocess_config):
-    pass
-    # if mix_waveform is not None:
-    #     waveform = mix_up(waveform, mix_waveform)
-    # features = transformations.get_audio_features(waveform, sample_rate, transform_methods, transform_config)
-    # audio_feature = self.merge_audio_features(features)
-
-    # if self.is_data_augmentation:
-    #     audio_feature = spectrogram_augmentation(audio_feature, **preprocess_config)
-
-
-# TODO: time stratch valueerror
 def spectrogram_augmentation(spec, is_freq_masking, is_time_masking, is_time_strech, freq_mask_param, time_mask_param, min_rate, max_rate, **kwargs):
     # SpecAug
     if is_freq_masking:

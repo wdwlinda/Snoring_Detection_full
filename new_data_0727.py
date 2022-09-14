@@ -16,8 +16,10 @@ def pcm_data_convert(data_dir, sr=16000, dist_dir=None):
     path, dir_name = os.path.split(data_dir)
     if not dist_dir:
         dist_dir = os.path.join(path, 'wave', dir_name)
-    f_list = glob.glob(os.path.join(data_dir, '*.pcm'))
-    for f in f_list:
+    
+    # process pcm
+    pcm_list = glob.glob(os.path.join(data_dir, '*.pcm'))
+    for f in pcm_list:
         pcm2wave(f, sr, dist_dir=dist_dir)
 
 
@@ -85,17 +87,17 @@ class Waveform_to_Clips():
         save_fileanmes_in_txt(glob_path, save_path=save_path, recursive=True)
 
 
-def data_preprocess(data_paths, preprocess_dir):
-    sr = 16000
-    split_duration = 2000
+def data_preprocess(data_paths, preprocess_dir, source, sr=16000, split_duration=2000):
     for dataset, raw_data_path in data_paths.items():
         print(f'Processing {dataset} in {raw_data_path}')
         out_dir = os.path.join(preprocess_dir, dataset)
 
         # pcm files to wav files
-        # TODO: if only wave
-        wav_data_path = os.path.join(out_dir, 'wave')
-        pcm_data_convert(raw_data_path, dist_dir=wav_data_path)
+        if source == 'pcm':
+            wav_data_path = os.path.join(out_dir, 'wave')
+            pcm_data_convert(raw_data_path, dist_dir=wav_data_path)
+        elif source in ['wav', 'wave']:
+            wav_data_path = raw_data_path
 
         # split wav files
         split_data_path = os.path.join(out_dir, 'wave_split')
@@ -116,6 +118,12 @@ def data_preprocess(data_paths, preprocess_dir):
 
 
 def main():
+    # ASUS_snoring
+    ASUS_snoring = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k'
+
+    # ESC50
+    ESC50 = r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2'
+
     # 0727 data
     redmi = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\1658889529250_RedmiNote8'
     pixel = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0727\1658889531056_Pixel4XL'
@@ -153,8 +161,12 @@ def main():
     # data_paths = _0727_data.update(_0811_data)
     preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
 
-    data_paths = _0908_data_2
-    data_preprocess(data_paths, preprocess_dir)
+    data_paths = {}
+    # data_paths.update(_0727_data)
+    # data_paths.update(_0811_data)
+    data_paths.update(_0908_data)
+    data_paths.update(_0908_data_2)
+    data_preprocess(data_paths, preprocess_dir, source='pcm')
 
     # data_paths = _0811_data
     
