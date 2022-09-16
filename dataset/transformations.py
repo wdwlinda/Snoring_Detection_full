@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 # import librosa.display
+import librosa
 from pydub import AudioSegment
 import os
 import numpy as np

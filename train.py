@@ -15,7 +15,8 @@ from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
 from utils import configuration
 from utils import train_utils as local_train_utils
 from inference import test
-from dataset.get_dataset_name import get_dataset
+from dataset.get_dataset_name import get_dataset, get_dataset_wav
+from dataset import time_transform
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 
 from models.image_classification.img_classifier import ImageClassifier
@@ -35,7 +36,11 @@ def run_train(config):
     # Dataloader
     # train_dataset = AudioDatasetfromNumpy(config, mode='train')
     # valid_dataset = AudioDatasetfromNumpy(config, mode='valid')
-    train_dataset = AudioDataset(config, mode='train')
+    if config.dataset.wav_transform:
+        t = time_transform.augmentation()
+    else:
+        t = None
+    train_dataset = AudioDataset(config, mode='train', transform=t)
     valid_dataset = AudioDataset(config, mode='valid')
 
     drop_last = True if config['TRAIN']['MIXUP'] else False
@@ -124,6 +129,7 @@ def main():
     
     # train & valid dataset
     dataset_paths = get_dataset()
+    dataset_paths = get_dataset_wav()
     # test dataset
     test_dataset = configuration.load_config('dataset/dataset.yml')
 
@@ -141,25 +147,27 @@ def main():
     #     'seresnext101_32x4d', 'seresnext50_32x4d',
     #     'resnext101_32x4d', 'resnext50_32x4d',
     #     'efficientnet_b4', 'efficientnet_b7', 'tf_efficientnet_b4_ns']:
-        for is_aug in [True, False]:
-            for index_path in dataset_paths:
-                for mixup in [True, False]: 
-                # for feature in ['mel-spec']:
-                    config = copy.deepcopy(config)
-                    config['model']['name'] = model_name
-                    config['dataset']['index_path'] = index_path
-                    config['dataset']['is_data_augmentation'] = is_aug
-                    # config['dataset']['transform_methods'] = feature
-                    config['TRAIN']['MIXUP'] = mixup
-                    checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
-                    config['CHECKPOINT_PATH'] = checkpoint_path
-                    
-                    config_list.append(config)
+        for index_path in dataset_paths:
+            for mixup in [True, False]: 
+                for wav_transform in [True, False]:
+                    for is_aug in [True, False]:
+                    # for feature in ['mel-spec']:
+                        config = copy.deepcopy(config)
+                        config['model']['name'] = model_name
+                        config['dataset']['index_path'] = index_path
+                        config['dataset']['is_data_augmentation'] = is_aug
+                        config['dataset']['wav_transform'] = wav_transform
+                        # config['dataset']['transform_methods'] = feature
+                        config['TRAIN']['MIXUP'] = mixup
+                        checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
+                        config['CHECKPOINT_PATH'] = checkpoint_path
+                        
+                        config_list.append(config)
 
     for run_idx, config in enumerate(config_list):
         # try:
             # XXX: 
-            if run_idx == 0: continue
+            # if run_idx == 0: continue
             dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
             checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
             now = datetime.now()
@@ -167,7 +175,7 @@ def main():
             currentMonth = str(now.month)
             currentYear = str(now.year)
             # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-            exp_name = f"Snoring_mixup"
+            exp_name = f"Snoring_mixup_new"
             mlflow.set_experiment(exp_name)
             # TODO: add model name as param and change run_name
             with mlflow.start_run(run_name=config['model']['name']):
@@ -175,6 +183,7 @@ def main():
                 mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
                 mlflow.log_param('pretrained', config['model']['pretrained'])
                 mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
+                mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
                 # mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
                 # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_496'

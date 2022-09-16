@@ -395,7 +395,7 @@ def get_class(class_name, modules):
     raise RuntimeError(f'Unsupported dataset class: {class_name}')
 
 
-def load_content_from_txt(path, access_mode='r'):
+def load_content_from_txt(path, access_mode='r') -> list:
     with open(path, access_mode) as fw:
         content = fw.read().splitlines()
     return content
