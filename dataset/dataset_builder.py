@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
 import pandas as pd
 import os
 
@@ -10,48 +10,67 @@ from dataset import snoring_preprocess
 from dataset import dataset_utils
 
 
+# TODO: some inspections for arguments
+# TODO: ABC? (to a meta dataset)
+# TODO: split rate for testing --> train and testing dataset building need to be separated
+# TODO: Considering a reusing dataset builder (Can we minimize the building effort?)
+
 class SnoringDataset(Dataset):
-    def __init__(self, config, loader, transform=None, target_loader=None):
-        self.check_config(config)
-        self.input_indices = config['indices']
+    def __init__(self, loader, data_refs, dataset_name=None, transform=None, target_loader=None):
         self.loader = loader
-        self.transform = transform if transform is not None else None
-        self.target_loader = target_loader if target_loader is not None else None
+        self.data_refs = data_refs
+        self.dataset_name = dataset_name
+        self.transform = transform
+        self.target_loader = target_loader
         self.log_dataset()
+        self.dataflow_func = self.get_dataflow()
 
     def __len__(self):
-        return len(self.input_indices)
+        return len(self.data_refs)
             
     def __getitem__(self, idx):
-        input_data = self.loader(self.input_indices[idx]['raw'])
+        return self.dataflow_func(idx)
 
-        if self.target_loader is not None:
-            target = self.target_loader(self.input_indices[idx]['target'])
-            if self.transform is not None:
-                input_data, target = self.transform(input_data, target)
-            return {'input': input_data, 'target': target}
+    def get_dataflow_format(self):
+        first_sample = self.data_refs[0]
+        if isinstance(first_sample, dict):
+            assert self.input_key in first_sample, 'No input data reference'
+            if self.target_key in first_sample:
+                return self.get_datapair_from_dict_seq
+            else:
+                return self.get_input_from_dict_seq
+        elif isinstance(first_sample, str):
+            return self.get_input_from_str_seq
         else:
-            if self.transform is not None:
-                input_data = self.transform(input_data)
-            return {'input': input_data}
-
-    def check_config(self, config):
-        pass
-
+            raise ValueError('Unknown reference format.')
+            
+    def get_input_from_str_seq(self, idx):
+        input_data = self.loader(self.data_refs[idx])
+        if self.transform is not None:
+            input_data = self.transform(input_data)
+        return input_data
+    
+    def get_input_from_dict_seq(self, idx):
+        input_data = self.loader(self.data_refs[idx]['input'])
+        if self.transform is not None:
+            input_data = self.transform(input_data)
+        return input_data
+    
+    def get_datapair_from_dict_seq(self, idx):
+        input_data = self.loader(self.data_refs[idx]['input'])
+        if self.target_loader is not None:
+            target = self.target_loader(self.data_refs[idx]['target'])
+        else:
+            target = self.data_refs[idx]['target']
+        if self.transform is not None:
+            input_data, target = self.transform(input_data, target)
+        return {'input': input_data, 'target': target}
+        
     def log_dataset(self):
         pass
 
     def get_ref_mapping():
         pass
-
-
-def npy_loader(ref):
-    return np.load(ref)
-
-
-def get_data_refs(indices_path):
-    input_indices = pd.read_csv(indices_path)
-    return input_indices
 
 
 def wav_loader(filename, sr=None, channels=1):
@@ -62,41 +81,38 @@ def wav_loader(filename, sr=None, channels=1):
     return waveform, sr
 
 
-# def builder():
-#     # TODO: Come from a YAML
-#     config = {
-#         'name': 'pixel_0908',
-#         'data_root': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\melspec\img\filenames',
-#         'indices': None,
-#         'split': (7, 2, 1),
-#     }
-
-#     # name, data_refs
-#     img_dataset_infer = ImageDataset(config, data_loading_func=npy_loader)
-#     img_dataset_train = ImageDataset(config, data_loading_func=npy_loader, target_loader=identity_mapping)
-#     data_builder = DataBuilder(name, data_loading_func=npy_loader, target_loader=identity_mapping)
-#     dataset = data_builder.build_from_csv(csv_path, input_header='img', target_header='label')
-#     dataset = data_builder.build_from_dir(input_root, target_root)
-
-
-def builder_test():
-    data_transform = None
-    full_refs = [{'data': '', 'target': ''}, {'data': '', 'target': ''}]
+def build_snoring_dataset(data_roots, data_ref_paths, train_batch_size, data_transform=None):
+    total_train_dataset = []
+    total_valid_dataset = []
+    total_test_dataset = []
+    for dataset_name in zip(data_roots, data_ref_paths):
+        data_root = data_roots[dataset_name]
+        data_ref_path = data_ref_paths[dataset_name]
+        train_dataset, valid_dataset, test_dataset = build_single_snoring_dataset(
+            data_root, data_ref_path, data_transform, dataset_name)
+        total_train_dataset.append(train_dataset)
+        total_valid_dataset.append(valid_dataset)
+        total_test_dataset.append(test_dataset)
+        
+    concat_train_dataset = ConcatDataset(total_train_dataset)
+    concat_valid_dataset = ConcatDataset(total_valid_dataset)
+    concat_test_dataset = ConcatDataset(total_test_dataset)
     
-    data_roots = {
-        'ASUS_snoring': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k',
-        'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2',
-    }
-    esc50_df_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\pp\ESC50'
-
-    data_refs = pd.read_csv(os.path.join(esc50_df_dir, 'data.csv'))
-    path_refs = snoring_preprocess.get_path_refs(data_roots['ESC50'], data_refs, suffix='wav')
+    train_loader = DataLoader(concat_train_dataset, train_batch_size, shuffle=True)
+    valid_loader = DataLoader(concat_valid_dataset, train_batch_size, shuffle=True)
+    test_loader = DataLoader(concat_test_dataset, 1, shuffle=False)
+    return train_loader, valid_loader, test_loader
+    
+    
+def build_single_snoring_dataset(data_root, data_ref_path, data_transform=None, dataset_name=None):
+    data_refs = pd.read_csv(data_ref_path)
+    path_refs = snoring_preprocess.get_path_refs(data_root, data_refs, suffix='wav')
     data_config = {
-        'dataset_name': 'test',
-        'data_loading_func': wav_loader,
-        'target_loader': None,
+        'loader': wav_loader,
+        'data_refs': path_refs,
+        'dataset_name': dataset_name,
         'transform': data_transform,
-        'data_refs': path_refs
+        'target_loader': None,
     }
 
     full_refs = path_refs
@@ -113,13 +129,13 @@ def builder_test():
     valid_dataset = SnoringDataset(**data_config)
 
     data_config['data_refs'] = test_refs
-    data_config['target_loader'] = None
     test_dataset = SnoringDataset(**data_config)
+    return train_dataset, valid_dataset, test_dataset
     
 
 def main():
-    # builder()
-    builder_test()
+    pass
+    # build_snoring_dataset(data_roots, data_ref_paths, train_batch_size, data_transform=None)
 
 
 if __name__ == '__main__':
