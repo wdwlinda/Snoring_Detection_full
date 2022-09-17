@@ -1,13 +1,12 @@
 import os
 
 import glob
-from pydub import AudioSegment
 import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_score, recall_score
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dataset.transformations import pcm2wave
+from dataset.snoring_preprocess import pcm2wave
 from inference import pred, pred_from_feature, test, plot_confusion_matrix
 from dataset.dataset_utils import save_fileanmes_in_txt, get_melspec_from_cpp
 
@@ -21,32 +20,6 @@ def pcm_data_convert(data_dir, sr=16000, dist_dir=None):
     pcm_list = glob.glob(os.path.join(data_dir, '*.pcm'))
     for f in pcm_list:
         pcm2wave(f, sr, dist_dir=dist_dir)
-
-
-def wav_data_split(wav_file, split_duration, dist_dir=None):
-    """AI is creating summary for wav_data_split
-
-    Args:
-        wav_file (str): 
-        split_duration (ms): Splitting duration in minisecond
-        dist_dir (str): 
-    """
-    sound = AudioSegment.from_file(wav_file, 'wav')
-    src_dir, filename = os.path.split(wav_file)
-    filename= filename[:-4]
-    sound_duration = int(sound.duration_seconds*1000)
-    if not dist_dir:
-        dist_dir = src_dir
-
-    for idx, start_time in enumerate(range(0, sound_duration, split_duration)):
-        end_time = start_time + split_duration
-        if end_time > sound_duration:
-            start_time = start_time - (end_time - sound_duration)
-        # print(idx, start_time)
-        clip = sound[start_time:start_time+split_duration]
-        clip_data = np.array(clip.get_array_of_samples(), np.float32)
-        split_filename = f'{filename}-{idx:03d}.wav'
-        clip.export(os.path.join(dist_dir, split_filename), format='wav')
 
 
 class Waveform_to_Clips():

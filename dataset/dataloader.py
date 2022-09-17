@@ -32,21 +32,30 @@ from analysis.resample_test import resample
 from analysis import utils
 
 
-# def load_input_data(index_path, data_path, keys, data_split, label_csv=None):
-    
-#     # Load data indices if exist
-#     dataset_name = '-'.join([os.path.basename(data_path), data_split[0], data_split[1]])
+class ImageDataset(Dataset):
+    def __init__(self, config, loader, transform=None, target_loader=None):
+        self.check_config(config)
+        self.input_indices = config['indices']
+        self.loader = loader
+        self.transform = transform if transform is not None else None
+        self.target_loader = target_loader if target_loader is not None else None
+        self.log_dataset()
 
-#     # Create and save data indices
-#     data_list = get_files(data_path, keys)
-#     data_list.sort()
-#     if os.path.exists(label_csv):
-#         df_label = df.read_csv(label_csv)
-#         labels = {f: df_label['full_path'][f] for f in data_list}
-#     else:
-#         labels = None
-    
-#     return data_list, labels
+    def __len__(self):
+        return len(self.input_indices)
+            
+    def __getitem__(self, idx):
+        input_data = self.loader(self.input_indices[idx]['raw'])
+
+        if self.target_loader is not None:
+            target = self.target_loader(self.input_indices[idx]['target'])
+            if self.transform is not None:
+                input_data, target = self.transform(input_data, target)
+            return {'input': input_data, 'target': target}
+        else:
+            if self.transform is not None:
+                input_data = self.transform(input_data)
+            return {'input': input_data}
 
 
 def make_index_dict(data_path):
@@ -215,7 +224,7 @@ class AudioDataset(AbstractDastaset):
     def data_loading_function(self, filename):
         y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
         sr = y.frame_rate
-        waveform = np.float32(y.get_array_of_samples())
+        waveform = np.array(y.get_array_of_samples(), np.float32)
         return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):

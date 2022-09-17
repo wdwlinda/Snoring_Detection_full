@@ -7,23 +7,8 @@ import numpy as np
 import torch
 import torchaudio
 import torchaudio.transforms as T
-import wave
 
 
-def pcm2wave(pcm_path, sr=16000, dist_dir=None):
-    with open(pcm_path, 'rb') as pcmfile:
-        pcmdata = pcmfile.read()
-
-    pcm_dir, pcm_file = os.path.split(pcm_path)
-    if dist_dir is not None:
-        os.makedirs(dist_dir, exist_ok=True)
-    else:
-        dist_dir = pcm_dir
-
-    with wave.open(os.path.join(dist_dir, pcm_file.replace('.pcm', '.wav')), 'wb') as wavfile:
-        # (nchannels, sampwidth, framerate, nframes, comptype, compname)
-        wavfile.setparams((1, 2, sr, 0, 'NONE', 'NONE')) 
-        wavfile.writeframes(pcmdata)
 
 
 def get_audio_features(waveform, sample_rate, transform_methods, transform_config):
