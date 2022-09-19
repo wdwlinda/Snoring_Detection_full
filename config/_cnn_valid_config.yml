@@ -11,6 +11,8 @@ dataset:
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring_16k
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_KC2
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
+  index_path: 
+    ASUS_snoring: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my3
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_12remain
   # index_path: C:\Users\test\Downloads\1112\KC_testing\clips_2_2
@@ -49,7 +51,7 @@ manual_seed: 0
 # model configuration
 model:
   # model class, e.g. UNet3D, ResidualUNet3D
-  name: resnext50_32x4d
+  name: edgenext_small
   # number of input channels to the model
   in_channels: 3
   # number of output channels
@@ -63,7 +65,7 @@ eval:
   save_segmentation_result: False
   save_prediciton_only: False
   running_mode: test
-  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_206
+  restore_checkpoint_path: C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_018
   checkpoint_name: ckpt_best.pth
   eval_dir_key:
   

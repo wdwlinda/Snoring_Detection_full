@@ -17,12 +17,6 @@ dataset:
   index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2
   # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2
 
-  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2_shift
-  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my3
-  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_1s_my2
-  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my_esc
-  # index_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Kaggle_snoring
-
   # index_path: C:\Users\test\Desktop\Leon\Datasets\index
   # data_path: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h
   
@@ -58,6 +52,8 @@ dataset:
     min_rate: 0.9
     max_rate: 1.1
     mix_up: null
+  wav_transform: True
+  mean_sub: False
 # use a fixed random seed to guarantee that when you run the code twice you will get the same outcome
 manual_seed: 0
 # model configuration
@@ -98,4 +94,5 @@ TRAIN:
   pin_memory: True
   CHECKPOINT_SAVING_STEPS: 50
   INIT_CHECKPOINT: null
-  PATIENCE: 20
+  PATIENCE: 15
+  MIXUP: True

@@ -144,7 +144,17 @@ def get_dataset_wav():
         'valid': ['ASUS_snoring_test', 'ESC50'],
     }
 
-    datasets = [dataset1, dataset4]
+    dataset12 = {
+        'train': ['ASUS_snoring_train'],
+        'valid': ['Kaggle_snoring'],
+    }
+
+    dataset13 = {
+        'train': ['ASUS_snoring_train', 'ESC50'],
+        'valid': ['Kaggle_snoring'],
+    }
+
+    datasets = [dataset10, dataset8, dataset2]
     dataset_pair = []
     for dataset in datasets:
         dataset_path_format = {}

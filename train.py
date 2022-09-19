@@ -8,18 +8,21 @@ from pprint import pprint
 import numpy as np
 import torch
 import mlflow
-
 from torch.utils.data import Dataset, DataLoader
+import torchaudio
+
 import site_path
-from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
+CONFIG_PATH = 'config/_cnn_train_config.yml'
 from utils import configuration
 from utils import train_utils as local_train_utils
-from inference import test
-from dataset.get_dataset_name import get_dataset, get_dataset_wav
-from dataset import time_transform
-CONFIG_PATH = 'config/_cnn_train_config.yml'
-
 from models.image_classification.img_classifier import ImageClassifier
+from inference import test
+from dataset import transformations
+from dataset import input_preprocess
+from dataset.time_transform import get_wav_transform, augmentation
+from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
+from dataset.get_dataset_name import get_dataset, get_dataset_wav
+from dataset.data_transform import transform
 from modules.train import trainer
 from modules.utils import train_utils
 
@@ -36,11 +39,11 @@ def run_train(config):
     # Dataloader
     # train_dataset = AudioDatasetfromNumpy(config, mode='train')
     # valid_dataset = AudioDatasetfromNumpy(config, mode='valid')
-    if config.dataset.wav_transform:
-        t = time_transform.augmentation()
-    else:
-        t = None
-    train_dataset = AudioDataset(config, mode='train', transform=t)
+    # if config.dataset.wav_transform:
+    #     t = time_transform.augmentation()
+    # else:
+    #     t = None
+    train_dataset = AudioDataset(config, mode='train')
     valid_dataset = AudioDataset(config, mode='valid')
 
     drop_last = True if config['TRAIN']['MIXUP'] else False
@@ -86,6 +89,8 @@ def run_train(config):
     valid_activation = train_utils.create_activation(config.model.activation)
 
     # Training
+    
+        
     train_config = {
         'n_class': config.model.out_channels,
         'exp_path': config['CHECKPOINT_PATH'],
@@ -96,7 +101,7 @@ def run_train(config):
         'checkpoint_saving_steps': config.TRAIN.CHECKPOINT_SAVING_STEPS,
         'history': config.TRAIN.INIT_CHECKPOINT,
         'patience': config.TRAIN.PATIENCE,
-        'mixup': config.TRAIN.MIXUP,
+        'transform': transform,
     }
     trainer_instance = trainer.Trainer(
         model, 
@@ -175,7 +180,7 @@ def main():
             currentMonth = str(now.month)
             currentYear = str(now.year)
             # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-            exp_name = f"Snoring_mixup_new"
+            exp_name = f"Snoring_spec_mixup"
             mlflow.set_experiment(exp_name)
             # TODO: add model name as param and change run_name
             with mlflow.start_run(run_name=config['model']['name']):
@@ -186,16 +191,17 @@ def main():
                 mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
                 # mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
-                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_496'
+                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_259'
                 config['eval'] = {
                     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                     'checkpoint_name': r'ckpt_best.pth'
                 }
                 config = local_train_utils.DictAsMember(config)
 
-                run_train(config)
+                # run_train(config)
                 total_acc = []
-                for test_data_name, test_path in test_dataset['dataset'].items():
+                for test_data_name, test_path in test_dataset['dataset_wav'].items():
+                # for test_data_name, test_path in test_dataset['dataset'].items():
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
                     acc, precision, recall = test(src_dir, dist_dir, config)

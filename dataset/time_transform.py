@@ -4,11 +4,22 @@ import array
 
 import torch
 import torchaudio
-from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, Shift
+from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, Shift, Reverse, Normalize
 import numpy as np
-
+import torch_audiomentations
 from dataset import dataset_utils
 
+
+def get_wav_transform():
+    augment = torch_audiomentations.Compose([
+        torch_audiomentations.AddBackgroundNoise(min_amplitude=50, max_amplitude=100, p=0.5),
+        torch_audiomentations.TimeStretch(min_rate=0.8, max_rate=1.25, p=0.5),
+        torch_audiomentations.PitchShift(min_semitones=-6, max_semitones=6, p=0.5),
+        torch_audiomentations.TimeInversion()
+        # torch_audiomentations.Shift(min_fraction=-0.5, max_fraction=0.5, p=0.5),
+    ],
+    p=0.75)
+    return augment
 
 # TODO: mono for currently
 def add_background_noise(waveform, snr_db):
@@ -45,8 +56,11 @@ def augmentation():
         AddGaussianNoise(min_amplitude=50, max_amplitude=100, p=0.5),
         TimeStretch(min_rate=0.8, max_rate=1.25, p=0.5),
         PitchShift(min_semitones=-6, max_semitones=6, p=0.5),
-        Shift(min_fraction=-0.5, max_fraction=0.5, p=0.5),
-    ])
+        # Shift(min_fraction=-0.5, max_fraction=0.5, p=0.5),
+        Reverse(),
+        # Normalize()
+    ], 
+    p=0.75)
     return augment
 
 

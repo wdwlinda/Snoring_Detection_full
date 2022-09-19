@@ -1055,6 +1055,47 @@ def check_data_cases():
         print(os.path.basename(f), pred)
 
 
+def test_torch_mixup():
+    from timm.data.mixup import Mixup
+    from dataset import dataset_utils
+    import torch
+
+    f1 = r'test_data/1620055140118_4_152.98_154.98_004.wav'
+    f2 = r'test_data/1660109552769-017.wav'
+    sound1 = dataset_utils.load_audio_waveform(f1, 'wav')
+    sound2 = dataset_utils.load_audio_waveform(f2, 'wav')
+    wav1 = np.array(sound1.get_array_of_samples(), np.float32)
+    wav2 = np.array(sound2.get_array_of_samples(), np.float32)
+    input_var = np.stack([wav1, wav2], axis=0)[:,None]
+    input_var = torch.tensor(input_var)
+    mixup_args = {
+        'mixup_alpha': 1.,
+        'cutmix_alpha': 0.,
+        'cutmix_minmax': None,
+        'prob': 1.0,
+        'switch_prob': 0.,
+        'mode': 'batch',
+        'label_smoothing': 0,
+        'num_classes': 2
+    }
+    mixup_fn  = Mixup(**mixup_args)
+    target_var = np.stack([np.ones((1, 1)), np.zeros((1, 1))], axis=0)
+    target_var = torch.tensor(target_var)
+    input_var_mix, target_var_mix = mixup_fn(input_var, target_var)
+    input_var_mix = input_var_mix.detach().cpu().numpy()
+    sound1_mix = input_var_mix[0, 0]
+    sound2_mix = input_var_mix[1, 0]
+    
+    waveform = array.array(sound1.array_type, sound1_mix)
+    new_sound = sound1._spawn(waveform)
+    new_sound.export(f1.replace('.wav', '_mix.wav'), 'wav')
+
+    waveform = array.array(sound2.array_type, sound2_mix)
+    new_sound = sound2._spawn(waveform)
+    new_sound.export(f2.replace('.wav', '_mix.wav'), 'wav')
+    pass
+
+
 if __name__ == '__main__':
     # get_unconflicted_index()
     # first_order_filter()
@@ -1078,5 +1119,6 @@ if __name__ == '__main__':
 
     # spectrogram_threshold()
     # split_df()
-    check_data_cases()
+    # check_data_cases()
+    test_torch_mixup()
     pass

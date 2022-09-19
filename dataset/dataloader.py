@@ -173,11 +173,19 @@ def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
 
 # TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
-    def __init__(self, config, mode, transform=None, eval_mode=True):
+    def __init__(self, config, mode, eval_mode=True, data_path=None):
         super().__init__(config, mode)
         self.data_suffix = self.dataset_config.data_suffix
         self.in_channels = config.model.in_channels
-        self.transform = transform
+        # XXX: define duration and sample rate
+        self.wav_length = 2 * 16000 # duration * sample_ratre
+        self.mixup = config.TRAIN.MIXUP
+        self.is_wav_tranasform = config.dataset.wav_transform
+        self.mean_sub = config.dataset.mean_sub
+        # if wav_transform is not None:
+        #     self.wav_transform = wav_transform
+        # else:
+        #     self.wav_transform = None
 
         # if mode in ('train', 'valid'):
         #     self.input_data_indices = dataset_utils.load_content_from_txt(
@@ -227,6 +235,9 @@ class AudioDataset(AbstractDastaset):
         waveform = np.array(y.get_array_of_samples(), np.float32)
         return waveform, sr
 
+    def data_loading_function_torchaudio(self, filename):
+        return torchaudio.load(filename)
+
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         if len(waveform.shape) == 1:
             waveform = np.expand_dims(waveform, axis=0)
@@ -242,7 +253,6 @@ class AudioDataset(AbstractDastaset):
             waveform, sample_rate, self.transform_methods, self.transform_config)
         audio_feature = self.merge_audio_features(features)
         audio_feature = np.transpose(audio_feature, (1, 2, 0))
-        # audio_feature = np.swapaxes(np.swapaxes(audio_feature, 0, 1), 1, 2)
 
         audio_feature = self.transform(audio_feature)
         if self.is_data_augmentation:
@@ -252,45 +262,89 @@ class AudioDataset(AbstractDastaset):
 
     def __getitem__(self, idx):
         waveform, sr = self.data_loading_function(self.input_data_indices[idx])
-        # print(idx, self.input_data_indices[idx])
+        # waveform, sr = self.data_loading_function_torchaudio(self.input_data_indices[idx])
+        # XXX:
+        if self.mean_sub:
+            waveform = waveform - waveform.mean()
 
-        mix_waveform = None
-        mix_up = self.dataset_config.preprocess_config.mix_up
-        if mix_up and self.is_data_augmentation:
-            if mix_up > random.random():
-                mix_idx = random.randint(0, len(self.input_data_indices)-1)
-                mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
+        # XXX: modeulize and check the splitting at first
+        if waveform.size < self.wav_length:
+            pad_lenth = self.wav_length - waveform.size
+            left_pad = pad_lenth // 2
+            right_pad = pad_lenth - left_pad
+            waveform = np.pad(waveform, pad_width=(left_pad, right_pad), mode='mean')
+        if waveform.size > self.wav_length:
+            waveform = waveform[:self.wav_length]
 
         # XXX: 
         # waveform augmentation
         # waveform = time_transform.augmentation(waveform)
-        if self.transform is not None:
-            waveform = waveform[None]
-            waveform = self.transform(waveform)
-            waveform = waveform[0, 0]
-        
-        input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
+        # if self.wav_transform is not None:
+        #     waveform = waveform[None]
+        #     waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
+        #     waveform = waveform[0]
+
+        input_data = waveform
+        # input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
         if input_data.shape[-1] == 1: 
             print(self.input_data_indices[idx])
             
-        # TODO: bad implementation
-        if self.in_channels == 3:
-            input_data = torch.tile(input_data, (3, 1, 1))
+        # # TODO: bad implementation
+        # if self.in_channels == 3:
+        #     input_data = torch.tile(input_data, (3, 1, 1))
         if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
             # TODO: binary to multi np.eye(2)
             ground_truth = np.eye(2)[ground_truth]
-            if mix_up and self.is_data_augmentation:
-                if mix_lambda:
-                    mix_ground_truth = np.eye(2)[self.ground_truth_indices[mix_idx]]
-                    ground_truth = mix_lambda*ground_truth + (1-mix_lambda)*mix_ground_truth
         else:
             ground_truth = None
 
         if ground_truth is not None:
-            return {'input': input_data, 'target': ground_truth}
+            return {'input': input_data, 'target': ground_truth, 'sr': sr}
         else:
-            return {'input': input_data}
+            return {'input': input_data, 'sr': sr}
+
+    # def __getitem__(self, idx):
+    #     waveform, sr = self.data_loading_function(self.input_data_indices[idx])
+    #     # print(idx, self.input_data_indices[idx])
+
+    #     mix_waveform = None
+    #     mix_up = self.dataset_config.preprocess_config.mix_up
+    #     if mix_up and self.is_data_augmentation:
+    #         if mix_up > random.random():
+    #             mix_idx = random.randint(0, len(self.input_data_indices)-1)
+    #             mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
+
+    #     # XXX: 
+    #     # waveform augmentation
+    #     # waveform = time_transform.augmentation(waveform)
+    #     if self.wav_transform is not None:
+    #         waveform = waveform[None]
+    #         waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
+    #         waveform = waveform[0]
+        
+    #     input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
+    #     if input_data.shape[-1] == 1: 
+    #         print(self.input_data_indices[idx])
+            
+    #     # TODO: bad implementation
+    #     if self.in_channels == 3:
+    #         input_data = torch.tile(input_data, (3, 1, 1))
+    #     if self.ground_truth_indices:
+    #         ground_truth = self.ground_truth_indices[idx]
+    #         # TODO: binary to multi np.eye(2)
+    #         ground_truth = np.eye(2)[ground_truth]
+    #         if mix_up and self.is_data_augmentation:
+    #             if mix_lambda:
+    #                 mix_ground_truth = np.eye(2)[self.ground_truth_indices[mix_idx]]
+    #                 ground_truth = mix_lambda*ground_truth + (1-mix_lambda)*mix_ground_truth
+    #     else:
+    #         ground_truth = None
+
+    #     if ground_truth is not None:
+    #         return {'input': input_data, 'target': ground_truth}
+    #     else:
+    #         return {'input': input_data}
 
     def merge_audio_features(self, features):
         if not isinstance(features, dict):

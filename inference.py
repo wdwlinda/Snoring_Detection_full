@@ -158,6 +158,20 @@ class build_inferencer():
                 inputs = data['input']
                 # inputs = train_utils.minmax_norm(inputs)
                 inputs = inputs.to(self.device)
+                
+                # XXX: sr
+                from dataset.data_transform import transform
+                inputs, target_var = transform(
+                    inputs, 
+                    device=self.device,
+                    is_wav_transform=False,
+                    mixup=False, 
+                    is_spec_transform=False,
+                    n_class=self.config.model.out_channels,
+                    sr=16000,
+                    preprocess_config=None,
+                )
+
                 prob = self.model(inputs)
                 # prob = torch.sigmoid(output)
                 # prob = torch.nn.functional.softmax(output)
@@ -191,7 +205,7 @@ class build_inferencer():
             writer = csv.writer(csv_file)
             sample_name = os.path.basename(self.dataset.input_data_indices[index])[:-4]
             writer.writerow(
-                [sample_name, prob[0, 1], pred, self.dataset.input_data_indices[index]])
+                [sample_name, prob[0, 0], prob[0, 1], pred, self.dataset.input_data_indices[index]])
         self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
 
@@ -212,9 +226,12 @@ def pred(data_path, save_path, show_info=False):
 def pred_from_feature(data_path, save_path, config=None, show_info=False):
     if not config:
         config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
-    # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
+    # XXX:
+    name = os.path.split(save_path)[1]
+    config['dataset']['index_path']['valid'] = {name: data_path}
+    test_dataset = AudioDataset(config, mode='valid', eval_mode=False)
     # test_dataset = SimpleAudioDatasetfromNumpy(config, data_path)
-    test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
+    # test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
     net = ImageClassifier(
         backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
         out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
