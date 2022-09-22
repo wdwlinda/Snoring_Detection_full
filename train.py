@@ -180,7 +180,7 @@ def main():
             currentMonth = str(now.month)
             currentYear = str(now.year)
             # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-            exp_name = f"Snoring_spec_mixup"
+            exp_name = f"Snoring_spec_mixup_norm"
             mlflow.set_experiment(exp_name)
             # TODO: add model name as param and change run_name
             with mlflow.start_run(run_name=config['model']['name']):
@@ -191,7 +191,7 @@ def main():
                 mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
                 # mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
-                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_259'
+                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_283'
                 config['eval'] = {
                     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                     'checkpoint_name': r'ckpt_best.pth'
@@ -202,6 +202,7 @@ def main():
                 total_acc = []
                 for test_data_name, test_path in test_dataset['dataset_wav'].items():
                 # for test_data_name, test_path in test_dataset['dataset'].items():
+                    if test_data_name != 'yt_snoring': continue
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
                     acc, precision, recall = test(src_dir, dist_dir, config)

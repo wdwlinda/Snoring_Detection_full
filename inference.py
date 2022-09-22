@@ -159,7 +159,7 @@ class build_inferencer():
                 # inputs = train_utils.minmax_norm(inputs)
                 inputs = inputs.to(self.device)
                 
-                # XXX: sr
+                # XXX: Not allow using different sr in the same time
                 from dataset.data_transform import transform
                 inputs, target_var = transform(
                     inputs, 
@@ -168,7 +168,7 @@ class build_inferencer():
                     mixup=False, 
                     is_spec_transform=False,
                     n_class=self.config.model.out_channels,
-                    sr=16000,
+                    sr=data['sr'][0].item(),
                     preprocess_config=None,
                 )
 
@@ -371,11 +371,5 @@ if __name__ == "__main__":
     tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082\snoring_relu_trained.tflite'
     pred_tflite(config, test_dataset, tflite_path)
 
-    # data_path = rf'C:\Users\test\Downloads\1112\app_test\iOS\clips_2_2_6dB'
-    # data_path = rf'C:\Users\test\Desktop\Leon\Weekly\1112\3min_test'
-    # data_path = rf'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\test.csv'
-    # save_path = rf'C:\Users\test\Downloads\1112\app_test\iOS'
-    
-    # pred_from_feature(data_path, save_path, show_info=True)
     
     

@@ -288,11 +288,14 @@ def load_input_data(config):
 
 
 def load_audio_waveform(filename, audio_format, sr=None, channels=None):
-    """Pydub based audio waveform loading function"""
-    y = AudioSegment.from_file(filename, audio_format)
-    if sr: y = y.set_frame_rate(sr)
-    if channels: y = y.set_channels(channels)
-    return y    
+    """
+    Pydub based audio loading function
+    Use
+    """
+    sound = AudioSegment.from_file(filename, audio_format)
+    if sr: sound = sound.set_frame_rate(sr)
+    if channels: sound = sound.set_channels(channels)
+    return sound    
 
 
 def get_files(path, keys=[], return_fullpath=True, sort=True, sorting_key=None):

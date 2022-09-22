@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDis
 import matplotlib.pyplot as plt
 import numpy as np
 
-from dataset.snoring_preprocess import pcm2wave
+from dataset.snoring_preprocess import pcm2wave, wav_data_split
 from inference import pred, pred_from_feature, test, plot_confusion_matrix
 from dataset.dataset_utils import save_fileanmes_in_txt, get_melspec_from_cpp
 
@@ -130,16 +130,20 @@ def main():
         'pixel_0908_2': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908_2\1662633178747_pixel4xl',
         'iphone11_0908_2': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_0908_2\1662632007621_iphone11_2'
     }
-    
+
+    yt_snoring = {
+        'yt_snoring': r'C:\Users\test\Desktop\Leon\Datasets\Snoring\yt_snoring'
+    }
     # data_paths = _0727_data.update(_0811_data)
     preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
 
     data_paths = {}
     # data_paths.update(_0727_data)
     # data_paths.update(_0811_data)
-    data_paths.update(_0908_data)
-    data_paths.update(_0908_data_2)
-    data_preprocess(data_paths, preprocess_dir, source='pcm')
+    # data_paths.update(_0908_data)
+    # data_paths.update(_0908_data_2)
+    data_paths.update(yt_snoring)
+    data_preprocess(data_paths, preprocess_dir, source='wav', sr=44100)
 
     # data_paths = _0811_data
     

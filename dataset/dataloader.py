@@ -173,14 +173,14 @@ def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
 
 # TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
-    def __init__(self, config, mode, eval_mode=True, data_path=None):
+    def __init__(self, config, mode, eval_mode=True):
         super().__init__(config, mode)
         self.data_suffix = self.dataset_config.data_suffix
         self.in_channels = config.model.in_channels
         # XXX: define duration and sample rate
         self.wav_length = 2 * 16000 # duration * sample_ratre
         self.mixup = config.TRAIN.MIXUP
-        self.is_wav_tranasform = config.dataset.wav_transform
+        self.is_wav_transform = config.dataset.wav_transform
         self.mean_sub = config.dataset.mean_sub
         # if wav_transform is not None:
         #     self.wav_transform = wav_transform
@@ -233,6 +233,10 @@ class AudioDataset(AbstractDastaset):
         y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
         sr = y.frame_rate
         waveform = np.array(y.get_array_of_samples(), np.float32)
+        norm = False
+        if norm:
+            waveform = (waveform-waveform.min()) / (waveform.max()-waveform.min())
+            waveform = 2*waveform - 1
         return waveform, sr
 
     def data_loading_function_torchaudio(self, filename):

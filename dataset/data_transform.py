@@ -9,8 +9,8 @@ from dataset import input_preprocess
 
 
 
-def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True, mixup=True, is_spec_transform=True,
-              n_class=2, sr=16000, preprocess_config=None):
+def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True, mixup=True, 
+              is_spec_transform=True, n_class=2, sr=16000, preprocess_config=None):
     if mixup:
         # XXX: modulize mixup
         mixup_args = {
@@ -42,7 +42,7 @@ def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True
     # Melspec (trorchaudio)   
     n_fft = 2048
     n_mels = 128
-    noise = True
+    noise = False
     torchaudio_melspec = torchaudio.transforms.MelSpectrogram(
         sample_rate=sr,
         n_fft=n_fft,
@@ -66,9 +66,11 @@ def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True
             input_var, **preprocess_config)
     input_var = torch.unsqueeze(input_var, dim=1)
 
-    # if noise:
-    #     input_var = input_var + torch.rand(input_var.shape[0], input_var.shape[1]) * np.random.rand() / 10
-    #     input_var = torch.roll(input_var, np.random.randint(-10, 10), 0)
+    if noise:
+        rand_noise = torch.rand(input_var.shape) * np.random.rand() / 10
+        rand_noise = rand_noise.to(device)
+        input_var = input_var + rand_noise
+        input_var = torch.roll(input_var, np.random.randint(-10, 10), 0)
 
     # xx = input_var.detach().cpu().numpy()
     # import matplotlib.pyplot as plt

@@ -154,7 +154,12 @@ def get_dataset_wav():
         'valid': ['Kaggle_snoring'],
     }
 
-    datasets = [dataset10, dataset8, dataset2]
+    dataset14 = {
+        'train': ['yt_snoring'],
+        'valid': ['yt_snoring'],
+    }
+    datasets = [dataset14]
+    # datasets = [dataset8, dataset10, dataset2]
     dataset_pair = []
     for dataset in datasets:
         dataset_path_format = {}

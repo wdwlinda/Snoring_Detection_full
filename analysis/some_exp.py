@@ -1096,6 +1096,162 @@ def test_torch_mixup():
     pass
 
 
+def spec_dist():
+    # ASUS_test
+    roots = {
+        'iphone110908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\melspec\img\filenames',
+        'ASUS_train': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\train',
+        'ASUS_test': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\test',
+        'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\img\file_names',
+        'pixel0908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\melspec\img\filenames',
+        'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\img\filenames',
+        'Mi11_office': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\melspec\img\filenames'
+    }
+    save_root = r'C:\Users\test\Desktop\Leon\Weekly\0921'
+
+    def save_img(files, fig_name):
+        data = 0
+        for f in files:
+            data += np.load(f)
+        data = data[::-1]
+        plt.imshow(data/len(files))
+        plt.savefig(os.path.join(save_root, f'{fig_name}.png'))
+
+    for name, data_root in roots.items():
+        print(name)
+        files = glob.glob(os.path.join(data_root, '*.npy'))
+        if name == 'ESC50':
+            p_files, n_files = [], []
+            for f in files:
+                filename = os.path.split(f)[1]
+                if filename.split('-')[-2] == '28':
+                    p_files.append(f)
+                else:
+                    n_files.append(f)
+            total_files = [p_files, n_files]
+            names = [f'{name}_p', f'{name}_n']
+        # elif name in ['ASUS_train', 'ASUS_test']:
+        #     train_df_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv'
+        #     test_df_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv'
+        #     train_df = pd.read_csv(train_df_path)
+        #     test_df = pd.read_csv(test_df_path)
+        #     p_files, n_files = [], []
+        #     p_df = pd.concat([train_df[train_df['label']==1], test_df[test_df['label']==1]])
+        #     n_df = pd.concat([train_df[train_df['label']==0], test_df[test_df['label']==0]])
+        #     p_files = p_df['img_path'].to_list()
+        #     n_files = n_df['img_path'].to_list()
+        #     total_files = [p_files, n_files]
+        #     names = [f'{name}_p', f'{name}_n']
+        elif name == 'ASUS_test':
+            test_df_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv'
+            test_df = pd.read_csv(test_df_path)
+            p_files, n_files = [], []
+            p_df = test_df[test_df['label']==1]
+            n_df = test_df[test_df['label']==0]
+            p_files = p_df['img_path'].to_list()
+            n_files = n_df['img_path'].to_list()
+            total_files = [p_files, n_files]
+            names = [f'{name}_p', f'{name}_n']
+        elif name == 'ASUS_train':
+            train_df_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv'
+            train_df = pd.read_csv(train_df_path)
+            p_files, n_files = [], []
+            p_df = train_df[train_df['label']==1]
+            n_df = train_df[train_df['label']==0]
+            p_files = p_df['img_path'].to_list()
+            n_files = n_df['img_path'].to_list()
+            total_files = [p_files, n_files]
+            names = [f'{name}_p', f'{name}_n']
+        elif name == 'iphone110908':
+            p_files = files[-32:]
+            n_files = files[:-32]
+            total_files = [p_files, n_files]
+            names = [f'{name}_p', f'{name}_n']
+        elif name == 'pixel0908':
+            p_files = files[-51:]
+            n_files = files[:-51]
+            total_files = [p_files, n_files]
+            names = [f'{name}_p', f'{name}_n']
+        else:
+            # continue
+            total_files = [files]
+            names = [name]
+
+        for files, name in zip(total_files, names):
+            save_img(files,name)
+
+
+def pca_test():
+    from sklearn.decomposition import PCA
+    from sklearn.preprocessing import StandardScaler
+    roots = {
+        # 'iphone110908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\melspec\img\filenames',
+        'ASUS_train': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\train',
+        # 'ASUS_test': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\test',
+        # 'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\img\file_names',
+        # 'pixel0908': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\melspec\img\filenames',
+        # 'Mi11_night': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\img\filenames',
+        # 'Mi11_office': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\melspec\img\filenames'
+    }
+    save_root = r'C:\Users\test\Desktop\Leon\Weekly\0921'
+    scaler = StandardScaler()
+    pca = PCA(n_components=2)
+
+    train_df_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv'
+    test_df_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv'
+    train_df = pd.read_csv(train_df_path)
+    test_df = pd.read_csv(test_df_path)
+    p_files, n_files = [], []
+    p_df = train_df[train_df['label']==1]
+    n_df = train_df[train_df['label']==0]
+    p_files = p_df['img_path'].to_list()
+    n_files = n_df['img_path'].to_list()
+    total_files = [p_files, n_files]
+
+    total_data = []
+    for files in total_files:
+    # for name, data_root in roots.items():
+        # print(name)
+        # files = glob.glob(os.path.join(data_root, '*.npy'))
+        for f in files:
+            data = np.load(f)
+            data = np.reshape(data, (1, -1))
+            total_data.append(data)
+    total_data = np.concatenate(total_data, axis=0)
+    total_data = scaler.fit_transform(total_data)
+
+    pca_data = pca.fit_transform(total_data)
+    labels = np.concatenate([np.ones(len(total_files[0])), np.zeros(len(total_files[1]))])
+
+    principal_breast_Df = pd.DataFrame(data = pca_data
+             , columns = ['principal component 1', 'principal component 2'])
+    pca_data_p = pca_data[:len(p_files)]
+    pca_data_p = pca_data_p[pca_data_p[:,0]>-50]
+    pca_data_p = pca_data_p[pca_data_p[:,1]<-13]
+    print(pca_data_p.shape[0], pca_data_p.shape[0] / pca_data.shape[0])
+
+    plt.figure()
+    plt.figure(figsize=(10,10))
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=14)
+    plt.xlabel('Principal Component - 1',fontsize=20)
+    plt.ylabel('Principal Component - 2',fontsize=20)
+    plt.title("Principal Component Analysis of Snoring",fontsize=20)
+    targets = [0, 1]
+    colors = ['r', 'g']
+    for target, color in zip(targets,colors):
+        indicesToKeep = labels == target
+        plt.scatter(principal_breast_Df.loc[indicesToKeep, 'principal component 1']
+                , principal_breast_Df.loc[indicesToKeep, 'principal component 2'], 
+                c = color, s = 50, alpha=0.5)
+
+    plt.legend(['non_snoring', 'snoring'],prop={'size': 15})
+    plt.show()
+
+    print(pca_data)
+    # data
+    # norm
+    # pca
 if __name__ == '__main__':
     # get_unconflicted_index()
     # first_order_filter()
@@ -1120,5 +1276,7 @@ if __name__ == '__main__':
     # spectrogram_threshold()
     # split_df()
     # check_data_cases()
-    test_torch_mixup()
+    # test_torch_mixup()
+    spec_dist()
+    # pca_test()
     pass
