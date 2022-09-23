@@ -230,13 +230,9 @@ class AudioDataset(AbstractDastaset):
         self.transform = transforms.Compose([transforms.ToTensor()])
 
     def data_loading_function(self, filename):
-        y = dataset_utils.load_audio_waveform(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
+        y = dataset_utils.get_pydub_sound(filename, self.data_suffix, self.dataset_config.sample_rate, channels=1)
         sr = y.frame_rate
         waveform = np.array(y.get_array_of_samples(), np.float32)
-        norm = False
-        if norm:
-            waveform = (waveform-waveform.min()) / (waveform.max()-waveform.min())
-            waveform = 2*waveform - 1
         return waveform, sr
 
     def data_loading_function_torchaudio(self, filename):
@@ -508,7 +504,7 @@ class SimpleAudioDataset(Dataset):
         audio_format = 'wav'
         self.input_data_indices = glob.glob(os.path.join(data_path, '*.wav'))
         for f in self.input_data_indices:
-            y = dataset_utils.load_audio_waveform(f, audio_format, self.dataset_config.sample_rate, channels=1)
+            y = dataset_utils.get_pydub_sound(f, audio_format, self.dataset_config.sample_rate, channels=1)
             waveforms.append((np.float32(y.get_array_of_samples()), y.frame_rate))
         return waveforms
 

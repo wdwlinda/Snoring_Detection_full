@@ -234,8 +234,7 @@ def re_split():
             
             #  Load raw audio
             data_path = os.path.join(audio_path, subject, f'{subject}_{number}.{load_format}')
-            # y = utils.load_audio_waveform(data_path, load_format)
-            y = utils.load_audio_waveform(data_path, load_format, sr, channels)
+            y = utils.get_pydub_sound(data_path, load_format, sr, channels)
 
             # if i+1==158:
             #     print(i)
@@ -318,7 +317,7 @@ def get_diff_files(src1, src2, dst, data_format='wav'):
 
 
 def convert_testing_data(path, src, dst, add_dB):
-    y1 = dataset_utils.load_audio_waveform(path, src, 16000, 1)
+    y1 = dataset_utils.get_pydub_sound(path, src, 16000, 1)
     y2 = y1 + add_dB
     y1.export(path.replace(src, dst), dst)
     y2.export(path.replace(f'.{src}', f'_6dB.{dst}'), dst)

@@ -143,7 +143,7 @@ def check_audio_sample_rate():
 def show_volume():
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1606921286802_sargo\1606921286802_sargo_15.m4a'
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_5.m4a'
-    waveform, sr = utils.load_audio_waveform(filename, 'm4a')
+    waveform, sr = dataset_utils.get_pydub_sound(filename, 'm4a')
     waveform = waveform.get_array_of_samples()
     waveform = np.array(waveform)
     waveform = utils.get_audio_clip(waveform, [82, 85], sr)
@@ -171,7 +171,7 @@ def get_audio_volume(signal, frame_size):
 def show_median_filter():
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1606921286802_sargo\1606921286802_sargo_15.m4a'
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring\1620055140118_ASUS_I002D\1620055140118_ASUS_I002D_5.m4a'
-    waveform, sr = utils.load_audio_waveform(filename, 'm4a')
+    waveform, sr = dataset_utils.get_pydub_sound(filename, 'm4a')
     waveform = waveform.get_array_of_samples()
     waveform = np.array(waveform)
     waveform = utils.get_audio_clip(waveform, [82, 85], sr)
@@ -217,7 +217,7 @@ def check_two_channels():
     filename = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw\1631468777871_NA\1631468777871_8.m4a'
     save_path = rf'C:\Users\test\Downloads\1018\test\result'
     time_range = [2, 11]
-    y, sr = utils.load_audio_waveform(filename, 'm4a')
+    y, sr = dataset_utils.get_pydub_sound(filename, 'm4a')
     print(f'Sample rate: {y.frame_rate} Channel: {y.channels}')
     left, right = y.split_to_mono()
     left = np.float32(np.array(left.get_array_of_samples()))
@@ -298,7 +298,7 @@ def show_frequency():
                 os.mkdir(save_path)
             print(save_path)
             for filename, time_range in zip(filenames, time_ranges):
-                y = utils.load_audio_waveform(filename, 'm4a', sr, channels)
+                y = dataset_utils.get_pydub_sound(filename, 'm4a', sr, channels)
                 sr = y.frame_rate
                 channels = y.channels
                 # y = utils.get_audio_clip(y, time_range, 1000)
@@ -378,7 +378,7 @@ def get_clip_from_frquency_thresholding(data_path, save_path, annotation_path, l
             name = os.path.basename(f).split('.')[0]
             name = '_'.join([name.split('_')[0], name.split('_')[-1]])
 
-            y = dataset_utils.load_audio_waveform(f, load_format, sr, channels)
+            y = dataset_utils.get_pydub_sound(f, load_format, sr, channels)
             y += add_volume
 
             sr = y.frame_rate
@@ -624,7 +624,7 @@ def first_order_filter():
     f = rf'C:\Users\test\Downloads\AA\1631294788806_12_138.70_139.70_018.wav'
     f = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_16k_h\1598482996718_NA\1\1598482996718_47_152.29_153.29_020.wav'
     save_path = rf'C:\Users\test\Downloads\AA'
-    y = utils.load_audio_waveform(f, 'wav', channels=1)
+    y = dataset_utils.get_pydub_sound(f, 'wav', channels=1)
     signal = np.float32(np.array(y.get_array_of_samples()))
 
     pre_emphasis = 0.97
@@ -782,7 +782,7 @@ def audio_clips_to_amplitude_dist(data_path, save_path, audio_format='wav', sr=1
     total_mean = np.array([], np.float32)
     total_median = np.array([], np.float32)
     for f in files:
-        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
+        y = dataset_utils.get_pydub_sound(f, audio_format=audio_format, sr=sr, channels=channels)
         waveform = np.float32(np.array(y.get_array_of_samples()))
         total_mean = np.append(total_mean, np.mean(waveform))
         total_median = np.append(total_median, np.median(waveform))
@@ -794,7 +794,7 @@ def audio_clips_to_freq_dist(data_path, save_path, audio_format='wav', sr=16000,
     total_mean = np.array([], np.float32)
     total_median = np.array([], np.float32)
     for f in files:
-        y = dataset_utils.load_audio_waveform(f, audio_format=audio_format, sr=sr, channels=channels)
+        y = dataset_utils.get_pydub_sound(f, audio_format=audio_format, sr=sr, channels=channels)
         waveform = np.float32(np.array(y.get_array_of_samples()))
         S = librosa.feature.melspectrogram(waveform, sr=sr, n_fft=2048, hop_length=512)
         total_mean = np.append(total_mean, np.mean(S))
@@ -868,7 +868,7 @@ def mel_compare():
     f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\_2sec.wav'
     sample_rate = 16000
     # n_mfcc = 13
-    y = dataset_utils.load_audio_waveform(
+    y = dataset_utils.get_pydub_sound(
         f, 'wav', sample_rate, channels=1)
     waveform = np.float32(np.array(y.get_array_of_samples()))
 
@@ -951,7 +951,7 @@ def mfcc_compare():
     f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\_2sec.wav'
     sample_rate = 16000
     n_mfcc = 13
-    y = dataset_utils.load_audio_waveform(
+    y = dataset_utils.get_pydub_sound(
         f, 'wav', sample_rate, channels=1)
     waveform = [np.float32(np.array(y.get_array_of_samples()))]
 
@@ -1062,8 +1062,8 @@ def test_torch_mixup():
 
     f1 = r'test_data/1620055140118_4_152.98_154.98_004.wav'
     f2 = r'test_data/1660109552769-017.wav'
-    sound1 = dataset_utils.load_audio_waveform(f1, 'wav')
-    sound2 = dataset_utils.load_audio_waveform(f2, 'wav')
+    sound1 = dataset_utils.get_pydub_sound(f1, 'wav')
+    sound2 = dataset_utils.get_pydub_sound(f2, 'wav')
     wav1 = np.array(sound1.get_array_of_samples(), np.float32)
     wav2 = np.array(sound2.get_array_of_samples(), np.float32)
     input_var = np.stack([wav1, wav2], axis=0)[:,None]

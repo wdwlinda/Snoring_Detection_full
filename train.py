@@ -43,6 +43,8 @@ def run_train(config):
     #     t = time_transform.augmentation()
     # else:
     #     t = None
+    # train_dataset = SnoringDataset(data_train)
+    # valid_dataset = SnoringDataset(data_valid)
     train_dataset = AudioDataset(config, mode='train')
     valid_dataset = AudioDataset(config, mode='valid')
 
@@ -101,7 +103,7 @@ def run_train(config):
         'checkpoint_saving_steps': config.TRAIN.CHECKPOINT_SAVING_STEPS,
         'history': config.TRAIN.INIT_CHECKPOINT,
         'patience': config.TRAIN.PATIENCE,
-        'transform': transform,
+        'batch_transform': transform,
     }
     trainer_instance = trainer.Trainer(
         model, 

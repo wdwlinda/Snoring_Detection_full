@@ -1,20 +1,23 @@
+import os
+
+import numpy as np
 import matplotlib.pyplot as plt
 # import librosa.display
 import librosa
 from pydub import AudioSegment
-import os
-import numpy as np
 import torch
 import torchaudio
 import torchaudio.transforms as T
 
 
 
+# def wavform_to_spec(waveform):
 
 def get_audio_features(waveform, sample_rate, transform_methods, transform_config):
     features = {}
     if isinstance(transform_methods, str):
         transform_methods = [transform_methods]
+
     for method in transform_methods:
         if method == 'fbank':
             spec = fbank(waveform, sample_rate, **transform_config)
@@ -22,16 +25,13 @@ def get_audio_features(waveform, sample_rate, transform_methods, transform_confi
             spec = spectrogram(waveform, sample_rate, **transform_config)
         elif method == 'mel-spec':
             spec = mel_spec(waveform, sample_rate, **transform_config)
-            # spec = np.log2(spec)
         elif method == 'MFCC':
             spec = MFCC(waveform, sample_rate, **transform_config)
         else:
             raise ValueError('Unknown audio transformations')
-        # print(features[method].size())
 
-        if transform_config.mean_norm:
-            # spec -= (torch.mean(spec, axis=0) + 1e-8)
-            spec -= (np.mean(spec, axis=0) + 1e-8)
+        # if transform_config.mean_norm:
+        #     spec -= (np.mean(spec, axis=0) + 1e-8)
 
         features[method] = spec
     return features

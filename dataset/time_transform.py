@@ -85,7 +85,7 @@ if __name__ == '__main__':
     files = glob.glob(os.path.join(root, '*.wav'))
     for f in files:
         filename = os.path.split(f)[1]
-        sound = dataset_utils.load_audio_waveform(f, 'wav', 16000, channels=1)
+        sound = dataset_utils.get_pydub_sound(f, 'wav', 16000, channels=1)
         wav1 = np.array(sound.get_array_of_samples(), np.float32)
         wav1_aug = augmentation(wav1)
         wav1_aug = array.array(sound.array_type, wav1_aug)

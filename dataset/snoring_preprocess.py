@@ -63,7 +63,7 @@ def pcm2wave(pcm_path, sr=16000, dist_dir=None):
         wavfile.setparams((1, 2, sr, 0, 'NONE', 'NONE')) 
         wavfile.writeframes(pcmdata)
 
-
+# XXX: This function is slow, remove it later
 def get_path_refs(data_root, data_refs, suffix):
     files = glob.glob(os.path.join(data_root, '**', f'**.{suffix}'), recursive=True)
     path_refs = {}
@@ -72,6 +72,17 @@ def get_path_refs(data_root, data_refs, suffix):
         df_row = data_refs.loc[data_refs['id'] == filename]
         label = df_row['label'].values
         path_refs[path] = label[0]
+    return path_refs
+
+
+def get_path_refs_fast(data_root, data_refs, suffix):
+    path_refs = {}
+    if suffix.startswith('.'):
+        suffix = suffix[1:]
+
+    for i in range(len(data_refs)):
+        path = os.path.join(data_root, f"{data_refs.loc[i, 'id']}.{suffix}")
+        path_refs[path] = data_refs.loc[i, 'label']
     return path_refs
 
 

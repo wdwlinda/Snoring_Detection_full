@@ -287,15 +287,24 @@ def load_input_data(config):
     return datasets_indexed
 
 
-def load_audio_waveform(filename, audio_format, sr=None, channels=None):
+def get_pydub_sound(filename, audio_format, sr=None, channels=None):
     """
-    Pydub based audio loading function
-    Use
+    Get Pydub sound object and set the basic params
     """
     sound = AudioSegment.from_file(filename, audio_format)
     if sr: sound = sound.set_frame_rate(sr)
     if channels: sound = sound.set_channels(channels)
     return sound    
+
+
+def load_audio_waveform(filename, audio_format, sr=None, channels=None):
+    """
+    Pydub based waveform loading function
+    """
+    sound = get_pydub_sound(filename, audio_format, sr, channels)
+    waveform = np.array(sound.get_array_of_samples(), np.float32)
+    sr = sound.frame_rate
+    return waveform, sr
 
 
 def get_files(path, keys=[], return_fullpath=True, sort=True, sorting_key=None):

@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     # from dataset import dataset_utils
     # f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\data\1598482996718_21_106.87_108.87_001.wav'
-    # y = dataset_utils.load_audio_waveform(f, 'wav', 16000, channels=1)
+    # y = dataset_utils.get_pydub_sound(f, 'wav', 16000, channels=1)
     # waveform = np.float32(y.get_array_of_samples())
     # from librosa import load
     # w = load(f, sr=None)
