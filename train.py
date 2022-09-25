@@ -13,8 +13,6 @@ import torchaudio
 
 import site_path
 CONFIG_PATH = 'config/_cnn_train_config.yml'
-from utils import configuration
-from utils import train_utils as local_train_utils
 from models.image_classification.img_classifier import ImageClassifier
 from inference import test
 from dataset import transformations
@@ -22,9 +20,10 @@ from dataset import input_preprocess
 from dataset.time_transform import get_wav_transform, augmentation
 from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
 from dataset.get_dataset_name import get_dataset, get_dataset_wav
-from dataset.data_transform import transform
-from modules.train import trainer
-from modules.utils import train_utils
+from dataset.data_transform import WavtoMelspec_torchaudio
+from utils import configuration
+from utils import trainer
+from utils import train_utils
 
 logger = train_utils.get_logger('train')
 
@@ -92,7 +91,12 @@ def run_train(config):
 
     # Training
     
-        
+    transform = WavtoMelspec_torchaudio(
+        sr=16000,
+        n_class=config.model.out_channels,
+        preprocess_config=config.dataset.preprocess_config,
+        device=configuration.get_device()
+    )    
     train_config = {
         'n_class': config.model.out_channels,
         'exp_path': config['CHECKPOINT_PATH'],
@@ -117,13 +121,6 @@ def run_train(config):
     )
 
     trainer_instance.fit()
-
-
-# def main():
-#     exp = BuildExp(
-#         exp_name='',
-#         variables={'dataset.is_aug': [True, False]},
-#     )
 
 
 def main():
@@ -198,9 +195,9 @@ def main():
                     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                     'checkpoint_name': r'ckpt_best.pth'
                 }
-                config = local_train_utils.DictAsMember(config)
+                config = train_utils.DictAsMember(config)
 
-                # run_train(config)
+                run_train(config)
                 total_acc = []
                 for test_data_name, test_path in test_dataset['dataset_wav'].items():
                 # for test_data_name, test_path in test_dataset['dataset'].items():

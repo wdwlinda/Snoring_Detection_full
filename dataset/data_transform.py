@@ -1,34 +1,117 @@
+import time
+
 import numpy as np
 import torchaudio
 import torch
 from timm.data.mixup import Mixup
+import matplotlib.pyplot as plt
 
 from dataset import input_preprocess
+from build.melspec import melspec
 
-def wav_to_spec_torchaudio(input_var, sr, device):
-    n_fft = 2048
-    n_mels = 128
-    torchaudio_melspec = torchaudio.transforms.MelSpectrogram(
-        sample_rate=sr,
-        n_fft=n_fft,
-        win_length=n_fft,
-        hop_length=512,
-        center=True,
-        pad_mode="reflect",
-        power=2.0,
-        norm='slaney',
-        onesided=True,
-        n_mels=n_mels,
-    )
-    torchaudio_melspec.to(device)
+
+def plot_specgram(waveform, sample_rate, title="Spectrogram"):
+    waveform = waveform.detach().cpu().numpy()
+
+    num_channels, num_frames = waveform.shape
+
+    figure, axes = plt.subplots(num_channels, 1)
+    if num_channels == 1:
+        axes = [axes]
+    for c in range(num_channels):
+        axes[c].specgram(waveform[c], Fs=sample_rate)
+        if num_channels > 1:
+            axes[c].set_ylabel(f"Channel {c+1}")
+    figure.suptitle(title)
+    plt.show()
+
+
+def plot_spectrogram_raw(specgram, title=None, ylabel="freq_bin"):
+    fig, axs = plt.subplots(1, 1)
+    axs.set_title(title or "Spectrogram (db)")
+    axs.set_ylabel(ylabel)
+    axs.set_xlabel("frame")
+    im = axs.imshow(specgram, origin="lower", aspect="auto")
+    fig.colorbar(im, ax=axs)
+    plt.show()
+
+    
+class WavtoMelspec_torchaudio():
+    def __init__(self, sr, n_class, preprocess_config, device, 
+                 is_mixup, is_spec_transform,
+                 n_fft=2048, hop_length=512, n_mels=128):
+        self.device = device
+        self.wav_to_melspec = torchaudio.transforms.MelSpectrogram(
+            sample_rate=sr,
+            n_fft=n_fft,
+            win_length=n_fft,
+            hop_length=hop_length,
+            center=True,
+            pad_mode="reflect",
+            power=2.0,
+            norm='slaney',
+            onesided=True,
+            n_mels=n_mels,
+        )
+        self.wav_to_melspec.to(self.device)
+        self.power_to_db = torchaudio.transforms.AmplitudeToDB()
+        self.power_to_db.to(self.device)
+        self.is_mixup = is_mixup
+        self.is_spec_transform = is_spec_transform
+
+        if self.is_mixup:
+            self.mixup_fn = get_mixup_fn(n_class)
+        
+        if self.is_spec_transform:
+            self.preprocess_config = preprocess_config
+            self.freq_masking = torchaudio.transforms.FrequencyMasking(
+                self.preprocess_config['freq_mask_param'])
+            self.time_masking = torchaudio.transforms.TimeMasking(
+                self.preprocess_config['time_mask_param'])
+
+    def __call__(self, waveform, target):
+        if self.is_mixup:
+            waveform, target = self.mixup_fn(waveform, torch.argmax(target, 1))
+
+        melspec = self.wav_to_melspec(waveform)
+        melspec = self.power_to_db(melspec)
+
+        if self.is_spec_transform:
+            # XXX: args for freq_masking, time_masking
+            if self.freq_masking is not None:
+                melspec = self.freq_masking(melspec)
+
+            if self.time_masking is not None:
+                melspec = self.time_masking(melspec)
+
+        input_var = torch.unsqueeze(input_var, dim=1)
+        # xx = input_var.detach().cpu().numpy()
+        # import matplotlib.pyplot as plt
+        # plt.imshow(xx[0, 0])
+        # plt.show()
+        input_var = torch.tile(input_var, (1, 3, 1, 1))
+        return input_var, target
+
+
+def wav_to_spec_cpp(waveform, sr=16000, n_mels=128):
+    waveform = waveform.detach().cpu().numpy()
+    # XXX: Cpp code melspec is not using args currently insetead define in code.
+    melspec_process = melspec.PyMelspec(sr, 12, 25, 10, n_mels, 50, 8000)
     power_to_db = torchaudio.transforms.AmplitudeToDB()
-    power_to_db.to(device)
-    input_var = torchaudio_melspec(input_var)
-    input_var = power_to_db(input_var)
+
+    # XXX: WavformtoMelspec --> WaveformtoMelspec
+    total_mel = []
+    for sample in waveform:
+        mel = melspec_process.WavformtoMelspec(sample)
+        mel = np.reshape(np.array(mel), [1, n_mels, -1])
+        mel = torch.from_numpy(mel)
+        total_mel.append(mel)
+    total_mel = torch.cat(total_mel, dim=0)
+    input_var = power_to_db(total_mel)
     return input_var
 
 
-def waveform_transform():
+def waveform_transform(input_var):
     # input_var = input_var.detach().cpu().numpy()
     # input_var = wav_transform(input_var, train_dataset.dataset_config.sample_rate)
     # input_var = torch.from_numpy(input_var.copy())
@@ -96,8 +179,15 @@ def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True
     if mixup and target_var is not None:
         input_var, target_var = mixup_fn(input_var, torch.argmax(target_var, 1))
 
+    # TODO:
     # Melspec (trorchaudio)   
-    input_var = wav_to_spec_torchaudio(input_var, sr, device)
+    # import time
+    # t1 = time.time()
+    input_var1 = wav_to_spec_torchaudio(input_var, sr, device)
+    # t2 = time.time()
+    # input_var2 = wav_to_spec_cpp(input_var)
+    # t3 = time.time()
+    # print(t3-t2, t2-t1)
 
     if is_spec_transform and preprocess_config is not None:
         input_var = input_preprocess.spectrogram_augmentation(
@@ -105,9 +195,11 @@ def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True
     input_var = torch.unsqueeze(input_var, dim=1)
 
     # xx = input_var.detach().cpu().numpy()
-    # import matplotlib.pyplot as plt
-    # plt.imshow(xx[0, 0])
-    # plt.show()
+
+    # plot_spectrogram_raw(xx[0, 0], title="Spectrogram")    
+    # # import matplotlib.pyplot as plt
+    # # plt.imshow(xx[0, 0])
+    # # plt.show()
 
     input_var = torch.tile(input_var, (1, 3, 1, 1))
     return input_var, target_var

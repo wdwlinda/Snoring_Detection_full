@@ -236,7 +236,8 @@ class AudioDataset(AbstractDastaset):
         return waveform, sr
 
     def data_loading_function_torchaudio(self, filename):
-        return torchaudio.load(filename)
+        waveform, sr = torchaudio.load(filename, normalize=True)
+        return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
         if len(waveform.shape) == 1:
@@ -261,13 +262,16 @@ class AudioDataset(AbstractDastaset):
         return audio_feature, mix_lambda
 
     def __getitem__(self, idx):
-        waveform, sr = self.data_loading_function(self.input_data_indices[idx])
-        # waveform, sr = self.data_loading_function_torchaudio(self.input_data_indices[idx])
+        # waveform, sr = self.data_loading_function(
+        #     self.input_data_indices[idx])
+        waveform, sr = self.data_loading_function_torchaudio(
+            self.input_data_indices[idx])
         # XXX:
         if self.mean_sub:
             waveform = waveform - waveform.mean()
 
         # XXX: modeulize and check the splitting at first
+        # TODO: repeat
         if waveform.size < self.wav_length:
             pad_lenth = self.wav_length - waveform.size
             left_pad = pad_lenth // 2
@@ -279,10 +283,10 @@ class AudioDataset(AbstractDastaset):
         # XXX: 
         # waveform augmentation
         # waveform = time_transform.augmentation(waveform)
-        # if self.wav_transform is not None:
-        #     waveform = waveform[None]
-        #     waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
-        #     waveform = waveform[0]
+        if self.wav_transform is not None:
+            waveform = waveform[None]
+            waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
+            waveform = waveform[0]
 
         input_data = waveform
         # input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)

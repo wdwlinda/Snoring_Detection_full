@@ -1,5 +1,7 @@
 import os
 import logging
+import glob
+
 from pydub import AudioSegment
 import numpy as np
 
@@ -12,48 +14,6 @@ MAJOR_CATEGORIES = [
 ]
 
 
-def get_files(path, keys=[], return_fullpath=True, sort=True, sorting_key=None):
-    """Get all the file name under the given path with assigned keys
-    Args:
-        path: (str)
-        keys: (list, str)
-        return_fullpath: (bool)
-        sort: (bool)
-        sorting_key: (func)
-    Return:
-        file_list: (list)
-    """
-    file_list = []
-    assert isinstance(keys, (list, str))
-    if isinstance(keys, str): keys = [keys]
-    # Rmove repeated keys
-    keys = list(set(keys))
-
-    def push_into_filelist(root, f, file_list, is_fullpath):
-        if is_fullpath:
-            file_list.append(os.path.join(root, f))
-        else:
-            file_list.append(f)
-
-    for i, (root, dirs, files) in enumerate(os.walk(path)):
-        for j, f in enumerate(files):
-            if keys:
-                for key in keys:
-                    if key in f:
-                        push_into_filelist(root, f, file_list, return_fullpath)
-            else:
-                push_into_filelist(root, f, file_list, return_fullpath)
-
-    if file_list:
-        if sort: file_list.sort(key=sorting_key)
-    else:
-        if keys: 
-            logging.warning(f'No file exist with key {keys}.') 
-        else: 
-            logging.warning(f'No file exist.') 
-    return file_list
-
-
 def ecs50_process(data_path, save_path, base_folder_name='ecs50'):
     """
     Split ecs50 to 1 sec, 2 sec sample for snoring detection task
@@ -62,7 +22,7 @@ def ecs50_process(data_path, save_path, base_folder_name='ecs50'):
         save_path: Saving data path (str)
         base_folder_name: The base folder name(str)
     """
-    file_list = get_files(data_path, 'wav')
+    file_list = glob.glob(os.path.join(data_path, '**', '*.wav'), recursive=True)
     base_save_path1 = os.path.join(save_path, base_folder_name, f'{base_folder_name}_1')
     base_save_path2 = os.path.join(save_path, base_folder_name, f'{base_folder_name}_2')
 
