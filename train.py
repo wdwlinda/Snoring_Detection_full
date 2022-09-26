@@ -166,7 +166,7 @@ def main():
     #     'efficientnet_b4', 'efficientnet_b7', 'tf_efficientnet_b4_ns']:
         for index_path in dataset_paths:
             for mixup in [True, False]: 
-                for wav_transform in [False, False]:
+                for wav_transform in [True, False]:
                     for is_aug in [True, False]:
                     # for feature in ['mel-spec']:
                         config = copy.deepcopy(config)

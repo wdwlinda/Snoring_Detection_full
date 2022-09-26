@@ -9,6 +9,7 @@ from dataset import dataset_utils
 
 # TODO: splitting might return not only one sound clip
 # TODO: doc str
+# TODO: type hints (str == Path?)
 # TODO: split json
 # TODO: accept multiple format
 
@@ -40,6 +41,7 @@ class Preprocesser():
         # Save reference table
         data_save_root = Path(save_root) / Path(dataset_name)
         self.ref_to_csv(data_refs, data_save_root)
+        self.ref_to_text(data_refs, data_save_root)
    
     def get_data_refs(self, dataset_name: str, data_root: str, save_root: str) -> dict:
         # Get files
@@ -66,6 +68,11 @@ class Preprocesser():
         ref_to_save['target'] = data_refs['target']
         df = pd.DataFrame(ref_to_save)
         df.to_csv(data_save_root.joinpath('data.csv'))
+
+    def ref_to_text(self, data_refs: dict, data_save_root: str):
+        with open(data_save_root.joinpath('filenames.txt'), 'w') as fw:
+            for file in data_refs['save_path']:
+                fw.write(f'{file}\n')
 
     def sound_preprocess(self, sound):
         """ 
@@ -128,6 +135,7 @@ def run_class():
     data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
     save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring')
     processer(dataset_name, data_root, save_root)
+
 
 if __name__ == '__main__':
     data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
