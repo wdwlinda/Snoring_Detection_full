@@ -153,24 +153,24 @@ class build_inferencer():
                 raise ValueError('No Data Exist. Please check the data path or data_plit.')
 
             total_prob = []
+            # XXX: Not allow using different sr in the same time
+            from dataset.data_transform import WavtoMelspec_torchaudio
+            transform = WavtoMelspec_torchaudio(
+                sr=16000,
+                n_class=self.config.model.out_channels,
+                preprocess_config=self.config.dataset.preprocess_config,
+                is_mixup=False,
+                is_spec_transform=False,
+                is_wav_transform=False,
+                device=configuration.get_device()
+            )   
             for i, data in enumerate(self.data_loader, 1):
                 # if i>10: break
                 inputs = data['input']
                 # inputs = train_utils.minmax_norm(inputs)
                 inputs = inputs.to(self.device)
                 
-                # XXX: Not allow using different sr in the same time
-                from dataset.data_transform import transform
-                inputs, target_var = transform(
-                    inputs, 
-                    device=self.device,
-                    is_wav_transform=False,
-                    mixup=False, 
-                    is_spec_transform=False,
-                    n_class=self.config.model.out_channels,
-                    sr=data['sr'][0].item(),
-                    preprocess_config=None,
-                )
+                inputs, _ = transform(inputs, None) 
 
                 prob = self.model(inputs)
                 # prob = torch.sigmoid(output)

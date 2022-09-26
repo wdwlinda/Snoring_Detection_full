@@ -166,7 +166,7 @@ def main():
     #     'efficientnet_b4', 'efficientnet_b7', 'tf_efficientnet_b4_ns']:
         for index_path in dataset_paths:
             for mixup in [True, False]: 
-                for wav_transform in [True, False]:
+                for wav_transform in [False, False]:
                     for is_aug in [True, False]:
                     # for feature in ['mel-spec']:
                         config = copy.deepcopy(config)
@@ -203,7 +203,7 @@ def main():
                 mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
                 # mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
-                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_283'
+                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_306'
                 config['eval'] = {
                     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                     'checkpoint_name': r'ckpt_best.pth'
@@ -214,7 +214,9 @@ def main():
                 total_acc = []
                 for test_data_name, test_path in test_dataset['dataset_wav'].items():
                 # for test_data_name, test_path in test_dataset['dataset'].items():
-                    if test_data_name != 'yt_snoring': continue
+                    # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
+                    # if test_data_name != 'yt_snoring': continue
+
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
                     acc, precision, recall = test(src_dir, dist_dir, config)
