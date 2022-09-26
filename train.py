@@ -95,6 +95,18 @@ def run_train(config):
         sr=16000,
         n_class=config.model.out_channels,
         preprocess_config=config.dataset.preprocess_config,
+        is_mixup=config.TRAIN.MIXUP,
+        is_spec_transform=config.dataset.is_data_augmentation,
+        is_wav_transform=config.dataset.wav_transform,
+        device=configuration.get_device()
+    )    
+    valid_transform = WavtoMelspec_torchaudio(
+        sr=16000,
+        n_class=config.model.out_channels,
+        preprocess_config=config.dataset.preprocess_config,
+        is_mixup=False,
+        is_spec_transform=False,
+        is_wav_transform=False,
         device=configuration.get_device()
     )    
     train_config = {
@@ -108,6 +120,7 @@ def run_train(config):
         'history': config.TRAIN.INIT_CHECKPOINT,
         'patience': config.TRAIN.PATIENCE,
         'batch_transform': transform,
+        'batch_valid_transform': valid_transform,
     }
     trainer_instance = trainer.Trainer(
         model, 

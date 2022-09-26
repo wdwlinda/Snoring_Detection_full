@@ -158,8 +158,8 @@ def get_dataset_wav():
         'train': ['yt_snoring'],
         'valid': ['yt_snoring'],
     }
-    datasets = [dataset14]
-    # datasets = [dataset8, dataset10, dataset2]
+    # datasets = [dataset14]
+    datasets = [dataset8, dataset10, dataset2]
     dataset_pair = []
     for dataset in datasets:
         dataset_path_format = {}

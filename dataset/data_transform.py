@@ -5,6 +5,10 @@ import torchaudio
 import torch
 from timm.data.mixup import Mixup
 import matplotlib.pyplot as plt
+from torch_audiomentations import (
+    Compose, TimeInversion, Gain, AddColoredNoise, 
+    PolarityInversion, PitchShift
+)
 
 from dataset import input_preprocess
 from build.melspec import melspec
@@ -38,7 +42,7 @@ def plot_spectrogram_raw(specgram, title=None, ylabel="freq_bin"):
     
 class WavtoMelspec_torchaudio():
     def __init__(self, sr, n_class, preprocess_config, device, 
-                 is_mixup, is_spec_transform,
+                 is_mixup, is_spec_transform, is_wav_transform,
                  n_fft=2048, hop_length=512, n_mels=128):
         self.device = device
         self.wav_to_melspec = torchaudio.transforms.MelSpectrogram(
@@ -53,10 +57,12 @@ class WavtoMelspec_torchaudio():
             onesided=True,
             n_mels=n_mels,
         )
+        self.sr = sr
         self.wav_to_melspec.to(self.device)
         self.power_to_db = torchaudio.transforms.AmplitudeToDB()
         self.power_to_db.to(self.device)
         self.is_mixup = is_mixup
+        self.is_wav_transform = is_wav_transform
         self.is_spec_transform = is_spec_transform
 
         if self.is_mixup:
@@ -69,7 +75,13 @@ class WavtoMelspec_torchaudio():
             self.time_masking = torchaudio.transforms.TimeMasking(
                 self.preprocess_config['time_mask_param'])
 
+        if self.is_wav_transform:
+            self.wav_transform = get_wav_transform()
+
     def __call__(self, waveform, target):
+        if self.is_wav_transform:
+            waveform = self.wav_transform(waveform, self.sr)
+            
         if self.is_mixup:
             waveform, target = self.mixup_fn(waveform, torch.argmax(target, 1))
 
@@ -84,13 +96,13 @@ class WavtoMelspec_torchaudio():
             if self.time_masking is not None:
                 melspec = self.time_masking(melspec)
 
-        input_var = torch.unsqueeze(input_var, dim=1)
+        # melspec = torch.unsqueeze(melspec, dim=1)
         # xx = input_var.detach().cpu().numpy()
         # import matplotlib.pyplot as plt
         # plt.imshow(xx[0, 0])
         # plt.show()
-        input_var = torch.tile(input_var, (1, 3, 1, 1))
-        return input_var, target
+        melspec = torch.tile(melspec, (1, 3, 1, 1))
+        return melspec, target
 
 
 def wav_to_spec_cpp(waveform, sr=16000, n_mels=128):
@@ -203,3 +215,20 @@ def transform(input_var, target_var=None, device='cuda:0', is_wav_transform=True
 
     input_var = torch.tile(input_var, (1, 3, 1, 1))
     return input_var, target_var
+
+
+def get_wav_transform():
+    wav_transform = Compose(
+        transforms=[
+            Gain(
+                min_gain_in_db=-15.0,
+                max_gain_in_db=5.0,
+                p=0.5,
+            ),
+            PolarityInversion(p=0.5, sample_rate=16000),
+            PitchShift(p=0.5, sample_rate=16000),
+            AddColoredNoise(p=0.5, sample_rate=16000),
+            TimeInversion(p=0.5, sample_rate=16000),
+        ]
+    )
+    return wav_transform

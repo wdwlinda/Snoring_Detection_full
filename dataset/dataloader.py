@@ -30,6 +30,7 @@ from dataset import transformations
 from utils import configuration
 from analysis.resample_test import resample
 from analysis import utils
+from dataset.data_transform import get_wav_transform
 
 
 class ImageDataset(Dataset):
@@ -182,6 +183,9 @@ class AudioDataset(AbstractDastaset):
         self.mixup = config.TRAIN.MIXUP
         self.is_wav_transform = config.dataset.wav_transform
         self.mean_sub = config.dataset.mean_sub
+        if self.is_wav_transform:
+            self.wav_transform = get_wav_transform()
+
         # if wav_transform is not None:
         #     self.wav_transform = wav_transform
         # else:
@@ -272,21 +276,22 @@ class AudioDataset(AbstractDastaset):
 
         # XXX: modeulize and check the splitting at first
         # TODO: repeat
-        if waveform.size < self.wav_length:
-            pad_lenth = self.wav_length - waveform.size
+        if waveform.shape[1] < self.wav_length:
+            pad_lenth = self.wav_length - waveform.shape[1]
             left_pad = pad_lenth // 2
             right_pad = pad_lenth - left_pad
-            waveform = np.pad(waveform, pad_width=(left_pad, right_pad), mode='mean')
-        if waveform.size > self.wav_length:
-            waveform = waveform[:self.wav_length]
+            waveform = torch.nn.functional.pad(waveform, pad=(left_pad, right_pad), mode='constant')
+            # waveform = np.pad(waveform, pad_width=(left_pad, right_pad), mode='mean')
+        if waveform.shape[1] > self.wav_length:
+            waveform = waveform[:, :self.wav_length]
 
         # XXX: 
         # waveform augmentation
         # waveform = time_transform.augmentation(waveform)
-        if self.wav_transform is not None:
-            waveform = waveform[None]
-            waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
-            waveform = waveform[0]
+        # if self.is_wav_transform:
+        #     waveform = waveform[None]
+        #     waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
+        #     waveform = waveform[0]
 
         input_data = waveform
         # input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)

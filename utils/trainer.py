@@ -34,7 +34,8 @@ class Trainer(object):
                  checkpoint_saving_steps=20,
                  patience=10,
                  strict=False,
-                 batch_transform=False,
+                 batch_transform=None,
+                 batch_valid_transform=None,
                  ):
         self.n_class = n_class
         self.train_epoch = train_epoch
@@ -67,6 +68,7 @@ class Trainer(object):
         self.lr_scheduler = lr_scheduler
         self.patience = patience
         self.batch_transform = batch_transform
+        self.batch_valid_transform = batch_valid_transform
         # self.mixup = self.train_dataloader.dataset.mixup
         # self.is_spec_transform = self.train_dataloader.dataset.is_data_augmentation
     
@@ -150,8 +152,8 @@ class Trainer(object):
             input_var, target_var = input_var.float(), target_var.float()
             input_var, target_var = input_var.to(self.device), target_var.to(self.device)
             # XXX: mixup?
-            if self.batch_transform is not None:
-                input_var, target_var = self.batch_transform(input_var, target_var)
+            if self.batch_valid_transform is not None:
+                input_var, target_var = self.batch_valid_transform(input_var, target_var)
 
             output = self.predict(input_var)
             loss = self.criterion(output, target_var)
