@@ -57,11 +57,6 @@ def generate_recording_table(peak_timestamps_path, peak_infos, save_path):
         writer.writerows(content)
 
 
-
-
-
-
-
 def main():
     # TODO: get_files add recursive option
     files = dataset_utils.get_files(rf'C:\Users\test\Downloads\1112\KC_testing', 'wav')

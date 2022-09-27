@@ -293,10 +293,14 @@ class AudioDataset(AbstractDastaset):
         #     waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
         #     waveform = waveform[0]
 
+        if waveform.shape[0] > 1:
+            print(self.input_data_indices[idx])
+            waveform = waveform[0:1]
+
         input_data = waveform
         # input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
-        if input_data.shape[-1] == 1: 
-            print(self.input_data_indices[idx])
+        # if input_data.shape[-1] == 1: 
+        #     print(self.input_data_indices[idx])
             
         # # TODO: bad implementation
         # if self.in_channels == 3:

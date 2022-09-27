@@ -171,6 +171,8 @@ class build_inferencer():
                 inputs = inputs.to(self.device)
                 
                 inputs, _ = transform(inputs, None) 
+                # if inputs.shape[1] > 3:
+                #     print(1)
 
                 prob = self.model(inputs)
                 # prob = torch.sigmoid(output)
@@ -179,7 +181,7 @@ class build_inferencer():
                 # prediction = prediction.cpu().detach().numpy()
                 # output = output.detach().cpu().numpy()
                 prob = prob.detach().cpu().numpy()
-                prob_p = prob[0,1]
+                prob_p = prob[0, 1]
                 if show_info:
                     print(f'Sample: {i}', prob, prediction, self.dataset.input_data_indices[i-1])
                 self.record_prediction(i-1, prob, prediction)

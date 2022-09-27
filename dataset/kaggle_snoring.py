@@ -1,21 +1,28 @@
 
+from email.mime import base
 from pathlib import Path
 from abc import ABC
 from typing import Union
 
 import pandas as pd
+import numpy as np
 
 from dataset import dataset_utils
 
-# TODO: splitting might return not only one sound clip
 # TODO: doc str
-# TODO: type hints (str == Path?)
 # TODO: split json
-# TODO: accept multiple format
 
+# TODO: splitting might return not only one sound clip
+# TODO: general sound preprocessing
+# TODO: accept multiple format
 # TODO: alert if upsampling
 # TODO: logging
 
+
+def get_splitting(seq_length, split_length):
+    assert seq_length > split_length, ''
+    indices = np.arange(0, seq_length, split_length)
+    return indices
 
 class Preprocesser():
     def __init__(self, 
@@ -29,14 +36,25 @@ class Preprocesser():
         self.target_duration = target_duration
 
     def __call__(self, dataset_name: str, data_root: str, save_root: str) -> None:
+        # FIXME: Incorrect data_refs
         data_refs = self.get_data_refs(dataset_name, data_root, save_root)
         for input_path, save_path in zip(data_refs['input_path'], data_refs['save_path']):
+            # Load raw audio
             sound = dataset_utils.get_pydub_sound(
-                input_path, self.suffix, sr=self.target_sr, channels=self.target_channel)
+                str(input_path), self.suffix, sr=self.target_sr, channels=self.target_channel)
             
-            new_sound = self.sound_preprocess(sound)
+            # Audio preprocessing
+            new_sounds = self.sound_preprocess(sound)
 
-            new_sound.export(save_path, format=self.suffix)
+            # Save preprocessed audio
+            for idx, new_sound in enumerate(new_sounds, 1):
+                if len(new_sounds) > 1:
+                    basename = save_path.stem
+                    new_basename = f'{basename}_{idx:03d}'
+                    new_save_path = save_path.with_stem(new_basename)
+                else:
+                    new_save_path = save_path
+                new_sound.export(new_save_path, format=self.suffix)
         
         # Save reference table
         data_save_root = Path(save_root) / Path(dataset_name)
@@ -57,9 +75,11 @@ class Preprocesser():
             save_name = f.name
 
             ref['input'].append(save_name)
-            ref['target'].append(int(label))
-            ref['input_path'].append(str(f))
-            ref['save_path'].append(str(save_dir / save_name))
+            # FIXME: 
+            ref['target'].append(1)
+            # ref['target'].append(int(label))
+            ref['input_path'].append(f)
+            ref['save_path'].append(save_dir / save_name)
         return ref
 
     def ref_to_csv(self, data_refs: dict, data_save_root: str):
@@ -80,64 +100,41 @@ class Preprocesser():
         Apply spitting if the raw data is to long, and apply repeat, padding to
         extend thedata length.
         """
+        # TODO: overlapping
+        # TODO: drop_Last or keep_last for splitting? (roll_back, padding , overlapping)
+        # TODO: repeat, padding for extend
         if sound.duration_seconds < self.target_duration:
             # repeat
-            # padding
-            new_sound = sound * 2
-            pass
+            repeat_ratio = int(self.target_duration//sound.duration_seconds)
+            new_sound = sound*repeat_ratio + sound
+            new_sounds = [new_sound[:1000*self.target_duration]]
         else:
             # continuous spitting
-            pass
-        return new_sound
+            new_sounds = []
+            split_indics = get_splitting(sound.duration_seconds, self.target_duration)
+            # This implementation will drop the last unqualified sequence
+            for idx in range(len(split_indics)-1):
+                new_sounds.append(sound[split_indics[idx]*1000:split_indics[idx+1]*1000])
+        return new_sounds
 
-
-def run(data_root):
-    # args
-    dataset_name = 'kaggle_snoring'
-    save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring')
-    data_save_root = Path(save_root) / Path(dataset_name)
-    target_sr = 16000
-    target_channel = 1
-    target_duration = 2
-    suffix = 'wav'
-
-    # Get files
-    files = list(data_root.rglob(f'*.{suffix}'))
-    files = files[1:] # 0_0.wav cannot be read
-
-    # Preprocessing
-    ref = {'input': [], 'target': []}
-    for f in files:
-        sound = dataset_utils.get_pydub_sound(
-            str(f), suffix, sr=target_sr, channels=target_channel)
-        repeat_sound = sound * 2 # TODO:
-
-        label = f.parent.name # TODO:
-        save_dir = data_save_root.joinpath(label)
-        save_dir.mkdir(parents=True, exist_ok=True)
-        save_name = f.name
-
-        repeat_sound.export(str(save_dir / save_name), format=suffix)
-        ref['input'].append(save_name)
-        ref['target'].append(int(label))
-
-    # Save reference table
-    df = pd.DataFrame(ref)
-    df.to_csv(data_save_root.joinpath('data.csv'))
-
-    # to_txt
-    # Save split in json
+    def to_coco(self):
+        pass
 
 
 def run_class():
     processer = Preprocesser()
-    dataset_name = 'kaggle_snoring'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
+
+    # dataset_name = 'kaggle_snoring'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
+    # save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring')
+    # processer(dataset_name, data_root, save_root)
+
+    dataset_name = 'web_snoring'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring\yt_snoring')
     save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring')
     processer(dataset_name, data_root, save_root)
 
 
 if __name__ == '__main__':
     data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
-    # run(data_root)
     run_class()

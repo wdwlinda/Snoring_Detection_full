@@ -168,43 +168,6 @@ def save_aLL_files_name(path, name='file_names', keyword=[], filtering_mode='in'
     #         fw.write('\n')
 
 
-# TODO: recursively get the files should be a option
-# TODO: input soring function, condition
-# TODO: think about the design of shuffling and sorting, in-function or separated
-# def get_files(path, keys=[], is_fullpath=True, sort=True):
-#     """Get all the file name under the given path with assigned keys"""
-#     file_list = []
-#     assert isinstance(keys, (list, str))
-#     if isinstance(keys, str): keys = [keys]
-#     # Rmove repeated key
-#     keys = list(set(keys))
-
-#     def func(root, f, file_list, is_fullpath):
-#         if is_fullpath:
-#             file_list.append(os.path.join(root, f))
-#         else:
-#             file_list.append(f)
-
-#     for i, (root, dirs, files) in enumerate(os.walk(path)):
-#         for j, f in enumerate(files):
-#             if keys:
-#                 for key in keys:
-#                     if key in f:
-#                         func(root, f, file_list, is_fullpath)
-#             else:
-#                 func(root, f, file_list, is_fullpath)
-
-#     if file_list:
-#         if sort: file_list.sort()
-#         # if sort: file_list.sort(key=len)
-#     else:
-#         if keys: 
-#             logging.warning(f'No file exist with key {keys}.') 
-#         else: 
-#             logging.warning(f'No file exist.') 
-#     return file_list
-
-
 def get_ASUS_snoring_index(save_path, split, balancing=True):
     # TODO: Multiple class (miner)
     # Load and check dataset
@@ -252,20 +215,6 @@ def get_ASUS_snoring_index(save_path, split, balancing=True):
     
     return train_pairs, valid_pairs
         
-            
-        
-            
-    return train_pairs, valid_pairs
-
-
-def save_ASUS_snoring_index(data_path, data_suffixs):
-    # pass if index has existed
-    
-    # save dataset information
-    
-    # save dataset index in csv format
-    return save_path
-
 
 def load_input_data(config):
     assert isinstance(config.dataset.data_path, dict)
@@ -549,29 +498,7 @@ def save_input_and_label_index(data_path, save_path, data_split, data_keys=None,
         input_data = data_dict
         save_content_ops(input_data, 'train.txt', 'valid.txt')
         
-    # input_data.sort()
-    # split = int(len(input_data)*data_split[0])
-    # train_input_data, val_input_data = input_data[:split], input_data[:split]
-    # save_content_in_txt(train_input_data, 'train.txt', filter_bank=class_name, access_mode="w+", dir=save_path)
-    # save_content_in_txt(val_input_data, 'valid.txt', filter_bank=class_name, access_mode="w+", dir=save_path)
-    # if 'ground_truth' in data_keys:
-    #     ground_truth = data_dict[data_keys['ground_truth']]
-    #     ground_truth.sort()
-    #     train_ground_truth, valid_ground_truth = ground_truth[split:], ground_truth[split:]
-    #     save_content_in_txt(train_ground_truth, 'train_gt.txt', filter_bank=class_name, access_mode="w+", dir=save_path)
-    #     save_content_in_txt(valid_ground_truth, 'valid_gt.txt', filter_bank=class_name, access_mode="w+", dir=save_path)
-
-
-# def string_filtering(s, filter):
-#     filtered_s = {}
-#     for f in filter:
-#         if f in s:
-#             filtered_s[f] = s
-#     if len(filtered_s) > 0:
-#         return filtered_s
-#     else:
-#         return None
-
+        
 # TODO: mkdir?
 def save_content_in_txt(content, path, filter_bank=None, access_mode='a+', dir=None):
     # assert isinstance(content, (str, list, tuple, dict))

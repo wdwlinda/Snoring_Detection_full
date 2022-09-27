@@ -210,12 +210,12 @@ def main():
                 }
                 config = train_utils.DictAsMember(config)
 
-                run_train(config)
+                # run_train(config)
                 total_acc = []
                 for test_data_name, test_path in test_dataset['dataset_wav'].items():
                 # for test_data_name, test_path in test_dataset['dataset'].items():
                     # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                    # if test_data_name != 'yt_snoring': continue
+                    if test_data_name != 'yt_snoring': continue
 
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
