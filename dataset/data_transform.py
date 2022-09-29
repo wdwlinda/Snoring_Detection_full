@@ -83,7 +83,9 @@ class WavtoMelspec_torchaudio():
             waveform = self.wav_transform(waveform, self.sr)
             
         if self.is_mixup:
-            waveform, target = self.mixup_fn(waveform, torch.argmax(target, 1))
+            waveform, target = self.mixup_fn(waveform, target)
+            # waveform, target = self.mixup_fn(waveform, torch.argmax(target, 1))
+            target = torch.argmax(target, dim=1)
 
         melspec = self.wav_to_melspec(waveform)
         melspec = self.power_to_db(melspec)
@@ -102,6 +104,8 @@ class WavtoMelspec_torchaudio():
         # plt.imshow(xx[0, 0])
         # plt.show()
         melspec = torch.tile(melspec, (1, 3, 1, 1))
+        
+        save_audio(waveform, 0, target)
         return melspec, target
 
 
@@ -232,3 +236,14 @@ def get_wav_transform():
         ]
     )
     return wav_transform
+
+    
+def save_audio(torch_tensor, idx=0, target=None):
+    torch_tensor = torch_tensor.detach().cpu().to(torch.int16)
+    if target is not None:
+        target = target.detach().cpu().numpy()
+    else:
+        target = np.zeros(torch_tensor.shape[0])
+    for j in range(torch_tensor.shape[0]):
+        torchaudio.save(f'test_data/train_wav_spec/{idx}_{j}_{target[j]}.wav', torch_tensor[j], 16000)
+    print('sucess saving audio')

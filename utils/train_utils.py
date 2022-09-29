@@ -356,7 +356,7 @@ def create_lr_scheduler(lr_config, optimizer):
     lr_config['optimizer'] = optimizer
     return clazz(**lr_config)
 
-
+# TODO: call by class name
 def create_criterion(name):
     if name == 'CrossEntropy':
         loss_func = nn.CrossEntropyLoss()

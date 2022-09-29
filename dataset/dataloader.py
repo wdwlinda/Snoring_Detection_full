@@ -81,15 +81,6 @@ def convert_value(image, value_pair=None):
     return image
 
 
-# def create_kaggle_snoring_dataloader():
-#     load_func = None
-#     gen_index_func = dataset_utils.generate_kaggle_snoring_index
-
-#     kaggle_snoring_dataloader = KaggleSnoringDataset(load_func,
-#                                                      gen_index_func,)
-#     return kaggle_snoring_dataloader
-    
-
 # TODO: check data shape and type
 # TODO: check whether python abc helpful?
 class AbstractDastaset(Dataset):
@@ -170,44 +161,18 @@ def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
     return spectrum
 
 
-
-
-# TODO: Varing audio length --> cut and pad
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode, eval_mode=True):
         super().__init__(config, mode)
         self.data_suffix = self.dataset_config.data_suffix
         self.in_channels = config.model.in_channels
-        # XXX: define duration and sample rate
-        self.wav_length = 2 * 16000 # duration * sample_ratre
-        self.mixup = config.TRAIN.MIXUP
-        self.is_wav_transform = config.dataset.wav_transform
-        self.mean_sub = config.dataset.mean_sub
-        if self.is_wav_transform:
-            self.wav_transform = get_wav_transform()
+        # duration * sample_ratre
+        self.wav_length = config.dataset.duration * config.dataset.sample_rate 
 
-        # if wav_transform is not None:
-        #     self.wav_transform = wav_transform
-        # else:
-        #     self.wav_transform = None
-
-        # if mode in ('train', 'valid'):
-        #     self.input_data_indices = dataset_utils.load_content_from_txt(
-        #             os.path.join(config.dataset.index_path, 'train.txt'))
-        #     # TODO:
-        #     np.random.shuffle(self.input_data_indices)
-        #     if mode == 'train':
-        #         # self.input_data_indices = self.input_data_indices[:int(len(self.input_data_indices)*self.dataset_config.data_split[0])]
-        #         self.input_data_indices = self.input_data_indices
-        #     else:
-        #         # self.input_data_indices = self.input_data_indices[int(len(self.input_data_indices)*self.dataset_config.data_split[0]):]
-        #         self.input_data_indices = dataset_utils.load_content_from_txt(
-        #             os.path.join(config.dataset.index_path, 'test.txt'))
-        # elif mode == 'test':
-        #     self.input_data_indices = dataset_utils.load_content_from_txt(
-        #             os.path.join(config.dataset.index_path, 'test.txt'))
-        # else:
-        #     raise ValueError('Unknown mode.')
+        # self.is_wav_transform = config.dataset.wav_transform
+        # self.mean_sub = config.dataset.mean_sub
+        # if self.is_wav_transform:
+            # self.wav_transform = get_wav_transform()
 
         self.input_data_indices = []
         for dataset_name, index_path in config.dataset.index_path[mode].items():
@@ -221,8 +186,16 @@ class AudioDataset(AbstractDastaset):
         self.ground_truth_indices = []
         if self.eval_mode:
             for f in self.input_data_indices:
-                if '2_21' in f or 'esc50' in f:
+                if '2_21' in f  or 'kaggle_snoring' in f:
                     self.ground_truth_indices.append(int(os.path.split(os.path.split(f)[0])[1]))
+                elif 'ESC50' in f:
+                    label = os.path.basename(f).split('-')[-2]
+                    if label == '28':
+                        self.ground_truth_indices.append(1)
+                    else:
+                        self.ground_truth_indices.append(0)
+                elif 'web_snoring' in f:
+                    self.ground_truth_indices.append(1)
                 else:
                     self.ground_truth_indices.append(0)
         else:
@@ -240,7 +213,7 @@ class AudioDataset(AbstractDastaset):
         return waveform, sr
 
     def data_loading_function_torchaudio(self, filename):
-        waveform, sr = torchaudio.load(filename, normalize=True)
+        waveform, sr = torchaudio.load(filename, normalize=False)
         return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
@@ -270,9 +243,11 @@ class AudioDataset(AbstractDastaset):
         #     self.input_data_indices[idx])
         waveform, sr = self.data_loading_function_torchaudio(
             self.input_data_indices[idx])
+        # from dataset.data_transform import save_audio
+        # save_audio(torch.unsqueeze(waveform, dim=0), idx=3)
         # XXX:
-        if self.mean_sub:
-            waveform = waveform - waveform.mean()
+        # if self.mean_sub:
+        #     waveform = waveform - waveform.mean()
 
         # XXX: modeulize and check the splitting at first
         # TODO: repeat
@@ -308,7 +283,7 @@ class AudioDataset(AbstractDastaset):
         if self.ground_truth_indices:
             ground_truth = self.ground_truth_indices[idx]
             # TODO: binary to multi np.eye(2)
-            ground_truth = np.eye(2)[ground_truth]
+            # ground_truth = np.eye(2)[ground_truth]
         else:
             ground_truth = None
 
@@ -316,49 +291,7 @@ class AudioDataset(AbstractDastaset):
             return {'input': input_data, 'target': ground_truth, 'sr': sr}
         else:
             return {'input': input_data, 'sr': sr}
-
-    # def __getitem__(self, idx):
-    #     waveform, sr = self.data_loading_function(self.input_data_indices[idx])
-    #     # print(idx, self.input_data_indices[idx])
-
-    #     mix_waveform = None
-    #     mix_up = self.dataset_config.preprocess_config.mix_up
-    #     if mix_up and self.is_data_augmentation:
-    #         if mix_up > random.random():
-    #             mix_idx = random.randint(0, len(self.input_data_indices)-1)
-    #             mix_waveform, sr = self.data_loading_function(self.input_data_indices[mix_idx])
-
-    #     # XXX: 
-    #     # waveform augmentation
-    #     # waveform = time_transform.augmentation(waveform)
-    #     if self.wav_transform is not None:
-    #         waveform = waveform[None]
-    #         waveform = self.wav_transform(waveform, self.dataset_config.sample_rate)
-    #         waveform = waveform[0]
-        
-    #     input_data, mix_lambda = self.preprocess(waveform, sr, mix_waveform)
-    #     if input_data.shape[-1] == 1: 
-    #         print(self.input_data_indices[idx])
             
-    #     # TODO: bad implementation
-    #     if self.in_channels == 3:
-    #         input_data = torch.tile(input_data, (3, 1, 1))
-    #     if self.ground_truth_indices:
-    #         ground_truth = self.ground_truth_indices[idx]
-    #         # TODO: binary to multi np.eye(2)
-    #         ground_truth = np.eye(2)[ground_truth]
-    #         if mix_up and self.is_data_augmentation:
-    #             if mix_lambda:
-    #                 mix_ground_truth = np.eye(2)[self.ground_truth_indices[mix_idx]]
-    #                 ground_truth = mix_lambda*ground_truth + (1-mix_lambda)*mix_ground_truth
-    #     else:
-    #         ground_truth = None
-
-    #     if ground_truth is not None:
-    #         return {'input': input_data, 'target': ground_truth}
-    #     else:
-    #         return {'input': input_data}
-
     def merge_audio_features(self, features):
         if not isinstance(features, dict):
             return features

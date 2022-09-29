@@ -77,7 +77,8 @@ def run_train(config):
     def criterion_wrap(outputs, labels):
         criterion = train_utils.create_criterion(config.TRAIN.loss)
         if isinstance(criterion, torch.nn.CrossEntropyLoss):
-            loss = criterion(outputs, torch.argmax(labels.long(), axis=1))
+            loss = criterion(outputs, labels.long())
+            # loss = criterion(outputs, torch.argmax(labels.long(), axis=1))
         else:
             loss = criterion(outputs.float(), labels.float())
         return loss
@@ -153,18 +154,10 @@ def main():
     config_list = []
     for model_name in [
         'convnext_tiny_384_in22ft1k', 
-        # 'edgenext_small', 
-        # 'mobilevit_s', 
-        # 'vit_small_patch16_384',
-        # 'swinv2_tiny_window16_256', 'tf_efficientnet_b4_ns'
-        # 'resnetv2_50'
     ]:
-    # for model_name in [
-    #     'resnetv2_101', 'resnetv2_50', 
-    #     'seresnext101_32x4d', 'seresnext50_32x4d',
-    #     'resnext101_32x4d', 'resnext50_32x4d',
-    #     'efficientnet_b4', 'efficientnet_b7', 'tf_efficientnet_b4_ns']:
         for index_path in dataset_paths:
+            # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
+            test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
             for mixup in [True, False]: 
                 for wav_transform in [True, False]:
                     for is_aug in [True, False]:
@@ -203,19 +196,19 @@ def main():
                 mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
                 # mlflow.log_param('feature', config['dataset']['transform_methods'])
                 mlflow.log_param('checkpoint', checkpoint_dir)
-                config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_306'
+                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_353'
                 config['eval'] = {
                     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                     'checkpoint_name': r'ckpt_best.pth'
                 }
                 config = train_utils.DictAsMember(config)
 
-                # run_train(config)
+                run_train(config)
                 total_acc = []
-                for test_data_name, test_path in test_dataset['dataset_wav'].items():
+                for test_data_name, test_path in test_dataset.items():
                 # for test_data_name, test_path in test_dataset['dataset'].items():
                     # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                    if test_data_name != 'yt_snoring': continue
+                    # if test_data_name not in ['web_snoring']: continue
 
                     src_dir = test_path
                     dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)

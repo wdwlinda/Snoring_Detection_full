@@ -165,21 +165,13 @@ class build_inferencer():
                 device=configuration.get_device()
             )   
             for i, data in enumerate(self.data_loader, 1):
-                # if i>10: break
                 inputs = data['input']
-                # inputs = train_utils.minmax_norm(inputs)
                 inputs = inputs.to(self.device)
                 
                 inputs, _ = transform(inputs, None) 
-                # if inputs.shape[1] > 3:
-                #     print(1)
 
                 prob = self.model(inputs)
-                # prob = torch.sigmoid(output)
-                # prob = torch.nn.functional.softmax(output)
                 prediction = torch.argmax(prob, dim=1).item()
-                # prediction = prediction.cpu().detach().numpy()
-                # output = output.detach().cpu().numpy()
                 prob = prob.detach().cpu().numpy()
                 prob_p = prob[0, 1]
                 if show_info:
@@ -310,6 +302,7 @@ def test(src_dir, dist_dir, config):
     dataset_name = os.path.split(dist_dir)[1]
 
     # XXX:
+    # FIXME: ESC50 name different so cannot access an sample
     if dataset_name in ['ASUS_snoring_train', 'ASUS_snoring_test', 'ESC50']:
         path_map = {
             'ASUS_snoring_train': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',

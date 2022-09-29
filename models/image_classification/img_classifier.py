@@ -27,6 +27,7 @@ class ImageClassifier(nn.Module):
         self.strict = strict
         self.encoder = timm.create_model(backbone, pretrained)
     
+        # XXX
         if replace_gelu:
             self.replace_layers(
                 self.encoder, 

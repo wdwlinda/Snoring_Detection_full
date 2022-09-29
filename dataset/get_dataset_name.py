@@ -155,8 +155,8 @@ def get_dataset_wav():
     }
 
     dataset14 = {
-        'train': ['yt_snoring'],
-        'valid': ['yt_snoring'],
+        'train': ['web_snoring'],
+        'valid': ['web_snoring'],
     }
 
     dataset15 = {
@@ -166,7 +166,17 @@ def get_dataset_wav():
         'valid': ['ASUS_snoring_test'],
     }
 
-    datasets = [dataset15]
+    dataset16 = {
+        'train': [
+            'ASUS_snoring_test',
+            # 'ESC50',
+            'Mi11_office',
+            'Kaggle_snoring'
+        ],
+        'valid': ['web_snoring'],
+    }
+
+    datasets = [dataset16]
     # datasets = [dataset8, dataset10, dataset2]
     dataset_pair = []
     for dataset in datasets:

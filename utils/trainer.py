@@ -113,9 +113,14 @@ class Trainer(object):
             input_var, target_var = input_var.float(), target_var.float()
             input_var, target_var = input_var.to(self.device), target_var.to(self.device)
             if self.batch_transform is not None:
+                # ori_target = target_var[0].detach().cpu().numpy()
                 input_var, target_var = self.batch_transform(input_var, target_var)
-
             batch_output = self.predict(input_var)
+
+            # import matplotlib.pyplot as plt
+            # plt.imshow(input_var[0, 1].detach().cpu().numpy())
+            # plt.title(f'train ori {ori_target} trans {target_var[0].detach().cpu().numpy()}')
+            # plt.show()
             
             self.optimizer.zero_grad()
             loss = self.criterion(batch_output, target_var)
@@ -151,10 +156,17 @@ class Trainer(object):
             input_var, target_var = data['input'], data['target']
             input_var, target_var = input_var.float(), target_var.float()
             input_var, target_var = input_var.to(self.device), target_var.to(self.device)
-            # XXX: mixup?
-            if self.batch_valid_transform is not None:
-                input_var, target_var = self.batch_valid_transform(input_var, target_var)
 
+            if self.batch_valid_transform is not None:
+                # ori_target = target_var[0].detach().cpu().numpy()
+                input_var, target_var = self.batch_valid_transform(input_var, target_var)
+                
+
+            # import matplotlib.pyplot as plt
+            # plt.imshow(input_var[0, 0].detach().cpu().numpy())
+            # plt.title(f'train ori {ori_target} trans {target_var[0].detach().cpu().numpy()}')
+            # plt.show()
+            
             output = self.predict(input_var)
             loss = self.criterion(output, target_var)
 
@@ -164,7 +176,7 @@ class Trainer(object):
             prob = self.valid_activation(output)
             prediction = torch.argmax(prob, dim=1)
             # XXX
-            target_var = target_var[:, 1]
+            # target_var = target_var[:, 1]
 
             # total_labels = torch.cat((total_labels, target_var), 0)
             # total_preds = torch.cat((total_preds, prediction), 0)
