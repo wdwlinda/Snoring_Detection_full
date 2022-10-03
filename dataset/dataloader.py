@@ -5,6 +5,11 @@
 from typing import AbstractSet
 import random
 import wave
+from pathlib import Path
+import os
+import glob
+import json
+from typing import Tuple
 
 # import librosa
 from scipy.ndimage.measurements import label
@@ -16,9 +21,7 @@ from torchvision import transforms, datasets
 import numpy as np
 import csv
 import pandas as df
-import os
 import cv2
-import glob
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -161,6 +164,74 @@ def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
     return spectrum
 
 
+def parse_snoring_coco_total(dataset_names: dict, mode: str) -> Tuple[list, list]:
+    total_inputs = []
+    total_targets = []
+    for name, data_root in dataset_names.items():
+        coco_path = Path(data_root).joinpath(f'{mode}.json')
+        inputs, targets = parse_snoring_coco(coco_path)
+        total_inputs.extend(inputs)
+        total_targets.extend(targets)
+    return total_inputs, total_targets
+
+
+def parse_snoring_coco(coco_path: str) -> Tuple[list, list]:
+    with open(coco_path, newline='') as jsonfile:
+        coco_data = json.load(jsonfile)
+    return coco_data['waveform'], coco_data['annotations']
+
+
+# TODO: dimension arg for working dimension?
+# TODO: tolerate arg to avoid too differnt?
+def sequence_legth_adjust(input_sequence: torch.Tensor, output_length: int) -> torch.Tensor:
+    """
+    Adjust input sequence length. 
+    Process 1d audio signal is one of its application
+
+    Args:
+        input_sequence (torch.Tensor): Input 1d sequence
+        output_length (int): Expected output length
+
+    Returns:
+        torch.Tensor: Output 1d sequence
+    """
+    input_length = input_sequence.shape[0]
+    # center padding
+    if input_length < output_length:
+        pad_lenth = output_length - input_length
+        left_pad = pad_lenth // 2
+        right_pad = pad_lenth - left_pad
+        output_sequence = torch.nn.functional.pad(
+            input_sequence, pad=(left_pad, right_pad), mode='constant')
+
+    # slicing
+    if input_length > output_length:
+        output_sequence = input_sequence[:output_length]
+    return output_sequence
+
+
+class AudioDatasetCOCO(Dataset):
+    def __init__(self, config, mode, eval_mode=True):
+        data_roots = config.dataset.index_path
+        self.input_data_indices, self.ground_truth_indices = parse_snoring_coco_total(data_roots, mode)
+        assert len(self.input_data_indices) == len(self.ground_truth_indices), 'Mismatch data and target.'
+        # TODO: define channel, sr, duration in input config or json
+        self.sr = 16000
+        self.duration = 2
+        self.channel = 1
+
+    def __len__(self):
+        return len(self.input_data_indices)
+
+    def __getitem__(self, idx):
+        input_path = self.input_data_indices[idx]['path']
+        waveform, sr = torchaudio.load(input_path, normalize=True)
+        target = self.ground_truth_indices[idx]['category_id']
+        input_data = sequence_legth_adjust(waveform[0], self.sr*self.duration)
+        input_data = torch.unsqueeze(input_data, dim=0)
+        return {'input': input_data, 'target': target, 'sr': sr}
+
+
 class AudioDataset(AbstractDastaset):
     def __init__(self, config, mode, eval_mode=True):
         super().__init__(config, mode)
@@ -213,7 +284,7 @@ class AudioDataset(AbstractDastaset):
         return waveform, sr
 
     def data_loading_function_torchaudio(self, filename):
-        waveform, sr = torchaudio.load(filename, normalize=False)
+        waveform, sr = torchaudio.load(filename, normalize=True)
         return waveform, sr
 
     def preprocess(self, waveform, sample_rate, mix_waveform=None):
@@ -487,7 +558,6 @@ class SimpleAudioDataset(Dataset):
                 
         audio_feature = np.concatenate(reshape_f, axis=0)
         return audio_feature
-
 
 
 if __name__ == "__main__":

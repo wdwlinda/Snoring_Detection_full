@@ -18,8 +18,8 @@ from inference import test
 from dataset import transformations
 from dataset import input_preprocess
 from dataset.time_transform import get_wav_transform, augmentation
-from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy
-from dataset.get_dataset_name import get_dataset, get_dataset_wav
+from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy, AudioDatasetCOCO
+from dataset.get_dataset_name import get_dataset, get_dataset_wav, get_dataset_root
 from dataset.data_transform import WavtoMelspec_torchaudio
 from utils import configuration
 from utils import trainer
@@ -42,10 +42,10 @@ def run_train(config):
     #     t = time_transform.augmentation()
     # else:
     #     t = None
-    # train_dataset = SnoringDataset(data_train)
-    # valid_dataset = SnoringDataset(data_valid)
-    train_dataset = AudioDataset(config, mode='train')
-    valid_dataset = AudioDataset(config, mode='valid')
+    train_dataset = AudioDatasetCOCO(config, mode='train')
+    valid_dataset = AudioDatasetCOCO(config, mode='valid')
+    # train_dataset = AudioDataset(config, mode='train')
+    # valid_dataset = AudioDataset(config, mode='valid')
 
     drop_last = True if config['TRAIN']['MIXUP'] else False
     train_dataloader = DataLoader(
@@ -148,17 +148,19 @@ def main():
     # train & valid dataset
     dataset_paths = get_dataset()
     dataset_paths = get_dataset_wav()
+    dataset_paths = get_dataset_root()
     # test dataset
     test_dataset = configuration.load_config('dataset/dataset.yml')
 
     config_list = []
     for model_name in [
+        # 'mobilenetv3_large_100',
         'convnext_tiny_384_in22ft1k', 
     ]:
         for index_path in dataset_paths:
             # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
-            test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
-            for mixup in [True, False]: 
+            # test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
+            for mixup in [False]: 
                 for wav_transform in [True, False]:
                     for is_aug in [True, False]:
                     # for feature in ['mel-spec']:
@@ -175,55 +177,52 @@ def main():
                         config_list.append(config)
 
     for run_idx, config in enumerate(config_list):
-        # try:
-            # XXX: 
-            # if run_idx == 0: continue
-            dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
-            checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
-            now = datetime.now()
-            currentDay = str(now.day)
-            currentMonth = str(now.month)
-            currentYear = str(now.year)
-            # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-            exp_name = f"Snoring_spec_mixup_norm"
-            mlflow.set_experiment(exp_name)
-            # TODO: add model name as param and change run_name
-            with mlflow.start_run(run_name=config['model']['name']):
-                mlflow.log_param('dataset', dataset)
-                mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
-                mlflow.log_param('pretrained', config['model']['pretrained'])
-                mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
-                mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
-                # mlflow.log_param('feature', config['dataset']['transform_methods'])
-                mlflow.log_param('checkpoint', checkpoint_dir)
-                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_353'
-                config['eval'] = {
-                    'restore_checkpoint_path': config['CHECKPOINT_PATH'],
-                    'checkpoint_name': r'ckpt_best.pth'
-                }
-                config = train_utils.DictAsMember(config)
+        dataset = '--'.join(list(config['dataset']['index_path']))
+        # dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
+        checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
+        now = datetime.now()
+        currentDay = str(now.day)
+        currentMonth = str(now.month)
+        currentYear = str(now.year)
+        # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
+        exp_name = f"Snoring_small_model"
+        mlflow.set_experiment(exp_name)
+        # TODO: add model name as param and change run_name
+        with mlflow.start_run(run_name=config['model']['name']):
+            mlflow.log_param('dataset', dataset)
+            mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
+            mlflow.log_param('pretrained', config['model']['pretrained'])
+            mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
+            mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
+            # mlflow.log_param('feature', config['dataset']['transform_methods'])
+            mlflow.log_param('checkpoint', checkpoint_dir)
+            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_378'
+            config['eval'] = {
+                'restore_checkpoint_path': config['CHECKPOINT_PATH'],
+                'checkpoint_name': r'ckpt_best.pth'
+            }
+            config = train_utils.DictAsMember(config)
 
-                run_train(config)
-                total_acc = []
-                for test_data_name, test_path in test_dataset.items():
-                # for test_data_name, test_path in test_dataset['dataset'].items():
-                    # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                    # if test_data_name not in ['web_snoring']: continue
+            run_train(config)
+            total_acc = []
+            for test_data_name, test_path in test_dataset['data_root'].items():
+            # for test_data_name, test_path in test_dataset['dataset_wav'].items():
+            # for test_data_name, test_path in test_dataset.items():
+            # for test_data_name, test_path in test_dataset['dataset'].items():
+                # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
+                # if test_data_name not in ['web_snoring']: continue
 
-                    src_dir = test_path
-                    dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-                    acc, precision, recall = test(src_dir, dist_dir, config)
-                    mlflow.log_metric(f'{test_data_name}_acc', acc)
-                    if test_data_name in ['ASUS_snoring_train', 'ASUS_snoring_test', 'ESC50']:
-                        mlflow.log_metric(f'{test_data_name}_precision', precision)
-                        mlflow.log_metric(f'{test_data_name}_recall', recall)
-                    total_acc.append(acc)
-                acc_mean = sum(total_acc) / len(total_acc)
-                mlflow.log_metric(f'mean_acc', acc_mean)
-                    
-        # except RuntimeError:
-        #     print('RuntimeError')
-
+                src_dir = test_path
+                dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
+                acc, precision, recall = test(src_dir, dist_dir, config)
+                mlflow.log_metric(f'{test_data_name}_acc', acc)
+                if test_data_name in ['ASUS_snoring', 'ESC50']:
+                    mlflow.log_metric(f'{test_data_name}_precision', precision)
+                    mlflow.log_metric(f'{test_data_name}_recall', recall)
+                total_acc.append(acc)
+            acc_mean = sum(total_acc) / len(total_acc)
+            mlflow.log_metric(f'mean_acc', acc_mean)
+                
 
 if __name__ == '__main__':
     main()

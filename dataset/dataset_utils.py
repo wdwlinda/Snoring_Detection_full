@@ -1,14 +1,12 @@
-
 import importlib
-from pathlib import Path
+from pathlib import Path, PurePath
+import glob
 import os
-import re
+import logging
 
 import numpy as np
-import logging
 from pydub import AudioSegment
 import pandas as pd
-import glob
 import cv2
 
 
@@ -358,6 +356,8 @@ def get_class(class_name, modules):
 
 
 def load_content_from_txt(path, access_mode='r') -> list:
+    if isinstance(path, PurePath):
+        path = str(path)
     with open(path, access_mode) as fw:
         content = fw.read().splitlines()
     return content

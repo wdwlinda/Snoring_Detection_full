@@ -77,6 +77,29 @@ def get_dataset():
     return dataset_pair
 
 
+def get_dataset_names():
+    dataset17 = [
+        'ASUS_snoring',
+        'Kaggle_snoring'
+    ]
+
+    datasets = [dataset17]
+    return datasets
+
+    
+def get_dataset_root():
+    name_to_path = load_config('dataset/dataset.yml')['data_pre_root']
+
+    datasets = get_dataset_names()
+    dataset_pair = []
+    for dataset in datasets:
+        pair = {}
+        for dataset_name in dataset:
+            pair[dataset_name] = name_to_path[dataset_name]
+        dataset_pair.append(pair)
+    return dataset_pair
+
+
 def get_dataset_wav():
     name_to_path = load_config('dataset/dataset.yml')['dataset_wav']
     dataset1 = {
@@ -176,7 +199,17 @@ def get_dataset_wav():
         'valid': ['web_snoring'],
     }
 
-    datasets = [dataset16]
+    dataset17 = {
+        'train': [
+            'ASUS_snoring_test',
+            # 'ESC50',
+            # 'Mi11_office',
+            'Kaggle_snoring'
+        ],
+        'valid': ['web_snoring'],
+    }
+
+    datasets = [dataset16, dataset17]
     # datasets = [dataset8, dataset10, dataset2]
     dataset_pair = []
     for dataset in datasets:

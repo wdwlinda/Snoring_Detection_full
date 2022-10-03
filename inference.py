@@ -295,6 +295,13 @@ def pred_tflite(config, dataset_mapping, tflite_path):
     return prediction
 
 
+def run_test(src_dir, dist_dir, config):
+    prediction = pred_from_feature(src_dir, dist_dir, config)
+    y_true, y_pred, confidence = [], [], []
+
+    dataset_name = os.path.split(dist_dir)[1]
+
+
 def test(src_dir, dist_dir, config):
     prediction = pred_from_feature(src_dir, dist_dir, config)
     y_true, y_pred, confidence = [], [], []
