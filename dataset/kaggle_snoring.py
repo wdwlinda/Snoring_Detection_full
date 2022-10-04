@@ -25,7 +25,7 @@ from dataset import transformations
 # TODO: this processer is mainly for audio classification, think about the generbility
 """
 Current functions
-    - Simple preprocessing for duration, channel, sr
+    - Simple preprocessing for duration, channel, sr. (Align input waveform format)
     - Simple label generating (from directory name, from single label asign)
     - Generate coco anntations
 TODO:
@@ -119,7 +119,7 @@ class SnoringPreprocess(ClsPreprocess):
         # Save dataset split (COCO annotation)
         self.ref_to_coco(preprocess_data_refs, data_save_root)
    
-    def get_data_refs(self, data_root: str) -> dict:
+    def get_data_refs(self, data_root: str) -> list:
         files = list(data_root.rglob(f'*.{self.suffix}'))
         return files
 
@@ -282,6 +282,73 @@ class ESC50Preprocess(SnoringPreprocess):
         return new_sounds
 
 
+class AsusSnoring0Preprocess(SnoringPreprocess):
+    def __init__(self,
+                 split_files_root: str,
+                 suffix: str = 'wav', 
+                 target_sr: int = 16000, 
+                 target_channel: int = 1, 
+                 target_duration: Union[int, float] = 2):
+
+        super().__init__(suffix, target_sr, target_channel, target_duration)
+        self.split_files_root = Path(split_files_root)
+
+    def get_data_refs(self, *args) -> list:
+        files = self.split_files_root.glob('*.txt')
+        self.split_refs = {}
+        data_refs = []
+        for file in files:
+            with open(file, 'r') as fw:
+                data_paths = fw.readlines()
+            split_name = file.stem
+            split_data_refs = []
+            for data_path in data_paths:
+                data_path = Path(data_path.rstrip('\n'))
+                split_data_refs.append(data_path)
+            data_refs.extend(split_data_refs)
+            self.split_refs[split_name] = split_data_refs
+        return data_refs
+
+    def split_data_reference(self, data_refs: dict) -> dict:
+        """
+        This function helps to split the data reference with initilize split_ratio.
+
+        Args:
+            data_refs (dict): input data filename, local path and target
+
+        Returns:
+            split_data_refs (dict): splitted data reference
+        """
+        split_data_refs = {}
+        for split_name, split_paths in self.split_refs.items():
+            if split_name not in split_data_refs:
+                split_data_refs[split_name] = {}
+            for split_path in split_paths:
+                label = self.get_class_label(split_path)
+                idx = data_refs['input'].index(split_path.stem)
+                if label not in split_data_refs[split_name]:
+                    split_data_refs[split_name][label] = [idx]
+                else:
+                    split_data_refs[split_name][label].append(idx)
+
+        # split valid from train
+        train_refs = {}
+        valid_refs = {}
+        for label in split_data_refs['train']:
+            train_split = split_data_refs['train'][label]
+            train_num = len(train_split)
+            train_label_num = int(self.split_ratio['train']*train_num)
+            new_train_split = np.random.choice(train_split, train_label_num, replace=False)
+            valid_split = np.setdiff1d(train_split, new_train_split, assume_unique=True)
+            train_refs[label] = new_train_split
+            valid_refs[label] = valid_split
+        split_data_refs['train'] = train_refs
+        split_data_refs['valid'] = valid_refs
+        # from pprint import pprint
+        # pprint(split_data_refs)
+        return split_data_refs
+
+
 def run_class():
     save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre')
 
@@ -300,23 +367,24 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50-master\audio')
     # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0)
-    dataset_name = 'Mi11_office'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0)
+    # dataset_name = 'Mi11_office'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0)
-    dataset_name = 'iphone11_0908'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0)
+    # dataset_name = 'iphone11_0908'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0)
-    dataset_name = 'pixel_0908'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0)
+    # dataset_name = 'pixel_0908'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = SnoringPreprocess()
-    dataset_name = 'ASUS_snoring'
+    split_data_root = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
+    processer = AsusSnoring0Preprocess(split_data_root)
+    dataset_name = 'ASUS_snoring_case_split'
     data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k')
     processer(dataset_name, data_root, save_root)
 

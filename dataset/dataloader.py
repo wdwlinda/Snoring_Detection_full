@@ -9,7 +9,7 @@ from pathlib import Path
 import os
 import glob
 import json
-from typing import Tuple
+from typing import Tuple, List, Union
 
 # import librosa
 from scipy.ndimage.measurements import label
@@ -164,14 +164,21 @@ def plot_specgram(waveform, sample_rate, title="Spectrogram", xlim=None):
     return spectrum
 
 
-def parse_snoring_coco_total(dataset_names: dict, mode: str) -> Tuple[list, list]:
+def parse_snoring_coco_total(dataset_names: dict, modes: Union[List[str], str] = None) -> Tuple[list, list]:
     total_inputs = []
     total_targets = []
+    if isinstance(modes, str):
+        modes = [modes]
+
+    if modes is None:
+        modes = ['train', 'valid', 'test']
+        
     for name, data_root in dataset_names.items():
-        coco_path = Path(data_root).joinpath(f'{mode}.json')
-        inputs, targets = parse_snoring_coco(coco_path)
-        total_inputs.extend(inputs)
-        total_targets.extend(targets)
+        for mode in modes:
+            coco_path = Path(data_root).joinpath(f'{mode}.json')
+            inputs, targets = parse_snoring_coco(coco_path)
+            total_inputs.extend(inputs)
+            total_targets.extend(targets)
     return total_inputs, total_targets
 
 
@@ -203,20 +210,20 @@ def sequence_legth_adjust(input_sequence: torch.Tensor, output_length: int) -> t
         right_pad = pad_lenth - left_pad
         output_sequence = torch.nn.functional.pad(
             input_sequence, pad=(left_pad, right_pad), mode='constant')
-
-    # slicing
-    if input_length > output_length:
+    elif input_length > output_length:
         output_sequence = input_sequence[:output_length]
+    else:
+        output_sequence = input_sequence
     return output_sequence
 
 
 class AudioDatasetCOCO(Dataset):
-    def __init__(self, config, mode, eval_mode=True):
+    def __init__(self, config, modes):
         data_roots = config.dataset.index_path
-        self.input_data_indices, self.ground_truth_indices = parse_snoring_coco_total(data_roots, mode)
+        self.input_data_indices, self.ground_truth_indices = parse_snoring_coco_total(data_roots, modes)
         assert len(self.input_data_indices) == len(self.ground_truth_indices), 'Mismatch data and target.'
         # TODO: define channel, sr, duration in input config or json
-        self.sr = 16000
+        self.sr = config.dataset.sample_rate
         self.duration = 2
         self.channel = 1
 

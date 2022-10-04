@@ -8,7 +8,7 @@ from torch.serialization import save
 from sklearn.metrics import (
     accuracy_score, confusion_matrix, ConfusionMatrixDisplay, precision_score, recall_score
 )
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 import pandas as pd
 import csv
 from sklearn.model_selection import train_test_split
@@ -17,8 +17,12 @@ import tensorflow as tf
 
 import site_path
 from models.image_classification import img_classifier
-from dataset.dataloader import AudioDataset, SimpleAudioDataset, SimpleAudioDatasetfromNumpy, SimpleAudioDatasetfromNumpy_csv
+from dataset.dataloader import (
+    AudioDataset, SimpleAudioDataset, SimpleAudioDatasetfromNumpy, SimpleAudioDatasetfromNumpy_csv,
+    AudioDatasetCOCO
+)
 from dataset import dataset_utils
+from dataset.data_transform import WavtoMelspec_torchaudio
 from utils import train_utils
 from utils import metrics
 from utils import configuration
@@ -127,16 +131,68 @@ def pred_data():
     fig.savefig(os.path.join(data_info['dist'], 'confidence_comp.png'))
 
 
-class build_inferencer():
-    def __init__(self, config, dataset, model, save_path=None, batch_size=1, shuffle=False):
+class Inferencer():
+    def __init__(self, config, dataset, model, save_path=None, batch_size=1, shuffle=False, transform=None):
         self.config = config
         self.dataset = dataset
+        # TODO: Inference will be wrong if batch_size > 1
         self.data_loader = DataLoader(self.dataset, batch_size, shuffle)
         self.model = model
         self.device = configuration.get_device()
         self.save_path = save_path
         self.prediction = {}
+        self.transform = transform
         # self.restore()
+
+    def __call__(self, show_info=False):
+        with torch.no_grad():
+            self.model.eval()
+            if len(self.data_loader) == 0:
+                raise ValueError('No Data Exist. Please check the data path or data_plit.')
+
+            total_prob = []
+            for i, data in enumerate(self.data_loader, 1):
+                inputs = data['input']
+                inputs = inputs.to(self.device)
+                
+                target = data.get('target', None)
+                target = target.to(self.device)
+                inputs, target = self.transform(inputs, target) 
+
+                prob = self.model(inputs)
+                prediction = torch.argmax(prob, dim=1).item()
+                prob = prob.detach().cpu().numpy()
+                target = target.detach().cpu().numpy()[0]
+                sample_name = self.dataset.input_data_indices[i-1]['file_name'][:-4]
+                self.prediction[sample_name] = {
+                    'prob_0': prob[0, 0], 'prob_1': prob[0, 1], 'pred': prediction, 'target': target}
+
+                if show_info:
+                    print(f'Sample: {i}', prob, prediction, self.dataset.input_data_indices[i-1])
+            self.record(self.prediction)
+        return self.prediction        
+
+    def record(self, prediction):
+        if self.save_path is not None:
+            path = self.save_path
+        else:
+            path = os.path.join(self.config.eval.restore_checkpoint_path, self.config.eval.running_mode, os.path.basename(self.config.dataset.index_path))
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        name = f'pred.csv'
+
+        for index, (sample_name, pred_info) in enumerate(prediction.items()):
+            if index == 0:
+                with open(os.path.join(path, name), mode='w+', newline='') as csv_file:
+                    writer = csv.writer(csv_file)
+                    writer.writerow(['sample'] + list(prediction[sample_name].keys()))
+
+            with open(os.path.join(path, name), mode='a+', newline='') as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow([
+                    sample_name, pred_info['prob_0'], pred_info['prob_1'], 
+                    pred_info['pred'], pred_info['target']
+                ])
 
     def restore(self):
         checkpoint = os.path.join(
@@ -153,22 +209,11 @@ class build_inferencer():
                 raise ValueError('No Data Exist. Please check the data path or data_plit.')
 
             total_prob = []
-            # XXX: Not allow using different sr in the same time
-            from dataset.data_transform import WavtoMelspec_torchaudio
-            transform = WavtoMelspec_torchaudio(
-                sr=16000,
-                n_class=self.config.model.out_channels,
-                preprocess_config=self.config.dataset.preprocess_config,
-                is_mixup=False,
-                is_spec_transform=False,
-                is_wav_transform=False,
-                device=configuration.get_device()
-            )   
             for i, data in enumerate(self.data_loader, 1):
                 inputs = data['input']
                 inputs = inputs.to(self.device)
                 
-                inputs, _ = transform(inputs, None) 
+                inputs, _ = self.transform(inputs, None)
 
                 prob = self.model(inputs)
                 prediction = torch.argmax(prob, dim=1).item()
@@ -203,7 +248,14 @@ class build_inferencer():
         self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
 
-def pred(data_path, save_path, show_info=False):
+def pred(data_path: str, save_path: str, show_info=False) -> dict:
+    """Get prediction from directory
+
+    Args:
+        data_path ([type]): [description]
+        save_path ([type]): [description]
+        show_info (bool, optional): [description]. Defaults to False.
+    """
     config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
     test_dataset = SimpleAudioDataset(config, data_path)
@@ -213,11 +265,23 @@ def pred(data_path, save_path, show_info=False):
         # restore_path=r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_018\ckpt_best.pth'
     )
 
-    inferencer = build_inferencer(config, dataset=test_dataset, model=net, save_path=save_path)
-    inferencer.inference(show_info)
+    test_transform = WavtoMelspec_torchaudio(
+        sr=16000,
+        n_class=config.model.out_channels,
+        preprocess_config=config.dataset.preprocess_config,
+        is_mixup=False,
+        is_spec_transform=False,
+        is_wav_transform=False,
+        device=configuration.get_device()
+    ) 
+
+    inferencer = Inferencer(
+        config, dataset=test_dataset, model=net, save_path=save_path, transform=test_transform)
+    prediction = inferencer.inference(show_info)
+    return prediction
 
 
-def pred_from_feature(data_path, save_path, config=None, show_info=False):
+def pred_from_feature(data_path: str, save_path: str, config: str = None, show_info: bool = False) -> dict:
     if not config:
         config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     # XXX:
@@ -233,7 +297,18 @@ def pred_from_feature(data_path, save_path, config=None, show_info=False):
             config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
     )
 
-    inferencer = build_inferencer(config, dataset=test_dataset, model=net, save_path=save_path)
+    test_transform = WavtoMelspec_torchaudio(
+        sr=16000,
+        n_class=config.model.out_channels,
+        preprocess_config=config.dataset.preprocess_config,
+        is_mixup=False,
+        is_spec_transform=False,
+        is_wav_transform=False,
+        device=configuration.get_device()
+    ) 
+
+    inferencer = Inferencer(
+        config, dataset=test_dataset, model=net, save_path=save_path, transform=test_transform)
     prediction = inferencer.inference(show_info)
     return prediction
 
@@ -295,11 +370,51 @@ def pred_tflite(config, dataset_mapping, tflite_path):
     return prediction
 
 
-def run_test(src_dir, dist_dir, config):
-    prediction = pred_from_feature(src_dir, dist_dir, config)
-    y_true, y_pred, confidence = [], [], []
+def single_test(
+    data_path: str, save_path: str, config: str = None, show_info: bool = False, splits: str = None) -> dict:
+    if not config:
+        config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
+    name = os.path.split(save_path)[1]
+    config['dataset']['index_path'] = {name: data_path}
+    test_dataset = AudioDatasetCOCO(config, modes=splits)
+    
+    net = ImageClassifier(
+        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
+        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
+        restore_path=os.path.join(
+            config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
+    )
 
-    dataset_name = os.path.split(dist_dir)[1]
+    # FIXME: params for sr, device
+    test_transform = WavtoMelspec_torchaudio(
+        sr=16000,
+        n_class=config.model.out_channels,
+        preprocess_config=config.dataset.preprocess_config,
+        is_mixup=False,
+        is_spec_transform=False,
+        is_wav_transform=False,
+        device=configuration.get_device()
+    ) 
+
+    inferencer = Inferencer(
+        config, dataset=test_dataset, model=net, save_path=save_path, transform=test_transform)
+    prediction = inferencer(show_info)
+    return prediction
+    
+
+def run_test(src_dir, dist_dir, config, splits):
+    prediction = single_test(src_dir, dist_dir, config, splits=splits)
+    y_true, y_pred, confidence = [], [], []
+    for sample_name in prediction:
+        y_true.append(prediction[sample_name]['target'])
+        y_pred.append(prediction[sample_name]['pred'])
+
+    acc = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, zero_division=0)
+    recall = recall_score(y_true, y_pred, zero_division=0)
+
+    plot_confusion_matrix(y_true, y_pred, save_path=dist_dir)
+    return acc, precision, recall
 
 
 def test(src_dir, dist_dir, config):

@@ -14,7 +14,7 @@ import torchaudio
 import site_path
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 from models.image_classification.img_classifier import ImageClassifier
-from inference import test
+from inference import test, run_test
 from dataset import transformations
 from dataset import input_preprocess
 from dataset.time_transform import get_wav_transform, augmentation
@@ -27,6 +27,8 @@ from utils import train_utils
 
 logger = train_utils.get_logger('train')
 
+
+# TODO: get_device issue
 
 def run_train(config):
     # Set deterministic
@@ -196,25 +198,30 @@ def main():
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
             # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
-            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_378'
+            config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_383'
             config['eval'] = {
                 'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                 'checkpoint_name': r'ckpt_best.pth'
             }
             config = train_utils.DictAsMember(config)
 
-            run_train(config)
+            # run_train(config)
             total_acc = []
-            for test_data_name, test_path in test_dataset['data_root'].items():
+            for test_data_name, test_path in test_dataset['data_pre_root'].items():
             # for test_data_name, test_path in test_dataset['dataset_wav'].items():
             # for test_data_name, test_path in test_dataset.items():
             # for test_data_name, test_path in test_dataset['dataset'].items():
                 # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
                 # if test_data_name not in ['web_snoring']: continue
+                if test_data_name in list(config['dataset']['index_path'].keys()):
+                    split = 'test'
+                else:
+                    split = None
 
+                print(test_data_name)
                 src_dir = test_path
                 dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-                acc, precision, recall = test(src_dir, dist_dir, config)
+                acc, precision, recall = run_test(src_dir, dist_dir, config, split)
                 mlflow.log_metric(f'{test_data_name}_acc', acc)
                 if test_data_name in ['ASUS_snoring', 'ESC50']:
                     mlflow.log_metric(f'{test_data_name}_precision', precision)
