@@ -53,6 +53,11 @@ class ImageClassifier(nn.Module):
         if self.restore_path is not None:
             self.restore()
 
+    # def restore(self):
+    #     state_key = torch.load(self.restore_path, map_location=self.device)
+    #     self.mlp.load_state_dict(state_key)
+    #     self.mlp = self.mlp.to(self.device)
+
     def restore(self):
         state_key = torch.load(self.restore_path, map_location=self.device)
         state_key['encoder'] = {

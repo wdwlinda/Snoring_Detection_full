@@ -1,5 +1,6 @@
 
 import os
+from cv2 import normalize
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ import csv
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
+import torchaudio
 
 import site_path
 from models.image_classification import img_classifier
@@ -144,6 +146,16 @@ class Inferencer():
         self.transform = transform
         # self.restore()
 
+    def run(self, wav_path):
+        inputs, sr = torchaudio.load(wav_path, normalize=True)
+        inputs = inputs.to(self.device)
+        inputs, _ = self.transform(inputs, None) 
+
+        prob = self.model(inputs)
+        prediction = torch.argmax(prob, dim=1).item()
+        prob = prob.detach().cpu().numpy()
+        return prob
+        
     def __call__(self, show_info=False):
         with torch.no_grad():
             self.model.eval()
@@ -378,12 +390,23 @@ def single_test(
     config['dataset']['index_path'] = {name: data_path}
     test_dataset = AudioDatasetCOCO(config, modes=splits)
     
-    net = ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
-        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
-        restore_path=os.path.join(
-            config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
+    # XXX: PANNS
+    from models.PANNs.pann_model import get_pann_model
+    net = get_pann_model(
+        'ResNet38',
+        16000, 
+        2,
+        'cuda:0',
+        pretrained=False,
+        strict=False,
+        restore_path=os.path.join(config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
     )
+    # net = ImageClassifier(
+    #     backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
+    #     out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
+    #     restore_path=os.path.join(
+    #         config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
+    # )
 
     # FIXME: params for sr, device
     test_transform = WavtoMelspec_torchaudio(

@@ -78,12 +78,17 @@ def get_dataset():
 
 
 def get_dataset_names():
-    dataset17 = [
-        'ASUS_snoring',
+    dataset1 = [
+        'ASUS_snoring'
+    ]
+    dataset2 = [
         'Kaggle_snoring'
     ]
+    dataset3 = [
+        'Kaggle_snoring_pad'
+    ]
 
-    datasets = [dataset17]
+    datasets = [dataset3, dataset1, dataset2]
     return datasets
 
     

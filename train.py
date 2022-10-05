@@ -44,8 +44,8 @@ def run_train(config):
     #     t = time_transform.augmentation()
     # else:
     #     t = None
-    train_dataset = AudioDatasetCOCO(config, mode='train')
-    valid_dataset = AudioDatasetCOCO(config, mode='valid')
+    train_dataset = AudioDatasetCOCO(config, modes='train')
+    valid_dataset = AudioDatasetCOCO(config, modes='valid')
     # train_dataset = AudioDataset(config, mode='train')
     # valid_dataset = AudioDataset(config, mode='valid')
 
@@ -67,10 +67,21 @@ def run_train(config):
     #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
-    model = ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels,
-        out_channels=config.model.out_channels, pretrained=config.model.pretrained, 
-        dim=1, output_structure=None)
+    # model = ImageClassifier(
+    #     backbone=config.model.name, in_channels=config.model.in_channels,
+    #     out_channels=config.model.out_channels, pretrained=config.model.pretrained, 
+    #     dim=1, output_structure=None)
+    # XXX: PANNS
+    from models.PANNs.pann_model import get_pann_model
+    model = get_pann_model(
+        'ResNet38',
+        16000, 
+        2,
+        'cuda:0',
+        pretrained=True,
+        strict=False,
+    )
+    # print(model)
 
     # Optimizer
     optimizer = train_utils.create_optimizer_temp(config.optimizer_config, model)
@@ -156,15 +167,16 @@ def main():
 
     config_list = []
     for model_name in [
+        'resnet50',
         # 'mobilenetv3_large_100',
-        'convnext_tiny_384_in22ft1k', 
+        # 'convnext_tiny_384_in22ft1k', 
     ]:
         for index_path in dataset_paths:
             # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
             # test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
-            for mixup in [False]: 
-                for wav_transform in [True, False]:
-                    for is_aug in [True, False]:
+            for mixup in [True, False]: 
+                for wav_transform in [True]:
+                    for is_aug in [True]:
                     # for feature in ['mel-spec']:
                         config = copy.deepcopy(config)
                         config['model']['name'] = model_name
@@ -187,7 +199,7 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"Snoring_small_model"
+        exp_name = f"_Snoring_single_dataset_mixup_panns"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         with mlflow.start_run(run_name=config['model']['name']):
@@ -198,14 +210,14 @@ def main():
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
             # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
-            config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_383'
+            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_390'
             config['eval'] = {
                 'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                 'checkpoint_name': r'ckpt_best.pth'
             }
             config = train_utils.DictAsMember(config)
 
-            # run_train(config)
+            run_train(config)
             total_acc = []
             for test_data_name, test_path in test_dataset['data_pre_root'].items():
             # for test_data_name, test_path in test_dataset['dataset_wav'].items():
@@ -213,10 +225,11 @@ def main():
             # for test_data_name, test_path in test_dataset['dataset'].items():
                 # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
                 # if test_data_name not in ['web_snoring']: continue
-                if test_data_name in list(config['dataset']['index_path'].keys()):
-                    split = 'test'
-                else:
-                    split = None
+                split = 'test'
+                # if test_data_name in list(config['dataset']['index_path'].keys()):
+                #     split = 'test'
+                # else:
+                #     split = None
 
                 print(test_data_name)
                 src_dir = test_path

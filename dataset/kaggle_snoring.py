@@ -6,6 +6,7 @@ from datetime import date
 
 import pandas as pd
 import numpy as np
+from pydub import AudioSegment
 
 from dataset import dataset_utils
 from dataset import transformations
@@ -253,6 +254,34 @@ class AssignLabelPreprocess(SnoringPreprocess):
         return self.assign_label
 
 
+class KagglePadPreprocess(SnoringPreprocess):
+    def __init__(self, 
+                 suffix: str = 'wav', 
+                 target_sr: int = 16000, 
+                 target_channel: int = 1, 
+                 target_duration: Union[int, float] = 2):
+        super().__init__(suffix, target_sr, target_channel, target_duration)
+
+    def sound_preprocess(self, sound, *args, **kwargs):
+        """ 
+        Simple preprocessing for input datato have unify duration, channel, sr.
+        Apply spitting if the raw data is to long, and apply repeat, padding to
+        extend thedata length.
+        """
+        if sound.duration_seconds < self.target_duration:
+            # side padding
+            pad_ms = (self.target_duration-sound.duration_seconds)/2 * 1000
+            silence = AudioSegment.silent(duration=pad_ms)
+            new_sound = silence + sound + silence
+            new_sounds = [new_sound[:1000*self.target_duration]]
+        elif sound.duration_seconds > self.target_duration:
+            # continuous spitting
+            new_sounds = continuous_split_sound(sound, self.target_duration)
+        else:
+            new_sounds = [sound]
+        return new_sounds
+
+
 class ESC50Preprocess(SnoringPreprocess):
     def __init__(self, 
                  suffix: str = 'wav', 
@@ -344,13 +373,16 @@ class AsusSnoring0Preprocess(SnoringPreprocess):
             valid_refs[label] = valid_split
         split_data_refs['train'] = train_refs
         split_data_refs['valid'] = valid_refs
-        # from pprint import pprint
-        # pprint(split_data_refs)
         return split_data_refs
 
 
 def run_class():
     save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre')
+
+    processer = KagglePadPreprocess()
+    dataset_name = 'kaggle_snoring_pad'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_snoring\Snoring Dataset')
+    processer(dataset_name, data_root, save_root)
 
     # processer = SnoringPreprocess()
     # dataset_name = 'kaggle_snoring'
@@ -382,11 +414,11 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-    split_data_root = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
-    processer = AsusSnoring0Preprocess(split_data_root)
-    dataset_name = 'ASUS_snoring_case_split'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k')
-    processer(dataset_name, data_root, save_root)
+    # split_data_root = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2'
+    # processer = AsusSnoring0Preprocess(split_data_root)
+    # dataset_name = 'ASUS_snoring_case_split'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k')
+    # processer(dataset_name, data_root, save_root)
 
 
 if __name__ == '__main__':

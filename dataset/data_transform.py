@@ -7,7 +7,7 @@ from timm.data.mixup import Mixup
 import matplotlib.pyplot as plt
 from torch_audiomentations import (
     Compose, TimeInversion, Gain, AddColoredNoise, 
-    PolarityInversion, PitchShift
+    PolarityInversion, PitchShift, Shift
 )
 
 from dataset import input_preprocess
@@ -103,7 +103,10 @@ class WavtoMelspec_torchaudio():
         # import matplotlib.pyplot as plt
         # plt.imshow(xx[0, 0])
         # plt.show()
-        melspec = torch.tile(melspec, (1, 3, 1, 1))
+
+        # XXX: PANNS
+        # melspec = torch.tile(melspec, (1, 3, 1, 1))
+        # melspec = waveform[:, 0]
         
         # save_audio(waveform, 0, target)
         return melspec, target
@@ -142,7 +145,7 @@ def waveform_transform(input_var):
 def get_mixup_fn(n_class):
     # XXX: modulize mixup
     mixup_args = {
-        'mixup_alpha': 1.,
+        'mixup_alpha': 0.5,
         'cutmix_alpha': 0.,
         'cutmix_minmax': None,
         'prob': 1.0,
@@ -225,14 +228,15 @@ def get_wav_transform():
     wav_transform = Compose(
         transforms=[
             Gain(
-                min_gain_in_db=-15.0,
-                max_gain_in_db=5.0,
+                min_gain_in_db=-5.0,
+                max_gain_in_db=10.0,
                 p=0.5,
             ),
             PolarityInversion(p=0.5, sample_rate=16000),
             PitchShift(p=0.5, sample_rate=16000),
-            AddColoredNoise(p=0.5, sample_rate=16000),
+            AddColoredNoise(p=0.5, min_snr_in_db=12, sample_rate=16000),
             TimeInversion(p=0.5, sample_rate=16000),
+            Shift(p=0.5, sample_rate=16000),
         ]
     )
     return wav_transform

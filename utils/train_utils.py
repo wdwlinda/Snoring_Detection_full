@@ -224,7 +224,6 @@ import torch
 import torch.nn as nn  
 import torch.optim as optim
 
-from modules.utils import loss
 
 
 def calculate_display_step(num_sample, batch_size, display_times=5):
