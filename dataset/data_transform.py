@@ -105,7 +105,7 @@ class WavtoMelspec_torchaudio():
         # plt.show()
 
         # XXX: PANNS
-        # melspec = torch.tile(melspec, (1, 3, 1, 1))
+        melspec = torch.tile(melspec, (1, 3, 1, 1))
         # melspec = waveform[:, 0]
         
         # save_audio(waveform, 0, target)

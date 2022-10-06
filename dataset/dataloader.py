@@ -220,7 +220,8 @@ def sequence_legth_adjust(input_sequence: torch.Tensor, output_length: int) -> t
 class AudioDatasetCOCO(Dataset):
     def __init__(self, config, modes):
         data_roots = config.dataset.index_path
-        self.input_data_indices, self.ground_truth_indices = parse_snoring_coco_total(data_roots, modes)
+        self.input_data_indices, self.ground_truth_indices = parse_snoring_coco_total(
+            data_roots, modes)
         assert len(self.input_data_indices) == len(self.ground_truth_indices), 'Mismatch data and target.'
         # TODO: define channel, sr, duration in input config or json
         self.sr = config.dataset.sample_rate

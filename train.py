@@ -167,9 +167,9 @@ def main():
 
     config_list = []
     for model_name in [
-        'resnet50',
+        # 'resnet50',
         # 'mobilenetv3_large_100',
-        # 'convnext_tiny_384_in22ft1k', 
+        'convnext_tiny_384_in22ft1k', 
     ]:
         for index_path in dataset_paths:
             # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
@@ -210,26 +210,25 @@ def main():
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
             # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
-            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_390'
+            config['CHECKPOINT_PATH'] = \
+                r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402'
             config['eval'] = {
                 'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                 'checkpoint_name': r'ckpt_best.pth'
             }
             config = train_utils.DictAsMember(config)
 
-            run_train(config)
+            # run_train(config)
             total_acc = []
             for test_data_name, test_path in test_dataset['data_pre_root'].items():
             # for test_data_name, test_path in test_dataset['dataset_wav'].items():
             # for test_data_name, test_path in test_dataset.items():
             # for test_data_name, test_path in test_dataset['dataset'].items():
                 # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                # if test_data_name not in ['web_snoring']: continue
-                split = 'test'
-                # if test_data_name in list(config['dataset']['index_path'].keys()):
-                #     split = 'test'
-                # else:
-                #     split = None
+                if test_data_name in ['web_snoring', 'iphone11_0908', 'pixel_0908']:
+                    split = None
+                else:
+                    split = 'test'
 
                 print(test_data_name)
                 src_dir = test_path

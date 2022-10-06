@@ -24,6 +24,8 @@ from dataset import transformations
 
 # TODO: inherit problem
 # TODO: this processer is mainly for audio classification, think about the generbility
+# TODO: Non-label class
+# TODO: set up input format internel and output_suffix
 """
 Current functions
     - Simple preprocessing for duration, channel, sr. (Align input waveform format)
@@ -66,12 +68,14 @@ def get_splitting(seq_length, split_length):
 class SnoringPreprocess(ClsPreprocess):
     def __init__(self, 
                  suffix: str = 'wav', 
+                 out_suffix: str = 'wav', 
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2,
                  split_ratio: dict ={'train': 0.7, 'valid': 0.1, 'test': 0.2}):
         assert sum([ratio for ratio in list(split_ratio.values())]) == 1.0
         self.suffix = suffix
+        self.out_suffix = out_suffix
         self.target_sr = target_sr
         self.target_channel = target_channel
         self.target_duration = target_duration
@@ -103,14 +107,14 @@ class SnoringPreprocess(ClsPreprocess):
                 new_save_path = data_save_root.joinpath(new_basename)
                 
                 new_save_path = new_save_path.with_suffix(
-                    self.suffix if self.suffix.startswith('.') else f'.{self.suffix}'
+                    self.out_suffix if self.out_suffix.startswith('.') else f'.{self.out_suffix}'
                 )
 
                 preprocess_data_refs['input'].append(new_basename)
                 label = self.get_class_label(new_save_path)
                 preprocess_data_refs['target'].append(label)
                 preprocess_data_refs['process_path'].append(new_save_path)
-                new_sound.export(new_save_path, format=self.suffix)
+                new_sound.export(new_save_path, format=self.out_suffix)
         
         # Save reference table
         data_save_root = Path(save_root) / Path(dataset_name)
@@ -243,11 +247,12 @@ class AssignLabelPreprocess(SnoringPreprocess):
     def __init__(self, 
                  assign_label: int,
                  suffix: str = 'wav', 
+                 out_suffix: str = 'wav', 
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2):
 
-        super().__init__(suffix, target_sr, target_channel, target_duration)
+        super().__init__(suffix, out_suffix, target_sr, target_channel, target_duration)
         self.assign_label = assign_label
 
     def get_class_label(self, *args):
@@ -257,10 +262,11 @@ class AssignLabelPreprocess(SnoringPreprocess):
 class KagglePadPreprocess(SnoringPreprocess):
     def __init__(self, 
                  suffix: str = 'wav', 
+                 out_suffix: str = 'wav', 
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2):
-        super().__init__(suffix, target_sr, target_channel, target_duration)
+        super().__init__(suffix, out_suffix, target_sr, target_channel, target_duration)
 
     def sound_preprocess(self, sound, *args, **kwargs):
         """ 
@@ -379,10 +385,10 @@ class AsusSnoring0Preprocess(SnoringPreprocess):
 def run_class():
     save_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre')
 
-    processer = KagglePadPreprocess()
-    dataset_name = 'kaggle_snoring_pad'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_snoring\Snoring Dataset')
-    processer(dataset_name, data_root, save_root)
+    # processer = KagglePadPreprocess()
+    # dataset_name = 'kaggle_snoring_pad'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_snoring\Snoring Dataset')
+    # processer(dataset_name, data_root, save_root)
 
     # processer = SnoringPreprocess()
     # dataset_name = 'kaggle_snoring'
@@ -419,6 +425,21 @@ def run_class():
     # dataset_name = 'ASUS_snoring_case_split'
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k')
     # processer(dataset_name, data_root, save_root)
+
+    # processer = AssignLabelPreprocess(assign_label=1)
+    # dataset_name = 'pixel_0908'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+    # processer = AssignLabelPreprocess(assign_label=1)
+    # dataset_name = 'iphone11_0908'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=1, suffix='mp3')
+    dataset_name = '0908_ori'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
+    processer(dataset_name, data_root, save_root)
 
 
 if __name__ == '__main__':

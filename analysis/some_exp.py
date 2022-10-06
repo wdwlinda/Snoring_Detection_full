@@ -4,6 +4,8 @@ import time
 import datetime
 import random
 import array
+from pathlib import Path
+import glob
 
 # import librosa
 # from librosa.core import audio
@@ -21,7 +23,7 @@ from scipy import ndimage
 from scipy.io.wavfile import read
 import pandas as pd
 from pprint import pprint
-import glob
+import matplotlib.patches as mpatches
 
 # import test
 from analysis import utils
@@ -1181,6 +1183,7 @@ def spec_dist():
             save_img(files,name)
 
 
+# TODO: Implement an interface to get the different format data for PCA
 def pca_test():
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import StandardScaler
@@ -1252,6 +1255,70 @@ def pca_test():
     # data
     # norm
     # pca
+
+
+def plot_2nd_record(csv_path, save_root, model_name='', th=0.5):
+    title = Path(csv_path).parent.name
+    p_color = 'palevioletred'
+    n_color = 'forestgreen'
+    
+    p_legend = 'snoring'
+    n_legend = 'non-snoring'
+    df = pd.read_csv(csv_path)
+    df.sort_values(['sample'], ascending=True, inplace=True)
+
+    probs = df['prob_1'].to_list()
+    p_ind = np.where(np.array(probs)>th)[0]
+    n_ind = np.where(np.array(probs)<=th)[0]
+
+    bar1 = plt.bar(p_ind, np.take(probs, p_ind), color=p_color)
+    bar2 = plt.bar(n_ind, np.take(probs, n_ind), color=n_color)
+    fig_title = f'{title} - threshold={th} - model={model_name}'
+    plt.title(fig_title)
+    # plt.xlabel('time')
+    plt.ylabel('prob')
+
+    # Creating legend with color box
+    pop_a = mpatches.Patch(color=p_color, label=p_legend)
+    pop_b = mpatches.Patch(color=n_color, label=n_legend)
+    plt.legend(handles=[pop_a, pop_b])
+    
+    plt.savefig(save_root.joinpath(f'{fig_title}.png'))
+    plt.close()
+    # plt.show()
+    # print(probs)
+
+
+def plot_2nd_record_main():
+    save_root = Path(r'C:\Users\test\Desktop\Leon\Weekly\1007')
+
+    # resnet54_Audioset
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_432\pixel_0908\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='resnet54_Audioset')
+
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_432\0908_ori\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='resnet54_Audioset')
+
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_432\iphone11_0908\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='resnet54_Audioset')
+
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_432\web_snoring\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='resnet54_Audioset')
+
+    # Convext
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402\pixel_0908\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='convnext_tiny_ImageNet')
+
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402\0908_ori\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='convnext_tiny_ImageNet')
+
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402\iphone11_0908\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='convnext_tiny_ImageNet')
+
+    csv_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402\web_snoring\pred.csv'
+    plot_2nd_record(csv_path, save_root, model_name='convnext_tiny_ImageNet')
+
+
 if __name__ == '__main__':
     # get_unconflicted_index()
     # first_order_filter()
@@ -1277,6 +1344,8 @@ if __name__ == '__main__':
     # split_df()
     # check_data_cases()
     # test_torch_mixup()
-    spec_dist()
+    # spec_dist()
     # pca_test()
+
+    plot_2nd_record_main()
     pass
