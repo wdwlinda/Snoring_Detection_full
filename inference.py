@@ -397,22 +397,22 @@ def single_test(
     test_dataset = AudioDatasetCOCO(config, modes=splits)
     
     # XXX: PANNS
-    # from models.PANNs.pann_model import get_pann_model
-    # net = get_pann_model(
-    #     'ResNet38',
-    #     16000, 
-    #     2,
-    #     'cuda:0',
-    #     pretrained=False,
-    #     strict=False,
-    #     restore_path=os.path.join(config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
-    # )
-    net = ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
-        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
-        restore_path=os.path.join(
-            config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
+    from models.PANNs.pann_model import get_pann_model
+    net = get_pann_model(
+        config.model.name,
+        16000, 
+        2,
+        'cuda:0',
+        pretrained=False,
+        strict=False,
+        restore_path=os.path.join(config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
     )
+    # net = ImageClassifier(
+    #     backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
+    #     out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
+    #     restore_path=os.path.join(
+    #         config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
+    # )
 
     # FIXME: params for sr, device
     test_transform = WavtoMelspec_torchaudio(

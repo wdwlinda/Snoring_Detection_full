@@ -57,6 +57,21 @@ class WavtoMelspec_torchaudio():
             onesided=True,
             n_mels=n_mels,
         )
+        # XXX: PANNs
+        self.wav_to_melspec = torchaudio.transforms.MelSpectrogram(
+            sample_rate=sr,
+            n_fft=n_fft,
+            win_length=1024,
+            hop_length=320,
+            center=True,
+            pad_mode="reflect",
+            power=2.0,
+            norm='slaney',
+            onesided=True,
+            n_mels=64,
+            f_min=50,
+            f_max=14000
+        )
         self.sr = sr
         self.wav_to_melspec.to(self.device)
         self.power_to_db = torchaudio.transforms.AmplitudeToDB()
@@ -105,8 +120,8 @@ class WavtoMelspec_torchaudio():
         # plt.show()
 
         # XXX: PANNS
-        melspec = torch.tile(melspec, (1, 3, 1, 1))
-        # melspec = waveform[:, 0]
+        # melspec = torch.tile(melspec, (1, 3, 1, 1))
+        melspec = waveform[:, 0]
         
         # save_audio(waveform, 0, target)
         return melspec, target

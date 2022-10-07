@@ -436,9 +436,19 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=1, suffix='mp3')
-    dataset_name = '0908_ori'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
+    # processer = AssignLabelPreprocess(assign_label=1, suffix='mp3')
+    # dataset_name = '0908_ori'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
+    # processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=1)
+    dataset_name = 'pixel_0908_2'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
+    processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=1)
+    dataset_name = 'iphone11_0908_2'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
     processer(dataset_name, data_root, save_root)
 
 

@@ -45,7 +45,7 @@ def onnx_model_deploy(timm_model_name, in_channels, out_channels, checkpoint, sa
 
 
 def main():
-    in_channels = 3
+    in_channels = 1
     out_channels = 2
 
     # timm_model_name = 'convnext_tiny_384_in22ft1k'

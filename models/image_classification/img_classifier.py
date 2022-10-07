@@ -14,6 +14,8 @@ from models import layers
 # creat_timm_backbone = backbones.creat_timm_backbone
 MultiLayerPerceptron = layers.MultiLayerPerceptron
 # get_activation = utils.get_activation
+# from ....Model_deploy import deploy_torch
+# m = deploy_torch.nodule_cls_main
 
 
 class ImageClassifier(nn.Module):
@@ -101,3 +103,7 @@ class ImageClassifier(nn.Module):
                 #     setattr(model, n, new)
         return model
         
+
+
+def create_model(config):
+    pass

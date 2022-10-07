@@ -14,6 +14,7 @@ import torchaudio
 import site_path
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 from models.image_classification.img_classifier import ImageClassifier
+from models.snoring_model import find_module
 from inference import test, run_test
 from dataset import transformations
 from dataset import input_preprocess
@@ -67,6 +68,10 @@ def run_train(config):
     #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
+    model_class = find_module(config.model.name)
+    model = model_class(config)
+    
+    
     # model = ImageClassifier(
     #     backbone=config.model.name, in_channels=config.model.in_channels,
     #     out_channels=config.model.out_channels, pretrained=config.model.pretrained, 
@@ -74,12 +79,7 @@ def run_train(config):
     # XXX: PANNS
     from models.PANNs.pann_model import get_pann_model
     model = get_pann_model(
-        'ResNet38',
-        16000, 
-        2,
-        'cuda:0',
-        pretrained=True,
-        strict=False,
+        config.model.name, 16000, 2, 'cuda:0', pretrained=True, strict=False,
     )
     # print(model)
 
@@ -169,14 +169,17 @@ def main():
     for model_name in [
         # 'resnet50',
         # 'mobilenetv3_large_100',
-        'convnext_tiny_384_in22ft1k', 
+        # 'convnext_tiny_384_in22ft1k', 
+        'ResNet38',
+        # 'ResNet54',
+        # 'MobileNetV2',
     ]:
         for index_path in dataset_paths:
             # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
             # test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
-            for mixup in [True, False]: 
-                for wav_transform in [True]:
-                    for is_aug in [True]:
+            for mixup in [False]: 
+                for wav_transform in [False]:
+                    for is_aug in [False]:
                     # for feature in ['mel-spec']:
                         config = copy.deepcopy(config)
                         config['model']['name'] = model_name
@@ -199,7 +202,7 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_mixup_panns"
+        exp_name = f"_Snoring_single_dataset_panns"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         with mlflow.start_run(run_name=config['model']['name']):
@@ -210,22 +213,21 @@ def main():
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
             # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
-            config['CHECKPOINT_PATH'] = \
-                r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402'
+            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402'
             config['eval'] = {
                 'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                 'checkpoint_name': r'ckpt_best.pth'
             }
             config = train_utils.DictAsMember(config)
 
-            # run_train(config)
+            run_train(config)
             total_acc = []
             for test_data_name, test_path in test_dataset['data_pre_root'].items():
             # for test_data_name, test_path in test_dataset['dataset_wav'].items():
             # for test_data_name, test_path in test_dataset.items():
             # for test_data_name, test_path in test_dataset['dataset'].items():
                 # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                if test_data_name in ['web_snoring', 'iphone11_0908', 'pixel_0908']:
+                if test_data_name in ['web_snoring', 'iphone11_0908', 'pixel_0908', '0908_ori']:
                     split = None
                 else:
                     split = 'test'
