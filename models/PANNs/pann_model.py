@@ -13,7 +13,7 @@ def replace_last_layer(model, out_channels):
     return model
 
 
-def get_local_checkpoint(model_name, checkpoint_dir='models/PaNNs'):
+def get_local_checkpoint(model_name, checkpoint_dir):
     checkpoints_dir = Path(checkpoint_dir)
     checkpoints = checkpoints_dir.rglob('*.pth')
 
@@ -32,7 +32,10 @@ def get_local_checkpoint(model_name, checkpoint_dir='models/PaNNs'):
 # TODO: arguments
 def get_pann_model(
     model_name, sample_rate, classes_num, device, pretrained=True, strict=False,
-    restore_path=None):
+    restore_path=None, checkpoint_dir='models/PaNNs'):
+    # hop_size = 512
+    # window_size = 2048
+    # mel_bins = 128
     hop_size = 320
     window_size = 1024
     mel_bins = 64
@@ -49,7 +52,7 @@ def get_pann_model(
     )
 
     if pretrained:
-        checkpoint_path = get_local_checkpoint(model_name)
+        checkpoint_path = get_local_checkpoint(model_name, checkpoint_dir)
         assert checkpoint_path is not None, 'Missing checkpoint'
         checkpoint = torch.load(checkpoint_path, map_location=device)
         model_dict = model.state_dict()

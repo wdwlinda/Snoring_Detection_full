@@ -68,8 +68,8 @@ def run_train(config):
     #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
-    model_class = find_module(config.model.name)
-    model = model_class(config)
+    # model_class = find_module(config.model.name)
+    # model = model_class(config)
     
     
     # model = ImageClassifier(
@@ -170,15 +170,15 @@ def main():
         # 'resnet50',
         # 'mobilenetv3_large_100',
         # 'convnext_tiny_384_in22ft1k', 
+        'MobileNetV2',
         'ResNet38',
         # 'ResNet54',
-        # 'MobileNetV2',
     ]:
         for index_path in dataset_paths:
             # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
             # test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
-            for mixup in [False]: 
-                for wav_transform in [False]:
+            for mixup in [False]:
+                for wav_transform in [True, False]:
                     for is_aug in [False]:
                     # for feature in ['mel-spec']:
                         config = copy.deepcopy(config)
@@ -202,7 +202,7 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_panns"
+        exp_name = f"_Snoring_single_dataset_panns_wav_logmel_aug"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         with mlflow.start_run(run_name=config['model']['name']):

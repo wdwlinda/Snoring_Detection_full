@@ -10,6 +10,8 @@ def torch_to_onnx(
         dynamic_axes={'input' : {1: 'channel', 2 : 'height', 3: 'width'},
                       'output' : {1: 'num_class', 2: 'height', 3: 'width'}}
     ):
+    model = model.eval()
+    
     # TODO: assert for input, output, dynamic_axes
     if isinstance(dummy_input, (list, tuple)): 
         dummy_input_t = []

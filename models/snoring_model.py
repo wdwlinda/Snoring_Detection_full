@@ -5,10 +5,32 @@ from typing import Optional
 import os
 
 
-# TODO: separate same model implementations in different module or library 
-# e.g., timm.ResNet38 & custom.ResNet38
+def find_model(import_path: str):
+    """AI is creating summary for find_model
+
+    Args:
+        import_path (str): The import path in relative importing format, e.g., project.module.model
+
+    Returns:
+        [class object]: Get the class object by assign name.
+    """
+    dirs = import_path.split('.')
+    module_import_path = '.'.join(dirs[:-1])
+
+    module_path = module_import_path.replace('.', '\\')
+    module_path = Path.cwd().parent.joinpath(module_path)
+    module_path = module_path.with_suffix('.py')
+    model_name = dirs[-1]
+
+    class_obj = find_module(model_name, module_path)
+    return class_obj
+    
+
 # TODO: Interface
-# TODO: file_path to model_dir
+# TODO: use relative importing path Project.snoring_detection.models.PANNs.pann.ResNet38
+# TODO: simplify by using dict ouside {pann.ResMet38: Project.snoring_detection.models.PANNs.pann.ResNet38}
+# and then different implementation can be separated {pann.ReNet38, timm.ResNet38}
+# TODO: inspect path correctness (file exist?)
 def find_module(class_name: Path, file_path: Optional[Path] = None):
     """Find class in project
 
@@ -26,6 +48,7 @@ def find_module(class_name: Path, file_path: Optional[Path] = None):
 
     match_modules = []
     for f in modules:
+        # print(f)
         if f.is_file() and not f.name.endswith('__init__.py'):
             if file_path is not None:
                 if f == file_path:
@@ -59,7 +82,10 @@ def find_module(class_name: Path, file_path: Optional[Path] = None):
 if __name__ == '__main__':
     from datetime import datetime
     print(datetime.now().isoformat(timespec='seconds'))
-    # print(find_module('ResNet38', 'models/PANNs/model.py'))
-    print(find_module('ResNet38'))
-    print(find_module('ImageClassifier'))
+    print(find_model('Snoring_Detection.models.PANNs.model.ResNet38'))
+    # print(find_module('ResNet38'))
+    # print(find_module('ImageClassifier'))
     print(datetime.now().isoformat(timespec='seconds'))
+
+
+    

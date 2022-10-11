@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import numpy as np
+import torch
 
 from deploy import onnx_model
 from models.image_classification import img_classifier
@@ -44,7 +47,44 @@ def onnx_model_deploy(timm_model_name, in_channels, out_channels, checkpoint, sa
     )
 
 
-def main():
+def pann_to_onnx(model_name, checkpoint, save_filename):
+    from models.PANNs.pann_model import get_pann_model
+    sr = 16000
+    # model_name = checkpoint.name
+    checkpoint_dir = checkpoint.joinpath('ckpt_best.pth')
+    model = get_pann_model(
+        model_name, sr, 2, 'cpu', pretrained=False, strict=False, 
+        restore_path=checkpoint_dir
+    )
+    model = torch.nn.Sequential(
+        model,
+        torch.nn.Softmax(1)
+    )
+
+    # dummy_input = np.ones((1, 2*sr), np.int16)
+    dummy_input = np.ones((1, 2*sr), np.float32)
+    dynamic_axes = {'input' : {0: 'batch'},
+                    'output' : {0: 'batch'}}
+
+    onnx_model.torch_to_onnx(
+        dummy_input, 
+        model, 
+        save_filename,
+        dynamic_axes=dynamic_axes
+    )
+
+
+def pann_to_onnx_main():
+    model_name = 'MobileNetV2'
+    checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_516'
+    checkpoint = Path(checkpoint)
+    ckpt_name = checkpoint.stem
+    save_filename = checkpoint.joinpath(f'pann_{model_name}_{ckpt_name}.onnx')
+    save_filename = str(save_filename)
+    pann_to_onnx(model_name, checkpoint, save_filename)
+
+
+def timm_to_onnx_main():
     in_channels = 1
     out_channels = 2
 
@@ -69,17 +109,13 @@ def main():
     # data = [data]
     # save_filename = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\snoring.onnx'
     # ort_outs = onnx_model.ONNX_inference(data, save_filename)
-    
 
+
+def main():
+    # timm_to_onnx_main()
+    pann_to_onnx_main()
+    
 
 if __name__ == '__main__':
     main()
-
-    # from dataset import dataset_utils
-    # f = r'C:\Users\test\Desktop\Leon\Projects\compute-mfcc\data\1598482996718_21_106.87_108.87_001.wav'
-    # y = dataset_utils.get_pydub_sound(f, 'wav', 16000, channels=1)
-    # waveform = np.float32(y.get_array_of_samples())
-    # from librosa import load
-    # w = load(f, sr=None)
-    # print(waveform)
 
