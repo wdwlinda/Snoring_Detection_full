@@ -16,6 +16,22 @@ MultiLayerPerceptron = layers.MultiLayerPerceptron
 # get_activation = utils.get_activation
 # from ....Model_deploy import deploy_torch
 # m = deploy_torch.nodule_cls_main
+from models.utils import GetNewModel
+
+
+class GetTimmImgClassifier(GetNewModel):
+    def __init__(self, common_config: dict, model_name: str, new_model_config: dict = None):
+        super().__init__(common_config, model_name, new_model_config)
+
+    def interface(self, common_config):
+        model_kwargs = {
+            'backbone': common_config.model.name,
+            'in_channels': common_config.model.in_channels,
+            'out_channels': common_config.model.out_channels,
+            'pretrained': common_config.model.pretrained,
+            'output_structure': None,
+        }
+        return model_kwargs
 
 
 class ImageClassifier(nn.Module):
@@ -102,8 +118,4 @@ class ImageClassifier(nn.Module):
                 #     ## simple module
                 #     setattr(model, n, new)
         return model
-        
-
-
-def create_model(config):
-    pass
+    

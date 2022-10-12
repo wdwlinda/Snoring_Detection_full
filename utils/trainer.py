@@ -61,7 +61,7 @@ class Trainer(object):
         if USE_CUDA:
             self.model.cuda()
         self.max_acc = 0
-        self.min_test_loss = 100
+        self.min_test_loss = 1e8
         train_samples = len(self.train_dataloader.dataset)
         self.display_step = self.calculate_display_step(num_sample=train_samples, batch_size=self.batch_size)
         self.checkpoint_saving_steps = checkpoint_saving_steps

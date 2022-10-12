@@ -84,14 +84,19 @@ def get_dataset_names():
     ]
     dataset2 = [
         # 'Kaggle_snoring'
-        'ASUS_snoring',
+        # 'ASUS_snoring',
         'Kaggle_snoring_pad'
     ]
     dataset3 = [
-        'Kaggle_snoring_pad'
+        'ESC50'
+    ]
+    dataset4 = [
+        'Kaggle_snoring_pad',
+        'ASUS_snoring',
     ]
 
     datasets = [dataset1]
+    # datasets = [dataset1, dataset2, dataset3, dataset4]
     return datasets
 
     

@@ -3,9 +3,11 @@ import os
 import random
 import copy
 from datetime import datetime
+from typing import Any
 
 from pprint import pprint
 import numpy as np
+from sklearn.metrics import explained_variance_score
 import torch
 import mlflow
 from torch.utils.data import Dataset, DataLoader
@@ -14,7 +16,7 @@ import torchaudio
 import site_path
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 from models.image_classification.img_classifier import ImageClassifier
-from models.snoring_model import find_module
+from models.snoring_model import create_snoring_model
 from inference import test, run_test
 from dataset import transformations
 from dataset import input_preprocess
@@ -68,8 +70,7 @@ def run_train(config):
     #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
-    # model_class = find_module(config.model.name)
-    # model = model_class(config)
+    model = create_snoring_model(config, config.model.name)
     
     
     # model = ImageClassifier(
@@ -79,7 +80,7 @@ def run_train(config):
     # XXX: PANNS
     from models.PANNs.pann_model import get_pann_model
     model = get_pann_model(
-        config.model.name, 16000, 2, 'cuda:0', pretrained=True, strict=False,
+        config.model.name, 16000, 2, 'cuda:0', pretrained=config.model.pretrained, strict=False,
     )
     # print(model)
 
@@ -150,6 +151,104 @@ def run_train(config):
     trainer_instance.fit()
 
 
+def assign_exp_value(run_config: dict, keys: str, assign_val: Any) -> dict:
+    """AI is creating summary for assign_exp_value
+
+    Args:
+        run_config (dict): A config for single experiment running 
+                           (usually a nested dict)
+        keys (str): The structure key to access parameters in run_config, 
+                           e.g., config.model.name
+        assign_val (Any): The modified value for assigned parameter, 
+                          e.g., config.model.name = 'resnet50'
+
+    Returns:
+        (dict): Modified config
+    """
+    init_config = run_config
+    key_list = keys.split('.')
+    for key in key_list[:-1]:
+        if isinstance(run_config, dict):
+            run_config = run_config.get(key, None)
+    run_config[key_list[-1]] = assign_val
+    return init_config
+
+
+def get_exp_configs(config: dict, exp_config: dict) -> dict:
+    """AI is creating summary for get_exp_configs
+
+    Args:
+        config (dict): [description]
+        exp_config (dict): [description]
+
+    Returns:
+        dict: [description]
+    """
+    def get_configs(root, exp_config, idx):
+        params = exp_config[idx]
+        new_root = []
+        for node in root:
+            for p in params:
+                new_node = node.copy()
+                new_node.append(p)
+                new_root.append(new_node)
+
+        idx += 1
+        if idx < len(exp_config):
+            new_root = get_configs(new_root, exp_config, idx)
+        return new_root
+    
+    root = [[]]
+    exp_config_l = list(exp_config.values())  
+    cc = get_configs(root, exp_config_l, 0)
+    configs = []
+    for params in cc:
+        config_temp = {}
+        for param_name in exp_config:
+            config_temp[param_name] = params
+        configs.append(config_temp)
+
+    # cc = get_configs(root, [['a1', 'a2'], ['b1', 'b2', 'b3'], ['c1']], 0)
+
+        # for params in exp_config:
+        #     if len(root) == len:
+
+        #     get_configs()
+
+
+    # for key in exp_config:
+    #     c = []
+    #     for params in exp_config[key]:
+    #         c.append(params)
+    #         for k in range(len(root)):
+    #             root.append(exp_config[key])
+
+    # configs = []
+    # sorted(exp_config, key = lambda key: len(exp_config[key]))
+    # for params, values in exp_config.items():
+    #     new_config = copy.deepcopy(config)
+    #     if len(values) == 1:
+    #         val = values[0]
+    #         new_config = assign_exp_value(new_config, params, val)
+    #     else:
+    #         for val in values:
+    #             # XXX:
+    #             new_config = assign_exp_value(new_config, params, val)
+    #             configs.append(new_config)
+
+    # XXX:
+    configs = []
+    config['model']['name'] = exp_config['model.name'][0]
+    config['dataset']['index_path'] = exp_config['dataset.index_path'][0]
+    config['dataset']['wav_transform'] = True
+    configs.append(config)
+    new_config = copy.deepcopy(config)
+    new_config['dataset']['wav_transform'] = False
+    configs.append(new_config)
+
+    return configs
+    
+
 def main():
     now = datetime.now()
     
@@ -165,44 +264,31 @@ def main():
     # test dataset
     test_dataset = configuration.load_config('dataset/dataset.yml')
 
-    config_list = []
-    for model_name in [
-        # 'resnet50',
-        # 'mobilenetv3_large_100',
-        # 'convnext_tiny_384_in22ft1k', 
-        'MobileNetV2',
-        'ResNet38',
-        # 'ResNet54',
-    ]:
-        for index_path in dataset_paths:
-            # test_dataset2 = set(test_dataset['dataset_wav'].items()) ^ set(index_path['train'].items())
-            # test_dataset = { k : test_dataset['dataset_wav'][k] for k in set(test_dataset['dataset_wav']) - set(index_path['train']) }
-            for mixup in [False]:
-                for wav_transform in [True, False]:
-                    for is_aug in [False]:
-                    # for feature in ['mel-spec']:
-                        config = copy.deepcopy(config)
-                        config['model']['name'] = model_name
-                        config['dataset']['index_path'] = index_path
-                        config['dataset']['is_data_augmentation'] = is_aug
-                        config['dataset']['wav_transform'] = wav_transform
-                        # config['dataset']['transform_methods'] = feature
-                        config['TRAIN']['MIXUP'] = mixup
-                        checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
-                        config['CHECKPOINT_PATH'] = checkpoint_path
-                        
-                        config_list.append(config)
+    # TODO: This is only for simple grid search, apply NII hyper-params search later
+    exp_config = {
+        'dataset.index_path': dataset_paths,
+        'model.name': ['ResNet54'],
+        # 'model.pretrained': [True, False],
+        # 'model.name': ['ResNet38', 'ResNet54', 'MobileNetV2', 'resnet50', 
+        # 'convnext_tiny_384_in22ft1k'],
+        'dataset.wav_transform': [True, False],
+        # 'TRAIN.MIXUP': [True, False],
+        # 'dataset.is_data_augmentation': [True, False],
+    }
+    configs = get_exp_configs(config, exp_config)
 
-    for run_idx, config in enumerate(config_list):
+    for run_idx, config in enumerate(configs):
         dataset = '--'.join(list(config['dataset']['index_path']))
         # dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
+        checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
+        config['CHECKPOINT_PATH'] = checkpoint_path
         checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
         now = datetime.now()
         currentDay = str(now.day)
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_panns_wav_logmel_aug"
+        exp_name = f"_Snoring_single_dataset_panns_pretrained"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         with mlflow.start_run(run_name=config['model']['name']):

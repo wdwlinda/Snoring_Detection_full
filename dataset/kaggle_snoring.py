@@ -3,6 +3,7 @@ import abc
 from typing import Union
 import json
 from datetime import date
+import random
 
 import pandas as pd
 import numpy as np
@@ -72,7 +73,8 @@ class SnoringPreprocess(ClsPreprocess):
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2,
-                 split_ratio: dict ={'train': 0.7, 'valid': 0.1, 'test': 0.2}):
+                 split_ratio: dict = {'train': 0.7, 'valid': 0.1, 'test': 0.2},
+                 sample_ratio: float = 1.0):
         assert sum([ratio for ratio in list(split_ratio.values())]) == 1.0
         self.suffix = suffix
         self.out_suffix = out_suffix
@@ -80,11 +82,13 @@ class SnoringPreprocess(ClsPreprocess):
         self.target_channel = target_channel
         self.target_duration = target_duration
         self.split_ratio = split_ratio
+        self.sample_ratio = sample_ratio
 
     def __call__(self, dataset_name: str, data_root: str, save_root: str) -> None:
         self.dataset_name = dataset_name
         files = self.get_data_refs(data_root)
         preprocess_data_refs = {'input': [], 'target': [], 'process_path': []}
+        print(f'Preprocessing -- {dataset_name}')
         for raw_path in files:
             # Load raw audio
             sound = dataset_utils.get_pydub_sound(
@@ -126,6 +130,7 @@ class SnoringPreprocess(ClsPreprocess):
    
     def get_data_refs(self, data_root: str) -> list:
         files = list(data_root.rglob(f'*.{self.suffix}'))
+        files = np.random.choice(files, int(len(files)*self.sample_ratio), replace=False)
         return files
 
     def get_class_label(self, save_path):
@@ -243,6 +248,7 @@ class SnoringPreprocess(ClsPreprocess):
         pass
 
 
+
 class AssignLabelPreprocess(SnoringPreprocess):
     def __init__(self, 
                  assign_label: int,
@@ -250,9 +256,12 @@ class AssignLabelPreprocess(SnoringPreprocess):
                  out_suffix: str = 'wav', 
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
-                 target_duration: Union[int, float] = 2):
+                 target_duration: Union[int, float] = 2,
+                 sample_ratio: float = 1.0):
 
-        super().__init__(suffix, out_suffix, target_sr, target_channel, target_duration)
+        super().__init__(
+            suffix, out_suffix, target_sr, target_channel, target_duration, 
+            sample_ratio=sample_ratio)
         self.assign_label = assign_label
 
     def get_class_label(self, *args):
@@ -266,7 +275,8 @@ class KagglePadPreprocess(SnoringPreprocess):
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2):
-        super().__init__(suffix, out_suffix, target_sr, target_channel, target_duration)
+        super().__init__(
+            suffix, out_suffix, target_sr, target_channel, target_duration)
 
     def sound_preprocess(self, sound, *args, **kwargs):
         """ 
@@ -295,7 +305,8 @@ class ESC50Preprocess(SnoringPreprocess):
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2):
 
-        super().__init__(suffix, target_sr, target_channel, target_duration)
+        super().__init__(
+            suffix, target_sr, target_channel, target_duration)
 
     def get_class_label(self, save_path):
         filename = save_path.stem
@@ -325,7 +336,8 @@ class AsusSnoring0Preprocess(SnoringPreprocess):
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2):
 
-        super().__init__(suffix, target_sr, target_channel, target_duration)
+        super().__init__(
+            suffix, target_sr, target_channel, target_duration)
         self.split_files_root = Path(split_files_root)
 
     def get_data_refs(self, *args) -> list:
@@ -441,14 +453,44 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
     # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=1)
-    dataset_name = 'pixel_0908_2'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
+    # processer = AssignLabelPreprocess(assign_label=1)
+    # dataset_name = 'pixel_0908_2'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+    # processer = AssignLabelPreprocess(assign_label=1)
+    # dataset_name = 'iphone11_0908_2'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
+    dataset_name = 'Redmi_Note8_night'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\wave_split')
     processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=1)
-    dataset_name = 'iphone11_0908_2'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
+    processer = AssignLabelPreprocess(assign_label=0)
+    dataset_name = 'redmi'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\redmi\wave_split')
+    processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=0)
+    dataset_name = 'pixel'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\wave_split')
+    processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
+    dataset_name = 'Mi11_night'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\wave_split')
+    processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=0)
+    dataset_name = 'iphone'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\wave_split')
+    processer(dataset_name, data_root, save_root)
+
+    processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
+    dataset_name = 'Samsung_Note10Plus_night'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\wave_split')
     processer(dataset_name, data_root, save_root)
 
 
