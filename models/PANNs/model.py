@@ -875,7 +875,7 @@ def log_melspec(melspec, top_db=80.0):
 
 class ResNet38(nn.Module):
     def __init__(self, sample_rate, window_size, hop_size, mel_bins, fmin, 
-        fmax, classes_num):
+        fmax, classes_num, dropout=True):
         
         super(ResNet38, self).__init__()
 
@@ -912,6 +912,8 @@ class ResNet38(nn.Module):
         self.fc1 = nn.Linear(2048, 2048)
         self.fc_audioset = nn.Linear(2048, classes_num, bias=True)
 
+        self.dropout = dropout
+
         self.init_weights()
 
     def init_weights(self):
@@ -923,9 +925,8 @@ class ResNet38(nn.Module):
     def forward(self, input, mixup_lambda=None):
         """
         Input: (batch_size, data_length)"""
+        # import matplotlib.pyplot as plt
 
-
-        # XXX: PANNS
         x = self.spectrogram_extractor(input)   # (batch_size, 1, time_steps, freq_bins)
         x = self.logmel_extractor(x)    # (batch_size, 1, time_steps, mel_bins)
 
@@ -939,33 +940,42 @@ class ResNet38(nn.Module):
         if self.training:
             x = self.spec_augmenter(x)
 
+        # if not self.training:
+        #     import matplotlib.pyplot as plt
+        #     plt.imshow(x[0, 0].detach().cpu().numpy())
+        #     plt.show()
+
         # Mixup on spectrogram
         if self.training and mixup_lambda is not None:
             x = do_mixup(x, mixup_lambda)
         
-
-        # XXX: PANNS
-        # x = input
-        
         x = self.conv_block1(x, pool_size=(2, 2), pool_type='avg')
-        x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        if self.dropout:
+            x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        
         x = self.resnet(x)
+
         x = F.avg_pool2d(x, kernel_size=(2, 2))
-        x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        if self.dropout:
+            x = F.dropout(x, p=0.2, training=self.training, inplace=True)
         x = self.conv_block_after1(x, pool_size=(1, 1), pool_type='avg')
-        x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        if self.dropout:
+            x = F.dropout(x, p=0.2, training=self.training, inplace=True)
         x = torch.mean(x, dim=3)
         
         (x1, _) = torch.max(x, dim=2)
         x2 = torch.mean(x, dim=2)
         x = x1 + x2
-        x = F.dropout(x, p=0.5, training=self.training)
+        if self.dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
-        embedding = F.dropout(x, p=0.5, training=self.training)
+        if self.dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
+            # embedding = F.dropout(x, p=0.5, training=self.training)
         clipwise_output = self.fc_audioset(x)
         # clipwise_output = torch.sigmoid(x)
         
-        output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+        # output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
 
         return clipwise_output
         # return output_dict
@@ -973,7 +983,7 @@ class ResNet38(nn.Module):
 
 class ResNet54(nn.Module):
     def __init__(self, sample_rate, window_size, hop_size, mel_bins, fmin, 
-        fmax, classes_num):
+        fmax, classes_num, dropout=True):
         
         super(ResNet54, self).__init__()
 
@@ -1010,7 +1020,10 @@ class ResNet54(nn.Module):
         self.fc1 = nn.Linear(2048, 2048)
         self.fc_audioset = nn.Linear(2048, classes_num, bias=True)
 
+        self.dropout = dropout
+
         self.init_weights()
+
 
     def init_weights(self):
         init_bn(self.bn0)
@@ -1042,24 +1055,31 @@ class ResNet54(nn.Module):
         # XXX: PANNs
         # x = input
         x = self.conv_block1(x, pool_size=(2, 2), pool_type='avg')
-        x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        if self.dropout:
+            x = F.dropout(x, p=0.2, training=self.training, inplace=True)
         x = self.resnet(x)
         x = F.avg_pool2d(x, kernel_size=(2, 2))
-        x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        if self.dropout:
+            x = F.dropout(x, p=0.2, training=self.training, inplace=True)
         x = self.conv_block_after1(x, pool_size=(1, 1), pool_type='avg')
-        x = F.dropout(x, p=0.2, training=self.training, inplace=True)
+        if self.dropout:
+            x = F.dropout(x, p=0.2, training=self.training, inplace=True)
         x = torch.mean(x, dim=3)
         
         (x1, _) = torch.max(x, dim=2)
         x2 = torch.mean(x, dim=2)
         x = x1 + x2
-        x = F.dropout(x, p=0.5, training=self.training)
+        if self.dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
-        embedding = F.dropout(x, p=0.5, training=self.training)
+        if self.dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
+            # embedding = F.dropout(x, p=0.5, training=self.training)
+
         # clipwise_output = torch.sigmoid(self.fc_audioset(x))
         clipwise_output = self.fc_audioset(x)
         
-        output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+        # output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
 
         return clipwise_output
         # return output_dict
@@ -1510,7 +1530,7 @@ class InvertedResidual(nn.Module):
 
 class MobileNetV2(nn.Module):
     def __init__(self, sample_rate, window_size, hop_size, mel_bins, fmin, 
-        fmax, classes_num):
+        fmax, classes_num, dropout=True):
         
         super(MobileNetV2, self).__init__()
 
@@ -1596,6 +1616,8 @@ class MobileNetV2(nn.Module):
         self.fc1 = nn.Linear(1280, 1024, bias=True)
         self.fc_audioset = nn.Linear(1024, classes_num, bias=True)
         
+        self.dropout = dropout
+
         self.init_weight()
 
     def init_weight(self):
@@ -1639,11 +1661,14 @@ class MobileNetV2(nn.Module):
         x = x1 + x2
         # x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
-        embedding = F.dropout(x, p=0.5, training=self.training)
+        if self.dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
+            # embedding = F.dropout(x, p=0.5, training=self.training)
+
         # clipwise_output = torch.sigmoid(self.fc_audioset(x))
         clipwise_output = self.fc_audioset(x)
         
-        output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+        # output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
 
         return clipwise_output
         # return output_dict

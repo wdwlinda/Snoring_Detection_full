@@ -238,7 +238,7 @@ def get_pydub_sound(filename, audio_format, sr=None, channels=None):
     """
     Get Pydub sound object and set the basic params
     """
-    # sound = AudioSegment.from_wav(filename)
+    # sound = AudioSegment.from_file(filename, 'mp4')
     sound = AudioSegment.from_file(filename, audio_format)
     if sr: sound = sound.set_frame_rate(sr)
     if channels: sound = sound.set_channels(channels)

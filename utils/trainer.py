@@ -161,12 +161,6 @@ class Trainer(object):
                 # ori_target = target_var[0].detach().cpu().numpy()
                 input_var, target_var = self.batch_valid_transform(input_var, target_var)
                 
-
-            # import matplotlib.pyplot as plt
-            # plt.imshow(input_var[0, 0].detach().cpu().numpy())
-            # plt.title(f'train ori {ori_target} trans {target_var[0].detach().cpu().numpy()}')
-            # plt.show()
-            
             output = self.predict(input_var)
             loss = self.criterion(output, target_var)
 

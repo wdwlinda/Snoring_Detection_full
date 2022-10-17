@@ -74,7 +74,9 @@ class SnoringPreprocess(ClsPreprocess):
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2,
                  split_ratio: dict = {'train': 0.7, 'valid': 0.1, 'test': 0.2},
-                 sample_ratio: float = 1.0):
+                 extend_mode: str = 'pad',
+                 sample_ratio: float = 1.0,
+                 first_N: int = None):
         assert sum([ratio for ratio in list(split_ratio.values())]) == 1.0
         self.suffix = suffix
         self.out_suffix = out_suffix
@@ -83,22 +85,36 @@ class SnoringPreprocess(ClsPreprocess):
         self.target_duration = target_duration
         self.split_ratio = split_ratio
         self.sample_ratio = sample_ratio
+        self.extend_mode = extend_mode
+        self.first_N = first_N
 
     def __call__(self, dataset_name: str, data_root: str, save_root: str) -> None:
         self.dataset_name = dataset_name
         files = self.get_data_refs(data_root)
         preprocess_data_refs = {'input': [], 'target': [], 'process_path': []}
         print(f'Preprocessing -- {dataset_name}')
+        err_idx = 0
+        num_sample = 0
         for raw_path in files:
             # Load raw audio
-            sound = dataset_utils.get_pydub_sound(
-                str(raw_path), self.suffix, sr=self.target_sr, channels=self.target_channel)
-            
+            try:
+                sound = dataset_utils.get_pydub_sound(
+                    str(raw_path), self.suffix, sr=self.target_sr, channels=self.target_channel)
+            except:
+                print(f'{err_idx} {raw_path.parent.name} {raw_path.stem} Decoding failed')
+                err_idx += 1
+                continue
+
             # Audio preprocessing
             new_sounds = self.sound_preprocess(sound, raw_path)
 
             # Save preprocessed audio
             for idx, new_sound in enumerate(new_sounds, 1):
+                if self.first_N is not None and self.first_N > 0:
+                    if num_sample >= self.first_N:
+                        break
+
+                num_sample += 1
                 raw_root = raw_path.parent
                 part_dirs = raw_root.relative_to(data_root)
                 data_save_root = save_root.joinpath(dataset_name, 'data', part_dirs)
@@ -122,6 +138,7 @@ class SnoringPreprocess(ClsPreprocess):
         
         # Save reference table
         data_save_root = Path(save_root) / Path(dataset_name)
+        data_save_root.mkdir(parents=True, exist_ok=True)
         self.ref_to_csv(preprocess_data_refs, data_save_root)
         self.ref_to_text(preprocess_data_refs, data_save_root)
 
@@ -130,9 +147,16 @@ class SnoringPreprocess(ClsPreprocess):
    
     def get_data_refs(self, data_root: str) -> list:
         files = list(data_root.rglob(f'*.{self.suffix}'))
-        files = np.random.choice(files, int(len(files)*self.sample_ratio), replace=False)
+        files = self.sample_data(files)
         return files
 
+    def sample_data(self, files):
+        if self.sample_ratio < 1:
+            files = np.random.choice(files, int(len(files)*self.sample_ratio), replace=False)
+        
+        
+        return files
+        
     def get_class_label(self, save_path):
         return int(save_path.parent.name)
 
@@ -222,21 +246,22 @@ class SnoringPreprocess(ClsPreprocess):
             with open(json_path, 'wt', encoding='UTF-8') as jsonfile:
                 json.dump(coco_data, jsonfile, ensure_ascii=True, indent=4)
 
-    def sound_preprocess(self, sound, *args, **kwargs):
-        """ 
-        Simple preprocessing for input datato have unify duration, channel, sr.
-        Apply spitting if the raw data is to long, and apply repeat, padding to
-        extend thedata length.
-        """
+    def process_duration(self, sound):
         # TODO: overlapping
         # TODO: drop_Last or keep_last for splitting? (roll_back, padding , overlapping)
         # TODO: repeat, padding for extend
         # TODO: modulize
         if sound.duration_seconds < self.target_duration:
-            # repeat
-            repeat_ratio = int(self.target_duration//sound.duration_seconds)
-            new_sound = sound*repeat_ratio + sound
-            new_sounds = [new_sound[:1000*self.target_duration]]
+            if self.extend_mode == 'pad':
+                pad_ms = (self.target_duration-sound.duration_seconds)/2 * 1000
+                silence = AudioSegment.silent(duration=pad_ms)
+                new_sound = silence + sound + silence
+                new_sounds = [new_sound[:1000*self.target_duration]]
+            elif self.extend_mode == 'repeat':
+                # repeat
+                repeat_ratio = int(self.target_duration//sound.duration_seconds)
+                new_sound = sound*repeat_ratio + sound
+                new_sounds = [new_sound[:1000*self.target_duration]]
         elif sound.duration_seconds > self.target_duration:
             # continuous spitting
             new_sounds = continuous_split_sound(sound, self.target_duration)
@@ -244,9 +269,17 @@ class SnoringPreprocess(ClsPreprocess):
             new_sounds = [sound]
         return new_sounds
 
+    def sound_preprocess(self, sound, *args, **kwargs):
+        """ 
+        Simple preprocessing for input datato have the same duration.
+        Apply spitting if the raw data is to long, and apply repeat, padding to
+        extend thedata length.
+        """
+        new_sounds = self.process_duration(sound)
+        return new_sounds
+
     def to_coco(self):
         pass
-
 
 
 class AssignLabelPreprocess(SnoringPreprocess):
@@ -268,6 +301,83 @@ class AssignLabelPreprocess(SnoringPreprocess):
         return self.assign_label
 
 
+class ManualLabelPreprocess(SnoringPreprocess):
+    def __init__(self, 
+                 label_path: str,
+                 suffix: str = 'wav', 
+                 out_suffix: str = 'wav', 
+                 target_sr: int = 16000, 
+                 target_channel: int = 1, 
+                 target_duration: Union[int, float] = 2,
+                 sample_ratio: float = 1.0,
+                 first_N: int = None):
+
+        super().__init__(
+            suffix, out_suffix, target_sr, target_channel, target_duration, 
+            sample_ratio=sample_ratio, first_N=first_N)
+        self.manual_label = pd.read_csv(label_path)
+
+    def get_class_label(self, save_path):
+        raw_path = save_path
+        filename = raw_path.stem
+        sample = self.manual_label.loc[self.manual_label['input'] == filename]
+        target = int(sample['target'].values[0])
+        return target
+
+
+
+class AudiosetPreprocess(SnoringPreprocess):
+    def __init__(self, 
+                 data_path: str,
+                 class_path: str,
+                 suffix: str = 'wav', 
+                 out_suffix: str = 'wav', 
+                 target_sr: int = 16000, 
+                 target_channel: int = 1, 
+                 target_duration: Union[int, float] = 2,
+                 ):
+        super().__init__(
+            suffix, out_suffix, target_sr, target_channel, target_duration)
+        self.data_df = pd.read_csv(data_path, sep='\t')
+        self.class_df = pd.read_csv(class_path, sep='\t', header=None)
+
+        # TODO: for temporally using, remove later
+        self.class_mapping = {
+            'Alarm': 'Alarm clock',
+            'Car': 'Car passing by',
+            'Snoring': 'Snoring',
+            'snoring': 'Snoring',
+            'White': 'White noise, pink noise',
+            'Wind': 'Wind noise (microphone)',
+        }
+
+    def get_class_label(self, save_path):
+        if save_path.parent.name == 'Snoring':
+            return 1
+        else:
+            return 0
+
+    def sound_preprocess(self, sound, *args, **kwargs):
+        raw_path = args[0]
+        class_name = raw_path.parent.name
+        class_name = self.class_mapping[class_name]
+        segment_id = raw_path.stem
+        class_key = self.class_df.loc[self.class_df[1]==class_name][0].values[0]
+        file_df = self.data_df.loc[self.data_df['segment_id']==segment_id]
+        file_class_df = file_df.loc[file_df['label']==class_key]
+        # print(file_class_df)
+
+        new_sounds = []
+        for index, row in file_class_df.iterrows():
+            start_time = row['start_time_seconds']
+            end_time = row['end_time_seconds']
+            new_sound = sound[int(start_time*1000):int(end_time*1000)]
+            new_sound2 = self.process_duration(new_sound)
+            new_sounds.extend(new_sound2)
+        
+        return new_sounds
+
+
 class KagglePadPreprocess(SnoringPreprocess):
     def __init__(self, 
                  suffix: str = 'wav', 
@@ -276,26 +386,7 @@ class KagglePadPreprocess(SnoringPreprocess):
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2):
         super().__init__(
-            suffix, out_suffix, target_sr, target_channel, target_duration)
-
-    def sound_preprocess(self, sound, *args, **kwargs):
-        """ 
-        Simple preprocessing for input datato have unify duration, channel, sr.
-        Apply spitting if the raw data is to long, and apply repeat, padding to
-        extend thedata length.
-        """
-        if sound.duration_seconds < self.target_duration:
-            # side padding
-            pad_ms = (self.target_duration-sound.duration_seconds)/2 * 1000
-            silence = AudioSegment.silent(duration=pad_ms)
-            new_sound = silence + sound + silence
-            new_sounds = [new_sound[:1000*self.target_duration]]
-        elif sound.duration_seconds > self.target_duration:
-            # continuous spitting
-            new_sounds = continuous_split_sound(sound, self.target_duration)
-        else:
-            new_sounds = [sound]
-        return new_sounds
+            suffix, out_suffix, target_sr, target_channel, target_duration, extend_mode='pad')
 
 
 class ESC50Preprocess(SnoringPreprocess):
@@ -407,11 +498,6 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_snoring\Snoring Dataset')
     # processer(dataset_name, data_root, save_root)
 
-    # processer = AssignLabelPreprocess(assign_label=1)
-    # dataset_name = 'web_snoring'
-    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring')
-    # processer(dataset_name, data_root, save_root)
-
     # processer = ESC50Preprocess()
     # dataset_name = 'ESC50'
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50-master\audio')
@@ -438,20 +524,23 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k')
     # processer(dataset_name, data_root, save_root)
 
-    # processer = AssignLabelPreprocess(assign_label=1)
+    # label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\label.csv'
+    # processer = ManualLabelPreprocess(label_path)
     # dataset_name = 'pixel_0908'
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-    # processer = AssignLabelPreprocess(assign_label=1)
+    # label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\label.csv'
+    # processer = ManualLabelPreprocess(label_path)
     # dataset_name = 'iphone11_0908'
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-    # processer = AssignLabelPreprocess(assign_label=1, suffix='mp3')
-    # dataset_name = '0908_ori'
-    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
-    # processer(dataset_name, data_root, save_root)
+    label_path = r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori\label.csv'
+    processer = ManualLabelPreprocess(label_path, suffix='mp3', first_N=100)
+    dataset_name = '0908_ori'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
+    processer(dataset_name, data_root, save_root)
 
     # processer = AssignLabelPreprocess(assign_label=1)
     # dataset_name = 'pixel_0908_2'
@@ -463,37 +552,73 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
-    dataset_name = 'Redmi_Note8_night'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # label_path = r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\web_snoring\label.csv'
+    # processer = ManualLabelPreprocess(label_path)
+    # dataset_name = 'web_snoring'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0)
-    dataset_name = 'redmi'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\redmi\wave_split')
-    processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0)
-    dataset_name = 'pixel'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
+    # dataset_name = 'Redmi_Note8_night'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
-    dataset_name = 'Mi11_night'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0)
+    # dataset_name = 'redmi'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\redmi\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0)
-    dataset_name = 'iphone'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0)
+    # dataset_name = 'pixel'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
-    dataset_name = 'Samsung_Note10Plus_night'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
+    # dataset_name = 'Mi11_night'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+    # processer = AssignLabelPreprocess(assign_label=0)
+    # dataset_name = 'iphone'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+    # processer = AssignLabelPreprocess(assign_label=0, sample_ratio=0.25)
+    # dataset_name = 'Samsung_Note10Plus_night'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\wave_split')
+    # processer(dataset_name, data_root, save_root)
+
+
+    # data_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\audioset_train_strong.tsv'
+    # class_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\mid_to_display_name.tsv'
+    # processer = AudiosetPreprocess(data_path, class_path, suffix='mp4')
+    # dataset_name = 'Audioset_snoring_strong'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\data\strong\audioset_train_strong')
+    # processer(dataset_name, data_root, save_root)
+
+    # data_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\audioset_train_strong.tsv'
+    # class_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\mid_to_display_name.tsv'
+    # processer = AudiosetPreprocess(data_path, class_path, suffix='wav')
+    # dataset_name = 'Audioset_snoring_weak'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\output')
+    # processer(dataset_name, data_root, save_root)
+
+
+
+def test():
+    # data_dir = r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_bal\data\Snoring'
+    # wavs = Path(data_dir).rglob('*.wav')
+    # wavs = [f.stem.split('-')[0] for f in wavs]
+    # print(len(np.unique(wavs)))
+
+    f = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\data\strong\audioset_train_strong\Snoring\3cwJLv-D_hI_20000.wav'
+    # sound = dataset_utils.get_pydub_sound(f, 'wav')
+    import torchaudio
+    data = torchaudio.load(f)
 
 
 if __name__ == '__main__':
     data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
     run_class()
+    # test()

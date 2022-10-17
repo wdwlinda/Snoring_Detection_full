@@ -3,6 +3,7 @@ from pathlib import Path
 from inspect import getmembers, isfunction, isclass
 from typing import Optional
 
+import torch
 import torch.nn as nn
 
 
@@ -80,27 +81,42 @@ def find_module(class_name: Path, file_path: Optional[Path] = None):
     return None
 
 
-class GetNewModel():
+class ModelBuilder():
     def __init__(self, common_config: dict, model_name: str, new_model_config: dict = None):
         self.common_config = common_config
+        self.model_name = model_name
+        # TODO: modify yaml
+        self.restore_path = common_config.model.restore_path
+        # XXX: params device, statedict_key
+        self.device = torch.device('cuda:0')
+        self.statedict_key = 'net'
         self.Model = self.get_model(model_name)
         if new_model_config is not None:
             self.new_model_config = new_model_config
         else:
             self.new_model_config = {}
-
+        
     def interface(self):
         raise NotImplementedError("The interface of new model is not implemented")
 
     def get_model(self, model_name: str):
         return find_model(model_name)
 
-    def __call__(self):
+    def build(self):
         new_model_kwargs = self.interface(self.common_config)
         self.new_model_config.update(new_model_kwargs)
         model = self.Model(
             **self.new_model_config
         )
+        model = self.restore(model)
+        model = model.to(self.device)
+        return model
+
+    def restore(self, model):
+        # TODO: strict?
+        if self.restore_path is not None:
+            state_key = torch.load(self.restore_path, map_location=self.device)
+            model.load_state_dict(state_key[self.statedict_key])
         return model
 
 

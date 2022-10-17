@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 import os
 import random
@@ -41,16 +42,8 @@ def run_train(config):
         train_utils.set_deterministic(manual_seed, random, np, torch)
             
     # Dataloader
-    # train_dataset = AudioDatasetfromNumpy(config, mode='train')
-    # valid_dataset = AudioDatasetfromNumpy(config, mode='valid')
-    # if config.dataset.wav_transform:
-    #     t = time_transform.augmentation()
-    # else:
-    #     t = None
     train_dataset = AudioDatasetCOCO(config, modes='train')
     valid_dataset = AudioDatasetCOCO(config, modes='valid')
-    # train_dataset = AudioDataset(config, mode='train')
-    # valid_dataset = AudioDataset(config, mode='valid')
 
     drop_last = True if config['TRAIN']['MIXUP'] else False
     train_dataloader = DataLoader(
@@ -71,18 +64,6 @@ def run_train(config):
 
     # Model
     model = create_snoring_model(config, config.model.name)
-    
-    
-    # model = ImageClassifier(
-    #     backbone=config.model.name, in_channels=config.model.in_channels,
-    #     out_channels=config.model.out_channels, pretrained=config.model.pretrained, 
-    #     dim=1, output_structure=None)
-    # XXX: PANNS
-    from models.PANNs.pann_model import get_pann_model
-    model = get_pann_model(
-        config.model.name, 16000, 2, 'cuda:0', pretrained=config.model.pretrained, strict=False,
-    )
-    # print(model)
 
     # Optimizer
     optimizer = train_utils.create_optimizer_temp(config.optimizer_config, model)
@@ -105,7 +86,6 @@ def run_train(config):
     valid_activation = train_utils.create_activation(config.model.activation)
 
     # Training
-    
     transform = WavtoMelspec_torchaudio(
         sr=16000,
         n_class=config.model.out_channels,
@@ -184,6 +164,7 @@ def get_exp_configs(config: dict, exp_config: dict) -> dict:
     Returns:
         dict: [description]
     """
+    # XXX: Organize code
     def get_configs(root, exp_config, idx):
         params = exp_config[idx]
         new_root = []
@@ -199,52 +180,14 @@ def get_exp_configs(config: dict, exp_config: dict) -> dict:
         return new_root
     
     root = [[]]
-    exp_config_l = list(exp_config.values())  
-    cc = get_configs(root, exp_config_l, 0)
+    exp_config_list = list(exp_config.values())  
+    params_list = get_configs(root, exp_config_list, 0)
     configs = []
-    for params in cc:
-        config_temp = {}
-        for param_name in exp_config:
-            config_temp[param_name] = params
+    for params in params_list:
+        config_temp = copy.deepcopy(config)
+        for idx, param_name in enumerate(exp_config):
+            config_temp = assign_exp_value(config_temp, param_name, params[idx])
         configs.append(config_temp)
-
-    # cc = get_configs(root, [['a1', 'a2'], ['b1', 'b2', 'b3'], ['c1']], 0)
-
-        # for params in exp_config:
-        #     if len(root) == len:
-
-        #     get_configs()
-
-
-    # for key in exp_config:
-    #     c = []
-    #     for params in exp_config[key]:
-    #         c.append(params)
-    #         for k in range(len(root)):
-    #             root.append(exp_config[key])
-
-    # configs = []
-    # sorted(exp_config, key = lambda key: len(exp_config[key]))
-    # for params, values in exp_config.items():
-    #     new_config = copy.deepcopy(config)
-    #     if len(values) == 1:
-    #         val = values[0]
-    #         new_config = assign_exp_value(new_config, params, val)
-    #     else:
-    #         for val in values:
-    #             # XXX:
-    #             new_config = assign_exp_value(new_config, params, val)
-    #             configs.append(new_config)
-
-    # XXX:
-    configs = []
-    config['model']['name'] = exp_config['model.name'][0]
-    config['dataset']['index_path'] = exp_config['dataset.index_path'][0]
-    config['dataset']['wav_transform'] = True
-    configs.append(config)
-    new_config = copy.deepcopy(config)
-    new_config['dataset']['wav_transform'] = False
-    configs.append(new_config)
 
     return configs
     
@@ -265,13 +208,15 @@ def main():
     test_dataset = configuration.load_config('dataset/dataset.yml')
 
     # TODO: This is only for simple grid search, apply NII hyper-params search later
+    # TODO: This should in order to decide which params to be test first?
     exp_config = {
         'dataset.index_path': dataset_paths,
-        'model.name': ['ResNet54'],
-        # 'model.pretrained': [True, False],
-        # 'model.name': ['ResNet38', 'ResNet54', 'MobileNetV2', 'resnet50', 
+        'model.name': ['timm.resnet34', 'pann.ResNet38'],
+        'model.pretrained': [True, False],
+        # 'model.name': ['pann.ResNet38', 'ResNet54', 'MobileNetV2', 'timm.resnet34', 
         # 'convnext_tiny_384_in22ft1k'],
-        'dataset.wav_transform': [True, False],
+        # 'dataset.wav_transform': [True],
+        # 'model.dropout': [True, False]
         # 'TRAIN.MIXUP': [True, False],
         # 'dataset.is_data_augmentation': [True, False],
     }
@@ -288,7 +233,7 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_panns_pretrained"
+        exp_name = f"_Snoring_single_dataset_panns_pretrained_final"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         with mlflow.start_run(run_name=config['model']['name']):
@@ -299,14 +244,14 @@ def main():
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
             # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
-            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_402'
+            config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_655'
             config['eval'] = {
                 'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                 'checkpoint_name': r'ckpt_best.pth'
             }
             config = train_utils.DictAsMember(config)
 
-            run_train(config)
+            # run_train(config)
             total_acc = []
             for test_data_name, test_path in test_dataset['data_pre_root'].items():
             # for test_data_name, test_path in test_dataset['dataset_wav'].items():
@@ -321,7 +266,11 @@ def main():
                 print(test_data_name)
                 src_dir = test_path
                 dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
+                config['model']['restore_path'] = Path(
+                    config.eval.restore_checkpoint_path).joinpath(config.eval.checkpoint_name)
+
                 acc, precision, recall = run_test(src_dir, dist_dir, config, split)
+
                 mlflow.log_metric(f'{test_data_name}_acc', acc)
                 if test_data_name in ['ASUS_snoring', 'ESC50']:
                     mlflow.log_metric(f'{test_data_name}_precision', precision)

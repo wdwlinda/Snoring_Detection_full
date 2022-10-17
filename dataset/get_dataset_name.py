@@ -80,11 +80,8 @@ def get_dataset():
 def get_dataset_names():
     dataset1 = [
         'ASUS_snoring',
-        # 'Mi11_office'
     ]
     dataset2 = [
-        # 'Kaggle_snoring'
-        # 'ASUS_snoring',
         'Kaggle_snoring_pad'
     ]
     dataset3 = [
@@ -94,9 +91,46 @@ def get_dataset_names():
         'Kaggle_snoring_pad',
         'ASUS_snoring',
     ]
-
-    datasets = [dataset1]
-    # datasets = [dataset1, dataset2, dataset3, dataset4]
+    dataset5 = [
+        'Kaggle_snoring_pad',
+        'ASUS_snoring',
+        'ESC50'
+    ]
+    dataset6 = [
+        'Kaggle_snoring_pad',
+        'ASUS_snoring',
+        'ESC50',
+        'redmi',
+        'pixel',
+        'iphone',
+        'Mi11_office',
+        'Mi11_night',
+        'Samsung_Note10Plus_night',
+        'Redmi_Note8_night',
+    ]
+    dataset7 = ['Audioset_snoring_bal']
+    dataset8 = [
+        'Audioset_snoring_bal',
+        'Kaggle_snoring_pad',
+        'ASUS_snoring',
+        'ESC50',
+        'redmi',
+        'pixel',
+        'iphone',
+        'Mi11_office',
+        'Mi11_night',
+        'Samsung_Note10Plus_night',
+        'Redmi_Note8_night',
+    ]
+    dataset9 = ['pixel_0908']
+    # datasets = [dataset9]
+    # datasets = [dataset1]
+    # datasets = [dataset6, dataset7, dataset8]
+    datasets = [
+        dataset1, dataset2, dataset3, 
+        dataset4, dataset5, dataset6,
+        dataset7, dataset8
+    ]
     return datasets
 
     

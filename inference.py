@@ -397,17 +397,20 @@ def single_test(
     config['dataset']['index_path'] = {name: data_path}
     test_dataset = AudioDatasetCOCO(config, modes=splits)
     
-    # XXX: PANNS
-    from models.PANNs.pann_model import get_pann_model
-    net = get_pann_model(
-        config.model.name,
-        16000, 
-        2,
-        'cuda:0',
-        pretrained=False,
-        strict=False,
-        restore_path=os.path.join(config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
-    )
+    from models.snoring_model import create_snoring_model
+    model = create_snoring_model(config, config.model.name)
+
+    # # XXX: PANNS
+    # from models.PANNs.pann_model import get_pann_model
+    # net = get_pann_model(
+    #     config.model.name,
+    #     16000, 
+    #     2,
+    #     'cuda:0',
+    #     pretrained=False,
+    #     strict=False,
+    #     restore_path=os.path.join(config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
+    # )
     # net = ImageClassifier(
     #     backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
     #     out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
@@ -427,7 +430,7 @@ def single_test(
     ) 
 
     inferencer = Inferencer(
-        config, dataset=test_dataset, model=net, save_path=save_path, transform=test_transform)
+        config, dataset=test_dataset, model=model, save_path=save_path, transform=test_transform)
     prediction = inferencer(show_info)
     return prediction
     

@@ -31,27 +31,33 @@ def get_local_checkpoint(model_name, checkpoint_dir):
 
 # TODO: arguments
 def get_pann_model(
-    model_name, sample_rate, classes_num, device, pretrained=True, strict=False,
+    model_name, model, device=torch.device('cuda:0'), pretrained=True, strict=False,
     restore_path=None, checkpoint_dir='models/PaNNs'):
-    # hop_size = 512
-    # window_size = 2048
-    # mel_bins = 128
-    hop_size = 320
-    window_size = 1024
-    mel_bins = 64
-    fmin = 50
-    fmax = 14000
+    # # hop_size = 512
+    # # window_size = 2048
+    # # mel_bins = 128
+    # # fmin = 0
+    # # fmax = None
 
-    # Model
-    m = importlib.import_module('models.PANNs.model')
-    Model = getattr(m, model_name)
-    model = Model(
-        sample_rate=sample_rate, window_size=window_size, 
-        hop_size=hop_size, mel_bins=mel_bins, fmin=fmin, fmax=fmax, 
-        classes_num=classes_num
-    )
+    # hop_size = 320
+    # window_size = 1024
+    # mel_bins = 64
+    # fmin = 0
+    # fmax = None
+    # # fmin = 50
+    # # fmax = 14000
+
+    # # Model
+    # m = importlib.import_module('models.PANNs.model')
+    # Model = getattr(m, model_name)
+    # model = Model(
+    #     sample_rate=sample_rate, window_size=window_size, 
+    #     hop_size=hop_size, mel_bins=mel_bins, fmin=fmin, fmax=fmax, 
+    #     classes_num=classes_num, dropout=dropout
+    # )
 
     if pretrained:
+        model_name = model_name.split('.')[-1]
         checkpoint_path = get_local_checkpoint(model_name, checkpoint_dir)
         assert checkpoint_path is not None, 'Missing checkpoint'
         checkpoint = torch.load(checkpoint_path, map_location=device)
