@@ -18,7 +18,7 @@ MultiLayerPerceptron = layers.MultiLayerPerceptron
 # get_activation = utils.get_activation
 # from ....Model_deploy import deploy_torch
 # m = deploy_torch.nodule_cls_main
-from models.utils import ModelBuilder
+from models.utils import ModelBuilder, get_activation
 
 
 class TimmImgClassifierBuilder(ModelBuilder):
@@ -27,10 +27,11 @@ class TimmImgClassifierBuilder(ModelBuilder):
 
     def interface(self, common_config):
         model_name = common_config.model.name.split('.')[1]
+        activation = get_activation(common_config.model.activation)
         model_kwargs = {
             'in_channels': common_config.model.in_channels,
             'out_channels': common_config.model.out_channels,
-            # 'activation': common_config.model.activation,
+            'activation': activation,
             'backbone': model_name,
             'pretrained': common_config.model.pretrained,
             'output_structure': None,
@@ -39,22 +40,26 @@ class TimmImgClassifierBuilder(ModelBuilder):
   
     def restore(self, model):
         if self.restore_path is not None:
-            state_key = torch.load(self.restore_path, map_location=self.device)
-            state_key['encoder'] = {
-                '.'.join(layer_name.split('.')[1:]): layer 
-                for layer_name, layer in state_key['net'].items()
-                if layer_name.startswith('encoder')
-            }
-            model.encoder.load_state_dict(state_key['encoder'])
-            model.encoder = model.encoder.to(self.device)
+            # state_key = torch.load(self.restore_path, map_location=self.device)
+            # state_key['encoder'] = {
+            #     '.'.join(layer_name.split('.')[1:]): layer 
+            #     for layer_name, layer in state_key['net'].items()
+            #     if layer_name.startswith('encoder')
+            # }
+            # model.encoder.load_state_dict(state_key['encoder'])
+            # model.encoder = model.encoder.to(self.device)
 
-            state_key['mlp'] = {
-                '.'.join(layer_name.split('.')[1:]): layer 
-                for layer_name, layer in state_key['net'].items()
-                if layer_name.startswith('mlp')
-            }
-            model.mlp.load_state_dict(state_key['mlp'])
-            model.mlp = model.mlp.to(self.device)
+            # state_key['mlp'] = {
+            #     '.'.join(layer_name.split('.')[1:]): layer 
+            #     for layer_name, layer in state_key['net'].items()
+            #     if layer_name.startswith('mlp')
+            # }
+            # model.mlp.load_state_dict(state_key['mlp'])
+            # model.mlp = model.mlp.to(self.device)
+
+            # TODO: strict
+            state_key = torch.load(self.restore_path, map_location=self.device)
+            model.load_state_dict(state_key['net'])
         return model
 
 
@@ -70,14 +75,14 @@ def log_melspec(melspec, top_db=80.0):
 
 class ImageClassifier(nn.Module):
     def __init__(self, in_channels, out_channels, output_structure=None, activation=None, 
-                 backbone='resnet50', pretrained=True, restore_path=None, device='cuda:0',
-                 strict=True, replace_gelu=True,
+                 backbone='resnet50', pretrained=True, replace_gelu=True,
                  *args, **kwargs):
         super(ImageClassifier, self).__init__()
         self.out_channels = out_channels
         self.output_structure = output_structure
         self.strict = strict
         self.encoder = timm.create_model(backbone, pretrained, in_chans=in_channels)
+        self.activation = activation
     
         # XXX
         if replace_gelu:
@@ -88,7 +93,6 @@ class ImageClassifier(nn.Module):
                 sets=True
             )
 
-        self.restore_path = restore_path
         self.device = torch.device('cuda:0')
         
         if in_channels != 3 and pretrained:
@@ -97,9 +101,9 @@ class ImageClassifier(nn.Module):
         encoder_out_node = 1000
         if output_structure:
             output_structure = [encoder_out_node] + output_structure + [out_channels]
-            self.mlp = MultiLayerPerceptron(output_structure, 'relu', out_activation=activation)
+            self.mlp = MultiLayerPerceptron(output_structure, 'relu', out_activation=None)
         else:
-            self.mlp = MultiLayerPerceptron([encoder_out_node, out_channels], 'relu', out_activation=activation)
+            self.mlp = MultiLayerPerceptron([encoder_out_node, out_channels], 'relu', out_activation=None)
         # self.mlp = self.mlp.to(self.device)
     
         sample_rate = 16000
@@ -154,38 +158,20 @@ class ImageClassifier(nn.Module):
         x = self.bn0(x)
         x = x.transpose(1, 3)
         
-        if not self.training:
-            import matplotlib.pyplot as plt
-            plt.imshow(x[0, 0].detach().cpu().numpy())
-            plt.show()
-
         if self.training:
             x = self.spec_augmenter(x)
 
+        # if self.training:
+        #     import matplotlib.pyplot as plt
+        #     plt.imshow(x[0, 0].detach().cpu().numpy())
+        #     plt.show()
+
         x = self.encoder(x)
         x = self.mlp(x)
-        if self.training:
-            x = torch.nn.Softmax()(x)
+        if not self.training:
+            x = self.activation(x)
         return x
     
-    def restore(self):
-        state_key = torch.load(self.restore_path, map_location=self.device)
-        state_key['encoder'] = {
-            '.'.join(layer_name.split('.')[1:]): layer 
-            for layer_name, layer in state_key['net'].items()
-            if layer_name.startswith('encoder')
-        }
-        self.encoder.load_state_dict(state_key['encoder'])
-        self.encoder = self.encoder.to(self.device)
-
-        state_key['mlp'] = {
-            '.'.join(layer_name.split('.')[1:]): layer 
-            for layer_name, layer in state_key['net'].items()
-            if layer_name.startswith('mlp')
-        }
-        self.mlp.load_state_dict(state_key['mlp'])
-        self.mlp = self.mlp.to(self.device)
-        
     # XXX:
     def replace_layers(self, model, old, new, sets):
         for n, module in model.named_children():

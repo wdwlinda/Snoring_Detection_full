@@ -536,21 +536,23 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-    label_path = r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori\label.csv'
-    processer = ManualLabelPreprocess(label_path, suffix='mp3', first_N=100)
-    dataset_name = '0908_ori'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
+    # label_path = r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori\label.csv'
+    # processer = ManualLabelPreprocess(label_path, suffix='mp3', first_N=100)
+    # dataset_name = '0908_ori'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
+    # processer(dataset_name, data_root, save_root)
+
+    label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\label.csv'
+    processer = ManualLabelPreprocess(label_path)
+    dataset_name = 'pixel_0908_2'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
     processer(dataset_name, data_root, save_root)
 
-    # processer = AssignLabelPreprocess(assign_label=1)
-    # dataset_name = 'pixel_0908_2'
-    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
-    # processer(dataset_name, data_root, save_root)
-
-    # processer = AssignLabelPreprocess(assign_label=1)
-    # dataset_name = 'iphone11_0908_2'
-    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
-    # processer(dataset_name, data_root, save_root)
+    label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\label.csv'
+    processer = ManualLabelPreprocess(label_path)
+    dataset_name = 'iphone11_0908_2'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
+    processer(dataset_name, data_root, save_root)
 
     # label_path = r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\web_snoring\label.csv'
     # processer = ManualLabelPreprocess(label_path)

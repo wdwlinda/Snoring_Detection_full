@@ -23,7 +23,7 @@ from dataset import transformations
 from dataset import input_preprocess
 from dataset.time_transform import get_wav_transform, augmentation
 from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy, AudioDatasetCOCO
-from dataset.get_dataset_name import get_dataset, get_dataset_wav, get_dataset_root
+from dataset.get_dataset_name import get_dataset
 from dataset.data_transform import WavtoMelspec_torchaudio
 from utils import configuration
 from utils import trainer
@@ -202,8 +202,7 @@ def main():
     
     # train & valid dataset
     dataset_paths = get_dataset()
-    dataset_paths = get_dataset_wav()
-    dataset_paths = get_dataset_root()
+
     # test dataset
     test_dataset = configuration.load_config('dataset/dataset.yml')
 
@@ -211,7 +210,8 @@ def main():
     # TODO: This should in order to decide which params to be test first?
     exp_config = {
         'dataset.index_path': dataset_paths,
-        'model.name': ['timm.resnet34', 'pann.ResNet38'],
+        'model.name': ['pann.ResNet38'],
+        # 'model.name': ['timm.resnet34', 'timm.convnext_tiny_384_in22ft1k'],
         'model.pretrained': [True, False],
         # 'model.name': ['pann.ResNet38', 'ResNet54', 'MobileNetV2', 'timm.resnet34', 
         # 'convnext_tiny_384_in22ft1k'],
@@ -233,7 +233,7 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_panns_pretrained_final"
+        exp_name = f"_Snoring_single_dataset_panns_pretrained_final_2"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         with mlflow.start_run(run_name=config['model']['name']):
@@ -244,21 +244,23 @@ def main():
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
             # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
-            config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_655'
+            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_655'
             config['eval'] = {
                 'restore_checkpoint_path': config['CHECKPOINT_PATH'],
                 'checkpoint_name': r'ckpt_best.pth'
             }
             config = train_utils.DictAsMember(config)
 
-            # run_train(config)
+            run_train(config)
             total_acc = []
             for test_data_name, test_path in test_dataset['data_pre_root'].items():
             # for test_data_name, test_path in test_dataset['dataset_wav'].items():
             # for test_data_name, test_path in test_dataset.items():
             # for test_data_name, test_path in test_dataset['dataset'].items():
                 # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                if test_data_name in ['web_snoring', 'iphone11_0908', 'pixel_0908', '0908_ori']:
+                if test_data_name in [
+                    'web_snoring', 'iphone11_0908', 'pixel_0908', 
+                    '0908_ori', 'iphone11_0908_2', 'pixel_0908_2']:
                     split = None
                 else:
                     split = 'test'

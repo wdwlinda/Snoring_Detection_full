@@ -57,21 +57,21 @@ class WavtoMelspec_torchaudio():
             onesided=True,
             n_mels=n_mels,
         )
-        # XXX: PANNs
-        self.wav_to_melspec = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sr,
-            n_fft=n_fft,
-            win_length=1024,
-            hop_length=320,
-            center=True,
-            pad_mode="reflect",
-            power=2.0,
-            norm='slaney',
-            onesided=True,
-            n_mels=64,
-            f_min=50,
-            f_max=14000
-        )
+        # # XXX: PANNs
+        # self.wav_to_melspec = torchaudio.transforms.MelSpectrogram(
+        #     sample_rate=sr,
+        #     n_fft=n_fft,
+        #     win_length=1024,
+        #     hop_length=320,
+        #     center=True,
+        #     pad_mode="reflect",
+        #     power=2.0,
+        #     norm='slaney',
+        #     onesided=True,
+        #     n_mels=128,
+        #     # f_min=50,
+        #     # f_max=14000
+        # )
         self.sr = sr
         self.wav_to_melspec.to(self.device)
         self.power_to_db = torchaudio.transforms.AmplitudeToDB()
@@ -94,30 +94,30 @@ class WavtoMelspec_torchaudio():
             self.wav_transform = get_wav_transform()
 
     def __call__(self, waveform, target):
-        if self.is_wav_transform:
-            waveform = self.wav_transform(waveform, self.sr)
+        # if self.is_wav_transform:
+        #     waveform = self.wav_transform(waveform, self.sr)
             
-        if self.is_mixup:
-            waveform, target = self.mixup_fn(waveform, target)
-            # waveform, target = self.mixup_fn(waveform, torch.argmax(target, 1))
-            target = torch.argmax(target, dim=1)
+        # if self.is_mixup:
+        #     waveform, target = self.mixup_fn(waveform, target)
+        #     # waveform, target = self.mixup_fn(waveform, torch.argmax(target, 1))
+        #     target = torch.argmax(target, dim=1)
 
-        melspec = self.wav_to_melspec(waveform)
-        melspec = self.power_to_db(melspec)
+        # melspec = self.wav_to_melspec(waveform)
+        # melspec = self.power_to_db(melspec)
 
-        if self.is_spec_transform:
-            # XXX: args for freq_masking, time_masking
-            if self.freq_masking is not None:
-                melspec = self.freq_masking(melspec)
+        # if self.is_spec_transform:
+        #     # XXX: args for freq_masking, time_masking
+        #     if self.freq_masking is not None:
+        #         melspec = self.freq_masking(melspec)
 
-            if self.time_masking is not None:
-                melspec = self.time_masking(melspec)
+        #     if self.time_masking is not None:
+        #         melspec = self.time_masking(melspec)
 
-        # melspec = torch.unsqueeze(melspec, dim=1)
-        # xx = input_var.detach().cpu().numpy()
-        # import matplotlib.pyplot as plt
-        # plt.imshow(xx[0, 0])
-        # plt.show()
+        # # melspec = torch.unsqueeze(melspec, dim=1)
+        # # xx = input_var.detach().cpu().numpy()
+        # # import matplotlib.pyplot as plt
+        # # plt.imshow(xx[0, 0])
+        # # plt.show()
 
         # XXX: PANNS
         # melspec = torch.tile(melspec, (1, 3, 1, 1))

@@ -173,7 +173,7 @@ class Inferencer():
 
                 prob = self.model(inputs)
                 # XXX: sigmoid temporally
-                prob = torch.nn.Softmax(dim=1)(prob)
+                # prob = torch.nn.Softmax(dim=1)(prob)
                 # prob = torch.sigmoid(prob)
                 prediction = torch.argmax(prob, dim=1).item()
                 prob = prob.detach().cpu().numpy()
