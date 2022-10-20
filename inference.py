@@ -19,10 +19,7 @@ import torchaudio
 
 import site_path
 from models.image_classification import img_classifier
-from dataset.dataloader import (
-    AudioDataset, SimpleAudioDataset, SimpleAudioDatasetfromNumpy, SimpleAudioDatasetfromNumpy_csv,
-    AudioDatasetCOCO
-)
+from dataset.dataloader import AudioDatasetCOCO
 from dataset import dataset_utils
 from dataset.data_transform import WavtoMelspec_torchaudio
 from utils import train_utils
@@ -267,70 +264,6 @@ class Inferencer():
         self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
 
-def pred(data_path: str, save_path: str, show_info=False) -> dict:
-    """Get prediction from directory
-
-    Args:
-        data_path ([type]): [description]
-        save_path ([type]): [description]
-        show_info (bool, optional): [description]. Defaults to False.
-    """
-    config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
-    # test_dataset = AudioDataset(config, mode=config.eval.running_mode, eval_mode=False)
-    test_dataset = SimpleAudioDataset(config, data_path)
-    net = ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
-        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None, 
-        # restore_path=r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_018\ckpt_best.pth'
-    )
-
-    test_transform = WavtoMelspec_torchaudio(
-        sr=16000,
-        n_class=config.model.out_channels,
-        preprocess_config=config.dataset.preprocess_config,
-        is_mixup=False,
-        is_spec_transform=False,
-        is_wav_transform=False,
-        device=configuration.get_device()
-    ) 
-
-    inferencer = Inferencer(
-        config, dataset=test_dataset, model=net, save_path=save_path, transform=test_transform)
-    prediction = inferencer.inference(show_info)
-    return prediction
-
-
-def pred_from_feature(data_path: str, save_path: str, config: str = None, show_info: bool = False) -> dict:
-    if not config:
-        config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
-    # XXX:
-    name = os.path.split(save_path)[1]
-    config['dataset']['index_path']['valid'] = {name: data_path}
-    test_dataset = AudioDataset(config, mode='valid', eval_mode=False)
-    # test_dataset = SimpleAudioDatasetfromNumpy(config, data_path)
-    # test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
-    net = ImageClassifier(
-        backbone=config.model.name, in_channels=config.model.in_channels, activation=config.model.activation,
-        out_channels=config.model.out_channels, pretrained=False, dim=1, output_structure=None,
-        restore_path=os.path.join(
-            config['eval']['restore_checkpoint_path'], config['eval']['checkpoint_name'])
-    )
-
-    test_transform = WavtoMelspec_torchaudio(
-        sr=16000,
-        n_class=config.model.out_channels,
-        preprocess_config=config.dataset.preprocess_config,
-        is_mixup=False,
-        is_spec_transform=False,
-        is_wav_transform=False,
-        device=configuration.get_device()
-    ) 
-
-    inferencer = Inferencer(
-        config, dataset=test_dataset, model=net, save_path=save_path, transform=test_transform)
-    prediction = inferencer.inference(show_info)
-    return prediction
-
 
 def plot_confusion_matrix(y_true, y_pred, save_path=''):
     cm = confusion_matrix(y_true, y_pred)
@@ -370,7 +303,7 @@ def pred_tflite(config, dataset_mapping, tflite_path):
     total_acc = {}
     config = local_train_utils.DictAsMember(config)
     for test_data_name, data_path in dataset_mapping['dataset'].items():
-        test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
+        # test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
         test_dataloader = DataLoader(test_dataset, 1, False)
 
         # tflite model
@@ -389,8 +322,24 @@ def pred_tflite(config, dataset_mapping, tflite_path):
     return prediction
 
 
+def run_test(src_dir, dist_dir, config, splits):
+    prediction = single_test(src_dir, dist_dir, config, splits=splits)
+    y_true, y_pred, confidence = [], [], []
+    for sample_name in prediction:
+        y_true.append(prediction[sample_name]['target'])
+        y_pred.append(prediction[sample_name]['pred'])
+
+    acc = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, zero_division=0)
+    recall = recall_score(y_true, y_pred, zero_division=0)
+
+    plot_confusion_matrix(y_true, y_pred, save_path=dist_dir)
+    return acc, precision, recall
+
+
 def single_test(
-    data_path: str, save_path: str, config: str = None, show_info: bool = False, splits: str = None) -> dict:
+    data_path: str, save_path: str, config: str = None, show_info: bool = False, 
+    splits: str = None) -> dict:
     if not config:
         config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
     name = os.path.split(save_path)[1]
@@ -434,74 +383,6 @@ def single_test(
     prediction = inferencer(show_info)
     return prediction
     
-
-def run_test(src_dir, dist_dir, config, splits):
-    prediction = single_test(src_dir, dist_dir, config, splits=splits)
-    y_true, y_pred, confidence = [], [], []
-    for sample_name in prediction:
-        y_true.append(prediction[sample_name]['target'])
-        y_pred.append(prediction[sample_name]['pred'])
-
-    acc = accuracy_score(y_true, y_pred)
-    precision = precision_score(y_true, y_pred, zero_division=0)
-    recall = recall_score(y_true, y_pred, zero_division=0)
-
-    plot_confusion_matrix(y_true, y_pred, save_path=dist_dir)
-    return acc, precision, recall
-
-
-def test(src_dir, dist_dir, config):
-    prediction = pred_from_feature(src_dir, dist_dir, config)
-    y_true, y_pred, confidence = [], [], []
-
-    dataset_name = os.path.split(dist_dir)[1]
-
-    # XXX:
-    # FIXME: ESC50 name different so cannot access an sample
-    if dataset_name in ['ASUS_snoring_train', 'ASUS_snoring_test', 'ESC50']:
-        path_map = {
-            'ASUS_snoring_train': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv',
-            'ASUS_snoring_test': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
-            'ESC50': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
-        }
-        df = pd.read_csv(path_map[dataset_name])
-        for index, sample_gt in df.iterrows():
-            if prediction.get(sample_gt['input'], None):
-                true_val = sample_gt['label']
-                y_true.append(true_val)
-                y_pred.append(prediction[sample_gt['input']]['pred'])
-                confidence.append(prediction[sample_gt['input']]['prob'][0, true_val])
-    else:
-        true_val = 0
-        for index, sample in prediction.items():
-            y_pred.append(sample['pred'])
-            y_true.append(true_val)
-            confidence.append(sample['prob'][0, true_val])
-
-    acc = accuracy_score(y_true, y_pred)
-    precision = precision_score(y_true, y_pred, zero_division=0)
-    recall = recall_score(y_true, y_pred, zero_division=0)
-
-    plot_confusion_matrix(y_true, y_pred, save_path=dist_dir)
-    return acc, precision, recall
-
-
-def inference_test(config, test_dataset):
-    config['eval'] = {
-        'restore_checkpoint_path': config['CHECKPOINT_PATH'],
-        'checkpoint_name': r'ckpt_best.pth'
-    }
-    config = local_train_utils.DictAsMember(config)
-
-    total_acc = {}
-    for test_data_name, test_path in test_dataset['dataset'].items():
-        src_dir = test_path
-        dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-        acc, precision, recall = test(src_dir, dist_dir, config)
-        total_acc[test_data_name] = acc
-    acc_mean = sum(list(total_acc.values())) / len(list(total_acc.values()))
-    print(total_acc, acc_mean)
-
 
 if __name__ == "__main__":
     CONFIG_PATH = 'config/_cnn_train_config.yml'

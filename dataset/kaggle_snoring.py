@@ -3,7 +3,6 @@ import abc
 from typing import Union
 import json
 from datetime import date
-import random
 
 import pandas as pd
 import numpy as np
@@ -67,6 +66,7 @@ def get_splitting(seq_length, split_length):
 
 
 class SnoringPreprocess(ClsPreprocess):
+    # TODO: __call__ and ref_to_coco are too big
     def __init__(self, 
                  suffix: str = 'wav', 
                  out_suffix: str = 'wav', 
@@ -96,6 +96,7 @@ class SnoringPreprocess(ClsPreprocess):
         err_idx = 0
         num_sample = 0
         for raw_path in files:
+            # TODO: Is try-catch in here a good imp?
             # Load raw audio
             try:
                 sound = dataset_utils.get_pydub_sound(
@@ -110,6 +111,7 @@ class SnoringPreprocess(ClsPreprocess):
 
             # Save preprocessed audio
             for idx, new_sound in enumerate(new_sounds, 1):
+                # TODO: should be a sampling function, consider Pytorch sampling solution
                 if self.first_N is not None and self.first_N > 0:
                     if num_sample >= self.first_N:
                         break
@@ -124,8 +126,8 @@ class SnoringPreprocess(ClsPreprocess):
                     new_basename = f'{basename}-{idx:03d}'
                 else:
                     new_basename = basename
+
                 new_save_path = data_save_root.joinpath(new_basename)
-                
                 new_save_path = new_save_path.with_suffix(
                     self.out_suffix if self.out_suffix.startswith('.') else f'.{self.out_suffix}'
                 )
@@ -136,6 +138,7 @@ class SnoringPreprocess(ClsPreprocess):
                 preprocess_data_refs['process_path'].append(new_save_path)
                 new_sound.export(new_save_path, format=self.out_suffix)
         
+        print(f'Error num: {err_idx}')
         # Save reference table
         data_save_root = Path(save_root) / Path(dataset_name)
         data_save_root.mkdir(parents=True, exist_ok=True)
@@ -151,10 +154,9 @@ class SnoringPreprocess(ClsPreprocess):
         return files
 
     def sample_data(self, files):
+        # TODO: class balance? The class balacing works in refs_to_coco, think about the process
         if self.sample_ratio < 1:
             files = np.random.choice(files, int(len(files)*self.sample_ratio), replace=False)
-        
-        
         return files
         
     def get_class_label(self, save_path):
@@ -209,6 +211,7 @@ class SnoringPreprocess(ClsPreprocess):
     def ref_to_coco(self, data_refs: dict, data_save_root: str) -> None:
         split_data_refs = self.split_data_reference(data_refs)
 
+        # TODO: class balance flag, each class number
         info = {
             "description": f'{self.dataset_name}',
             "url": "",
@@ -217,6 +220,7 @@ class SnoringPreprocess(ClsPreprocess):
             "date_created": f'{date.today().isoformat()}',
             "dataset_number": len(data_refs['input'])
         }
+        # TODO: not general
         cat_ids = [{'id': 1, 'name': 'snoring'}]
         for split_name, split_labels in split_data_refs.items():
             data = []
@@ -335,21 +339,14 @@ class AudiosetPreprocess(SnoringPreprocess):
                  target_sr: int = 16000, 
                  target_channel: int = 1, 
                  target_duration: Union[int, float] = 2,
+                 extend_mode: str = 'pad'
                  ):
         super().__init__(
-            suffix, out_suffix, target_sr, target_channel, target_duration)
+            suffix, out_suffix, target_sr, target_channel, target_duration,
+            extend_mode=extend_mode
+        )
         self.data_df = pd.read_csv(data_path, sep='\t')
         self.class_df = pd.read_csv(class_path, sep='\t', header=None)
-
-        # TODO: for temporally using, remove later
-        self.class_mapping = {
-            'Alarm': 'Alarm clock',
-            'Car': 'Car passing by',
-            'Snoring': 'Snoring',
-            'snoring': 'Snoring',
-            'White': 'White noise, pink noise',
-            'Wind': 'Wind noise (microphone)',
-        }
 
     def get_class_label(self, save_path):
         if save_path.parent.name == 'Snoring':
@@ -360,7 +357,7 @@ class AudiosetPreprocess(SnoringPreprocess):
     def sound_preprocess(self, sound, *args, **kwargs):
         raw_path = args[0]
         class_name = raw_path.parent.name
-        class_name = self.class_mapping[class_name]
+        # class_name = self.class_mapping[class_name]
         segment_id = raw_path.stem
         class_key = self.class_df.loc[self.class_df[1]==class_name][0].values[0]
         file_df = self.data_df.loc[self.data_df['segment_id']==segment_id]
@@ -372,10 +369,94 @@ class AudiosetPreprocess(SnoringPreprocess):
             start_time = row['start_time_seconds']
             end_time = row['end_time_seconds']
             new_sound = sound[int(start_time*1000):int(end_time*1000)]
-            new_sound2 = self.process_duration(new_sound)
-            new_sounds.extend(new_sound2)
-        
+            new_sound = self.process_duration(new_sound)
+            new_sounds.extend(new_sound)
         return new_sounds
+
+
+class AudiosetSplitPreprocess(AudiosetPreprocess):
+    def __init__(self, 
+                 data_path: str,
+                 class_path: str,
+                 suffix: str = 'wav', 
+                 out_suffix: str = 'wav', 
+                 target_sr: int = 16000, 
+                 target_channel: int = 1, 
+                 target_duration: Union[int, float] = 2,
+                 split_level: float = 0.2,
+                 extend_mode: str = 'pad'
+                 ):
+        super().__init__(
+            data_path, class_path, suffix, out_suffix, target_sr, target_channel, 
+            target_duration, extend_mode=extend_mode
+        )
+        self.split_level = split_level
+        
+    def ref_to_coco(self, data_refs: dict, data_save_root: str) -> None:
+        split_data_refs = self.split_data_reference(data_refs)
+
+        # TODO: class balance flag, each class number
+        info = {
+            "description": f'{self.dataset_name}',
+            "url": "",
+            "version": "1.0",
+            "contributor": "ASUS_DIT",
+            "date_created": f'{date.today().isoformat()}',
+            "dataset_number": len(data_refs['input'])
+        }
+        # TODO: not general
+        cat_ids = [{'id': 1, 'name': 'snoring'}]
+        num_train = {
+            label: len(label_indices) \
+            for label, label_indices in split_data_refs['train'].items()
+        }
+            
+        # for level in range(1, -self.split_level, 0):
+        level = 1
+        eps = 1e-9
+        while level > eps:
+            for split_name, split_labels in split_data_refs.items():
+                # Select subset by split level
+                if level < 1 and split_name == 'train':
+                    for label, label_indices in split_data_refs['train'].items():
+                        num_cls_train = int(num_train[label]*level)
+                        split_data_refs['train'][label] = np.random.choice(
+                            split_data_refs['train'][label], num_cls_train, 
+                            replace=False
+                        )
+
+                data = []
+                annots = []
+                coco_data = {}
+                for label, label_indices in split_labels.items():
+                    for label_idx in label_indices:
+                        sample = {
+                            'id': int(label_idx),
+                            'path': str(data_refs['process_path'][label_idx]),
+                            'file_name': data_refs['process_path'][label_idx].name
+                        }
+                        sample_annot = {
+                            'image_id': int(label_idx),
+                            'id': int(label_idx),
+                            'category_id': int(label)
+                        }
+                        data.append(sample)
+                        annots.append(sample_annot)
+
+                info['split_number'] = len(data)
+                coco_data['info'] = info
+                coco_data['waveform'] = data
+                coco_data['categories'] = cat_ids
+                coco_data['annotations'] = annots
+
+                split_data_save_root = data_save_root.joinpath('split')
+                split_data_save_root = split_data_save_root.joinpath(f'{level:.2f}')
+                split_data_save_root.mkdir(parents=True, exist_ok=True)
+                json_path = split_data_save_root.joinpath(f'{split_name}.json')
+                with open(json_path, 'wt', encoding='UTF-8') as jsonfile:
+                    json.dump(coco_data, jsonfile, ensure_ascii=True, indent=4)
+                
+            level -= self.split_level
 
 
 class KagglePadPreprocess(SnoringPreprocess):
@@ -542,17 +623,17 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\0908_ori')
     # processer(dataset_name, data_root, save_root)
 
-    label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\label.csv'
-    processer = ManualLabelPreprocess(label_path)
-    dataset_name = 'pixel_0908_2'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\label.csv'
+    # processer = ManualLabelPreprocess(label_path)
+    # dataset_name = 'pixel_0908_2'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
-    label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\label.csv'
-    processer = ManualLabelPreprocess(label_path)
-    dataset_name = 'iphone11_0908_2'
-    data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
-    processer(dataset_name, data_root, save_root)
+    # label_path = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\label.csv'
+    # processer = ManualLabelPreprocess(label_path)
+    # dataset_name = 'iphone11_0908_2'
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\wave_split')
+    # processer(dataset_name, data_root, save_root)
 
     # label_path = r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\web_snoring\label.csv'
     # processer = ManualLabelPreprocess(label_path)
@@ -591,36 +672,25 @@ def run_class():
     # data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\wave_split')
     # processer(dataset_name, data_root, save_root)
 
-
     # data_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\audioset_train_strong.tsv'
     # class_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\mid_to_display_name.tsv'
-    # processer = AudiosetPreprocess(data_path, class_path, suffix='mp4')
+    # processer = AudiosetPreprocess(data_path, class_path, suffix='mp3', out_suffix='wav')
     # dataset_name = 'Audioset_snoring_strong'
-    # data_root = Path(r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\data\strong\audioset_train_strong')
+    # data_root = Path(r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\data\strong_label\audioset_train_strong')
     # processer(dataset_name, data_root, save_root)
 
-    # data_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\audioset_train_strong.tsv'
-    # class_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\mid_to_display_name.tsv'
-    # processer = AudiosetPreprocess(data_path, class_path, suffix='wav')
-    # dataset_name = 'Audioset_snoring_weak'
-    # data_root = Path(r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\output')
-    # processer(dataset_name, data_root, save_root)
+    data_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\audioset_train_strong.tsv'
+    class_path = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\strong_label\mid_to_display_name.tsv'
+    processer = AudiosetSplitPreprocess(
+        data_path, class_path, suffix='mp3', out_suffix='wav', split_level=0.2, 
+        extend_mode='repeat'
+    )
+    dataset_name = 'Audioset_snoring_strong_repeat'
+    data_root = Path(r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\data\strong_label\audioset_train_strong')
+    processer(dataset_name, data_root, save_root)
 
-
-
-def test():
-    # data_dir = r'C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_bal\data\Snoring'
-    # wavs = Path(data_dir).rglob('*.wav')
-    # wavs = [f.stem.split('-')[0] for f in wavs]
-    # print(len(np.unique(wavs)))
-
-    f = r'C:\Users\test\Desktop\Leon\Projects\audioset-processing\data\strong\audioset_train_strong\Snoring\3cwJLv-D_hI_20000.wav'
-    # sound = dataset_utils.get_pydub_sound(f, 'wav')
-    import torchaudio
-    data = torchaudio.load(f)
 
 
 if __name__ == '__main__':
     data_root = Path(r'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset')
     run_class()
-    # test()

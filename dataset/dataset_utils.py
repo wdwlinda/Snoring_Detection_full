@@ -209,8 +209,6 @@ def get_ASUS_snoring_index(save_path, split, balancing=True):
         for subject in valid_subjects:
             valid_pairs.extend(data_pair[subject])    
         
-    
-    
     return train_pairs, valid_pairs
         
 

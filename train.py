@@ -18,11 +18,11 @@ import site_path
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 from models.image_classification.img_classifier import ImageClassifier
 from models.snoring_model import create_snoring_model
-from inference import test, run_test
+from inference import run_test
 from dataset import transformations
 from dataset import input_preprocess
 from dataset.time_transform import get_wav_transform, augmentation
-from dataset.dataloader import AudioDataset, AudioDatasetfromNumpy, AudioDatasetCOCO
+from dataset.dataloader import AudioDatasetCOCO
 from dataset.get_dataset_name import get_dataset
 from dataset.data_transform import WavtoMelspec_torchaudio
 from utils import configuration
@@ -204,7 +204,16 @@ def main():
     dataset_paths = get_dataset()
 
     # test dataset
-    test_dataset = configuration.load_config('dataset/dataset.yml')
+    test_dataset = configuration.load_config('dataset/dataset.yml')['data_pre_root']
+    # XXX: temporally
+    no_test = [
+        'Audioset_snoring_strong_0.8',
+        'Audioset_snoring_strong_0.6',
+        'Audioset_snoring_strong_0.4',
+        'Audioset_snoring_strong_0.2',
+    ]
+    for name in no_test:
+        test_dataset.pop(name)
 
     # TODO: This is only for simple grid search, apply NII hyper-params search later
     # TODO: This should in order to decide which params to be test first?
@@ -212,8 +221,8 @@ def main():
         'dataset.index_path': dataset_paths,
         'model.name': ['pann.ResNet38'],
         # 'model.name': ['timm.resnet34', 'timm.convnext_tiny_384_in22ft1k'],
-        'model.pretrained': [True, False],
-        # 'model.name': ['pann.ResNet38', 'ResNet54', 'MobileNetV2', 'timm.resnet34', 
+        # 'model.name': ['pann.ResNet38', 'pann.ResNet54', 'pann.MobileNetV2', 'timm.resnet34', 
+        'model.pretrained': [False],
         # 'convnext_tiny_384_in22ft1k'],
         # 'dataset.wav_transform': [True],
         # 'model.dropout': [True, False]
@@ -222,6 +231,10 @@ def main():
     }
     configs = get_exp_configs(config, exp_config)
 
+    full_test_list = [
+        'web_snoring', 'iphone11_0908', 'pixel_0908', 
+        '0908_ori', 'iphone11_0908_2', 'pixel_0908_2'
+    ]
     for run_idx, config in enumerate(configs):
         dataset = '--'.join(list(config['dataset']['index_path']))
         # dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
@@ -233,53 +246,56 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_panns_pretrained_final_2"
+        exp_name = f"_Snoring_single_dataset_panns_pretrained_final_3"
+        # exp_name = f"_Snoring_single_dataset_panns_data_ratio_final"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
-        with mlflow.start_run(run_name=config['model']['name']):
-            mlflow.log_param('dataset', dataset)
-            mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
-            mlflow.log_param('pretrained', config['model']['pretrained'])
-            mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
-            mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
-            # mlflow.log_param('feature', config['dataset']['transform_methods'])
-            mlflow.log_param('checkpoint', checkpoint_dir)
-            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_655'
-            config['eval'] = {
-                'restore_checkpoint_path': config['CHECKPOINT_PATH'],
-                'checkpoint_name': r'ckpt_best.pth'
-            }
-            config = train_utils.DictAsMember(config)
+        
+        # XXX: Temp
+        for i in range(1, 17):
+            restore_path = Path(r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints')
+            restore_path = restore_path.joinpath(f'run_{700+i}')
+            config['model']['restore_path'] = restore_path.joinpath('ckpt_best.pth')
 
-            run_train(config)
-            total_acc = []
-            for test_data_name, test_path in test_dataset['data_pre_root'].items():
-            # for test_data_name, test_path in test_dataset['dataset_wav'].items():
-            # for test_data_name, test_path in test_dataset.items():
-            # for test_data_name, test_path in test_dataset['dataset'].items():
-                # if test_data_name not in ['iphone11_0908', 'iphone11_0908_2', 'pixel_0908', 'pixel_0908_2']: continue
-                if test_data_name in [
-                    'web_snoring', 'iphone11_0908', 'pixel_0908', 
-                    '0908_ori', 'iphone11_0908_2', 'pixel_0908_2']:
-                    split = None
-                else:
-                    split = 'test'
+            with mlflow.start_run(run_name=config['model']['name']):
+                mlflow.log_param('dataset', dataset)
+                mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
+                mlflow.log_param('pretrained', config['model']['pretrained'])
+                mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
+                mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
+                # mlflow.log_param('feature', config['dataset']['transform_methods'])
+                mlflow.log_param('checkpoint', checkpoint_dir)
+                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_742'
+                # config['eval'] = {
+                #     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
+                #     'checkpoint_name': r'ckpt_best.pth'
+                # }
+                config = train_utils.DictAsMember(config)
 
-                print(test_data_name)
-                src_dir = test_path
-                dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-                config['model']['restore_path'] = Path(
-                    config.eval.restore_checkpoint_path).joinpath(config.eval.checkpoint_name)
+                # run_train(config)
+                total_acc = []
 
-                acc, precision, recall = run_test(src_dir, dist_dir, config, split)
+                for test_data_name, test_path in test_dataset.items():
+                    if test_data_name in full_test_list:
+                        split = None
+                    else:
+                        split = 'test'
 
-                mlflow.log_metric(f'{test_data_name}_acc', acc)
-                if test_data_name in ['ASUS_snoring', 'ESC50']:
-                    mlflow.log_metric(f'{test_data_name}_precision', precision)
-                    mlflow.log_metric(f'{test_data_name}_recall', recall)
-                total_acc.append(acc)
-            acc_mean = sum(total_acc) / len(total_acc)
-            mlflow.log_metric(f'mean_acc', acc_mean)
+                    print(test_data_name)
+                    src_dir = test_path
+                    dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
+                    # config['model']['restore_path'] = Path(
+                    #     config.eval.restore_checkpoint_path).joinpath(config.eval.checkpoint_name)
+
+                    acc, precision, recall = run_test(src_dir, dist_dir, config, split)
+
+                    mlflow.log_metric(f'{test_data_name}_acc', acc)
+                    if test_data_name in ['ASUS_snoring', 'ESC50']:
+                        mlflow.log_metric(f'{test_data_name}_precision', precision)
+                        mlflow.log_metric(f'{test_data_name}_recall', recall)
+                    total_acc.append(acc)
+                acc_mean = sum(total_acc) / len(total_acc)
+                mlflow.log_metric(f'mean_acc', acc_mean)
                 
 
 if __name__ == '__main__':
