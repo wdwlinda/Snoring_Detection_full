@@ -33,16 +33,16 @@ dataset:
   transform_methods:
     - mel-spec
   transform_config:
-    n_fft: 2048
-    win_length: null
-    hop_length: 512
-    n_mels: 128
+    n_fft: 1024
+    win_length: 1024
+    hop_length: 320
+    n_mels: 64
     n_mfcc: 40
     mean_norm: True
   fuse_method: mean
   batch_size: 14
   shuffle: True
-  is_data_augmentation: False
+  is_data_augmentation: True
   preprocess_config:
     is_freq_masking: True
     is_time_masking: True
@@ -54,6 +54,9 @@ dataset:
     mix_up: null
   wav_transform: True
   mean_sub: False
+  duration: 2
+  sound_ch: 1
+
 # use a fixed random seed to guarantee that when you run the code twice you will get the same outcome
 manual_seed: 0
 # model configuration
@@ -62,18 +65,20 @@ model:
   name: resnet50
   # name: resnetv2_50
   # number of input channels to the model
-  in_channels: 3
+  in_channels: 1
   # number of output channels
   out_channels: 2
-  activation: sigmoid
+  activation: softmax
   output_strides: 16
   pretrained: True
+  dropout: True
+  restore_path: null
 
 optimizer_config:
   optimizer: Adam
   lr_config:
     name: 'StepLR'
-    learning_rate: 2.0e-5
+    learning_rate: 5.0e-7
     gamma: 0.8
     step_size: 50
   weight_decay: 0
@@ -84,7 +89,7 @@ optimizer_config:
 
 # training configuration
 TRAIN:
-  loss: BCE
+  loss: CrossEntropy
   # optimizer: Adam
   EPOCH: 200
   # learning_rate: 1.0e-5
@@ -95,4 +100,4 @@ TRAIN:
   CHECKPOINT_SAVING_STEPS: 50
   INIT_CHECKPOINT: null
   PATIENCE: 15
-  MIXUP: True
+  MIXUP: False

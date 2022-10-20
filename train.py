@@ -219,10 +219,10 @@ def main():
     # TODO: This should in order to decide which params to be test first?
     exp_config = {
         'dataset.index_path': dataset_paths,
-        'model.name': ['pann.ResNet38'],
+        'model.name': ['pann.ResNet54', 'pann.MobileNetV2'],
         # 'model.name': ['timm.resnet34', 'timm.convnext_tiny_384_in22ft1k'],
         # 'model.name': ['pann.ResNet38', 'pann.ResNet54', 'pann.MobileNetV2', 'timm.resnet34', 
-        'model.pretrained': [False],
+        'model.pretrained': [True],
         # 'convnext_tiny_384_in22ft1k'],
         # 'dataset.wav_transform': [True],
         # 'model.dropout': [True, False]
@@ -246,56 +246,57 @@ def main():
         currentMonth = str(now.month)
         currentYear = str(now.year)
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
-        exp_name = f"_Snoring_single_dataset_panns_pretrained_final_3"
+        # exp_name = f"_Snoring_single_dataset_panns_pretrained_final_3"
         # exp_name = f"_Snoring_single_dataset_panns_data_ratio_final"
+        exp_name = f"_Snoring_single_dataset_panns_model_final"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         
         # XXX: Temp
-        for i in range(1, 17):
-            restore_path = Path(r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints')
-            restore_path = restore_path.joinpath(f'run_{700+i}')
-            config['model']['restore_path'] = restore_path.joinpath('ckpt_best.pth')
+        # for i in range(1, 17):
+        #     restore_path = Path(r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints')
+        #     restore_path = restore_path.joinpath(f'run_{700+i}')
+        #     config['model']['restore_path'] = restore_path.joinpath('ckpt_best.pth')
 
-            with mlflow.start_run(run_name=config['model']['name']):
-                mlflow.log_param('dataset', dataset)
-                mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
-                mlflow.log_param('pretrained', config['model']['pretrained'])
-                mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
-                mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
-                # mlflow.log_param('feature', config['dataset']['transform_methods'])
-                mlflow.log_param('checkpoint', checkpoint_dir)
-                # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_742'
-                # config['eval'] = {
-                #     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
-                #     'checkpoint_name': r'ckpt_best.pth'
-                # }
-                config = train_utils.DictAsMember(config)
+        with mlflow.start_run(run_name=config['model']['name']):
+            mlflow.log_param('dataset', dataset)
+            mlflow.log_param('is_data_augmentation', config['dataset']['is_data_augmentation'])
+            mlflow.log_param('pretrained', config['model']['pretrained'])
+            mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
+            mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
+            # mlflow.log_param('feature', config['dataset']['transform_methods'])
+            mlflow.log_param('checkpoint', checkpoint_dir)
+            # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_742'
+            # config['eval'] = {
+            #     'restore_checkpoint_path': config['CHECKPOINT_PATH'],
+            #     'checkpoint_name': r'ckpt_best.pth'
+            # }
+            config = train_utils.DictAsMember(config)
 
-                # run_train(config)
-                total_acc = []
+            run_train(config)
+            total_acc = []
 
-                for test_data_name, test_path in test_dataset.items():
-                    if test_data_name in full_test_list:
-                        split = None
-                    else:
-                        split = 'test'
+            for test_data_name, test_path in test_dataset.items():
+                if test_data_name in full_test_list:
+                    split = None
+                else:
+                    split = 'test'
 
-                    print(test_data_name)
-                    src_dir = test_path
-                    dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-                    # config['model']['restore_path'] = Path(
-                    #     config.eval.restore_checkpoint_path).joinpath(config.eval.checkpoint_name)
+                print(test_data_name)
+                src_dir = test_path
+                dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
+                # config['model']['restore_path'] = Path(
+                #     config.eval.restore_checkpoint_path).joinpath(config.eval.checkpoint_name)
 
-                    acc, precision, recall = run_test(src_dir, dist_dir, config, split)
+                acc, precision, recall = run_test(src_dir, dist_dir, config, split)
 
-                    mlflow.log_metric(f'{test_data_name}_acc', acc)
-                    if test_data_name in ['ASUS_snoring', 'ESC50']:
-                        mlflow.log_metric(f'{test_data_name}_precision', precision)
-                        mlflow.log_metric(f'{test_data_name}_recall', recall)
-                    total_acc.append(acc)
-                acc_mean = sum(total_acc) / len(total_acc)
-                mlflow.log_metric(f'mean_acc', acc_mean)
+                mlflow.log_metric(f'{test_data_name}_acc', acc)
+                if test_data_name in ['ASUS_snoring', 'ESC50']:
+                    mlflow.log_metric(f'{test_data_name}_precision', precision)
+                    mlflow.log_metric(f'{test_data_name}_recall', recall)
+                total_acc.append(acc)
+            acc_mean = sum(total_acc) / len(total_acc)
+            mlflow.log_metric(f'mean_acc', acc_mean)
                 
 
 if __name__ == '__main__':
