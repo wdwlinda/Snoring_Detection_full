@@ -56,7 +56,8 @@ def torch_to_onnx(
     )
 
     # ONNX inference
-    ort_outs = ONNX_inference(dummy_input, save_filename)
+    ort_session = onnxruntime.InferenceSession(save_filename)
+    ort_outs = ONNX_inference(dummy_input, ort_session)
 
     # compare ONNX Runtime and PyTorch results
     for t, o in zip(torch_out, ort_outs):
@@ -72,7 +73,7 @@ def to_numpy(tensor):
     return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
 
-def ONNX_inference(inputs, onnx_model):
+def ONNX_inference(inputs, ort_session):
     """AI is creating summary for ONNX_inference
 
     Args:
@@ -82,7 +83,6 @@ def ONNX_inference(inputs, onnx_model):
     Returns:
         [type]: [description]
     """
-    ort_session = onnxruntime.InferenceSession(onnx_model)
     # compute ONNX Runtime output prediction
     input_names = ort_session.get_inputs()
     assert len(inputs) == len(input_names)

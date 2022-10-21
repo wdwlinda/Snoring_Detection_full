@@ -2,9 +2,23 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import pandas as pd
 
 from deploy import onnx_model
 from models.image_classification import img_classifier
+
+
+
+def model_to_onnx(dummy_input, model, save_filename):
+    dynamic_axes = {'input' : {0: 'batch'},
+                    'output' : {0: 'batch'}}
+
+    onnx_model.torch_to_onnx(
+        dummy_input, 
+        model, 
+        save_filename,
+        dynamic_axes=dynamic_axes
+    )
 
 
 def onnx_model_deploy(timm_model_name, in_channels, out_channels, checkpoint, save_filename):

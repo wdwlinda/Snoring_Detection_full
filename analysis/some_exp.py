@@ -1319,6 +1319,21 @@ def plot_2nd_record_main():
     plot_2nd_record(csv_path, save_root, model_name='convnext_tiny_ImageNet')
 
 
+def check_normalize():
+    import torchaudio
+    import torch
+    data_path = r'test_data/1598482996718_59_37.28_39.28_003.wav'
+    data, sr = torchaudio.load(data_path)
+    data_unnormal, sr = torchaudio.load(data_path, normalize=False)
+    print(torch.max(data), torch.min(data))
+    print(torch.max(data_unnormal), torch.min(data_unnormal))
+    data2 = data * 32768
+    data_norm = \
+        (data_unnormal+32767) / (32767*2)
+        # (data_unnormal-torch.min(data_unnormal)) / (torch.max(data_unnormal)-torch.min(data_unnormal))
+    print(data_norm-data)
+
+
 if __name__ == '__main__':
     # get_unconflicted_index()
     # first_order_filter()
@@ -1347,5 +1362,6 @@ if __name__ == '__main__':
     # spec_dist()
     # pca_test()
 
-    plot_2nd_record_main()
+    # plot_2nd_record_main()
+    check_normalize()
     pass

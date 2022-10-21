@@ -31,6 +31,8 @@ class AudioDatasetCOCO(Dataset):
 
     def __getitem__(self, idx):
         input_path = self.input_data_indices[idx]['path']
+        # waveform, sr = torchaudio.load(input_path, normalize=False)
+        # XXX: temp
         waveform, sr = torchaudio.load(input_path, normalize=True)
         target = self.ground_truth_indices[idx]['category_id']
         input_data = sequence_legth_adjust(waveform[0], self.sr*self.duration)

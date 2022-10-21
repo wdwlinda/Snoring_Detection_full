@@ -1,0 +1,108 @@
+# TODO: If all the data_root under same root, we can just give the relative path
+data_pre_root:
+  # ASUS
+  ASUS_snoring: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\ASUS_snoring_case_split
+  
+  redmi: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\redmi
+  pixel: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\pixel
+  iphone: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\iphone
+  Mi11_office: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Mi11_office
+  Mi11_night: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Mi11_night
+  Samsung_Note10Plus_night: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Samsung_Note10Plus_night
+  Redmi_Note8_night: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Redmi_Note8_night
+
+  iphone11_0908: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\iphone11_0908
+  pixel_0908: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\pixel_0908
+  iphone11_0908_2: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\pixel_0908_2
+  pixel_0908_2: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\pixel_0908_2
+  0908_ori: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\0908_ori
+
+  # Public
+  ESC50: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\ESC50
+  # Kaggle_snoring: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\kaggle_snoring
+  Kaggle_snoring_pad: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\kaggle_snoring_pad
+  # Audioset_snoring_bal: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_bal
+  # Audioset_snoring_strong: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong
+  Audioset_snoring_strong_0.2: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_repeat\split\0.20
+  Audioset_snoring_strong_0.4: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_repeat\split\0.40
+  Audioset_snoring_strong_0.6: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_repeat\split\0.60
+  Audioset_snoring_strong_0.8: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_repeat\split\0.80
+  Audioset_snoring_strong_repeat: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_repeat\split\1.00
+  # Audioset_snoring_strong_0.2: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_split\split\0.20
+  # Audioset_snoring_strong_0.4: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_split\split\0.40
+  # Audioset_snoring_strong_0.6: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_split\split\0.60
+  # Audioset_snoring_strong_0.8: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_split\split\0.80
+  # Audioset_snoring_strong: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\Audioset_snoring_strong_split\split\1.00
+
+  # Web database
+  web_snoring: C:\Users\test\Desktop\Leon\Datasets\test\web_snoring_pre\web_snoring
+
+
+dataset:
+  ASUS_snoring_train: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\train.csv
+  ASUS_snoring_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv
+  ESC50: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv
+
+  pixel: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\melspec\filenames.csv
+  iphone: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\melspec\filenames.csv
+
+  Mi11_night_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\melspec\test.csv
+  Mi11_office: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\melspec\filenames.csv
+  Redmi_Note8_night: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\melspec\filenames.csv
+  Samsung_Note10Plus_night_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\melspec\test.csv
+  
+  pixel_0908: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\melspec\filenames.csv
+  iphone11_0908: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\melspec\filenames.csv
+
+  pixel_0908_2: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\melspec\filenames.csv
+  iphone11_0908_2: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\melspec\filenames.csv
+
+
+dataset_wav:
+  ASUS_snoring_train: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\train.txt
+  ASUS_snoring_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt
+  # ESC50: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection_pre\ESC50\filenames.txt
+  # ESC50: C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\esc50\esc50_2\file_names.txt
+
+  pixel: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\filenames.txt
+  iphone: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\filenames.txt
+
+  Mi11_night_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\filenames.txt
+  Mi11_office: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection_pre\Mi11_office\filenames.txt
+  # Mi11_office: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\filenames.txt
+  Redmi_Note8_night: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\filenames.txt
+  Samsung_Note10Plus_night_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\filenames.txt
+  
+  pixel_0908: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\filenames.txt
+  iphone11_0908: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\filenames.txt
+
+  pixel_0908_2: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\filenames.txt
+  iphone11_0908_2: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\filenames.txt
+
+  Kaggle_snoring: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection_pre\kaggle_snoring\filenames.txt
+  web_snoring: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection_pre\web_snoring\filenames.txt
+
+
+data_root:
+  ASUS_snoring: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit\2_21\raw_f_h_2_mono_16k
+  # ASUS_snoring_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\Freq2\2_21_2s_my2\test.txt
+  ESC50: C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50-master\audio
+
+  # pixel: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel\filenames.txt
+  # iphone: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone\filenames.txt
+
+  # Mi11_night_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_night\filenames.txt
+  # Mi11_office: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Mi11_office\filenames.txt
+  # Redmi_Note8_night: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Redmi_Note8_night\filenames.txt
+  # Samsung_Note10Plus_night_test: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\Samsung_Note10Plus_night\filenames.txt
+  
+  # pixel_0908: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908\filenames.txt
+  # iphone11_0908: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908\filenames.txt
+
+  # pixel_0908_2: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\pixel_0908_2\filenames.txt
+  # iphone11_0908_2: C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess\iphone11_0908_2\filenames.txt
+
+  Kaggle_snoring: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Kaggle_snoring
+  web_snoring: C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\web_snoring
+
+  

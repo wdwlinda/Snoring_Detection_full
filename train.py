@@ -14,7 +14,6 @@ import mlflow
 from torch.utils.data import Dataset, DataLoader
 import torchaudio
 
-import site_path
 CONFIG_PATH = 'config/_cnn_train_config.yml'
 from models.image_classification.img_classifier import ImageClassifier
 from models.snoring_model import create_snoring_model
@@ -219,7 +218,8 @@ def main():
     # TODO: This should in order to decide which params to be test first?
     exp_config = {
         'dataset.index_path': dataset_paths,
-        'model.name': ['pann.ResNet54', 'pann.MobileNetV2'],
+        'model.name': ['pann.ResNet38'],
+        # 'model.name': ['pann.ResNet38'],
         # 'model.name': ['timm.resnet34', 'timm.convnext_tiny_384_in22ft1k'],
         # 'model.name': ['pann.ResNet38', 'pann.ResNet54', 'pann.MobileNetV2', 'timm.resnet34', 
         'model.pretrained': [True],
@@ -248,7 +248,7 @@ def main():
         # exp_name = f"Snoring_Detection_new_model_{currentYear}_{currentMonth}_{currentDay}"
         # exp_name = f"_Snoring_single_dataset_panns_pretrained_final_3"
         # exp_name = f"_Snoring_single_dataset_panns_data_ratio_final"
-        exp_name = f"_Snoring_single_dataset_panns_model_final"
+        exp_name = f"_Snoring_single_dataset_panns_model_final_2"
         mlflow.set_experiment(exp_name)
         # TODO: add model name as param and change run_name
         
@@ -273,7 +273,7 @@ def main():
             # }
             config = train_utils.DictAsMember(config)
 
-            run_train(config)
+            # run_train(config)
             total_acc = []
 
             for test_data_name, test_path in test_dataset.items():
