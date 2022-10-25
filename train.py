@@ -62,7 +62,7 @@ def run_train(config):
     #     os.path.join(checkpoint_path, 'logging.txt'), config, access_mode='w+')
 
     # Model
-    model = create_snoring_model(config, config.model.name)
+    model = create_snoring_model(config)
 
     # Optimizer
     optimizer = train_utils.create_optimizer_temp(config.optimizer_config, model)
@@ -218,7 +218,7 @@ def main():
     # TODO: This should in order to decide which params to be test first?
     exp_config = {
         'dataset.index_path': dataset_paths,
-        'model.name': ['pann.ResNet38'],
+        'model.name': ['pann.MobileNetV2'],
         # 'model.name': ['pann.ResNet38'],
         # 'model.name': ['timm.resnet34', 'timm.convnext_tiny_384_in22ft1k'],
         # 'model.name': ['pann.ResNet38', 'pann.ResNet54', 'pann.MobileNetV2', 'timm.resnet34', 
@@ -273,7 +273,7 @@ def main():
             # }
             config = train_utils.DictAsMember(config)
 
-            # run_train(config)
+            run_train(config)
             total_acc = []
 
             for test_data_name, test_path in test_dataset.items():

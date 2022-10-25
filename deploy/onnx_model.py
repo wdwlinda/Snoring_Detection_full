@@ -8,7 +8,8 @@ import onnxruntime
 def torch_to_onnx(
         dummy_input, model, save_filename, input_names=['input'], output_names=['output'],
         dynamic_axes={'input' : {1: 'channel', 2 : 'height', 3: 'width'},
-                      'output' : {1: 'num_class', 2: 'height', 3: 'width'}}
+                      'output' : {1: 'num_class', 2: 'height', 3: 'width'}},
+        opset=11
     ):
     model = model.eval()
     
@@ -48,7 +49,7 @@ def torch_to_onnx(
         dummy_input_t,                         # model input (or a tuple for multiple inputs)
         save_filename,   # where to save the model (can be a file or file-like object)
         export_params=True,        # store the trained parameter weights inside the model file
-        opset_version=11,          # the ONNX version to export the model to
+        opset_version=opset,          # the ONNX version to export the model to
         do_constant_folding=True,  # whether to execute constant folding for optimization
         input_names=input_names,   # the model's input names
         output_names=output_names, # the model's output names

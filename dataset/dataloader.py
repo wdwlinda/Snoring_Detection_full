@@ -3,7 +3,6 @@
 # -*- coding: utf-8 -*-
 
 from pathlib import Path
-import os
 import json
 from typing import Tuple, List, Union
 
@@ -12,10 +11,10 @@ import torchaudio
 import torchaudio.transforms as T
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
-import csv
 import matplotlib.pyplot as plt
 
 
+# TODO: no label case? 
 class AudioDatasetCOCO(Dataset):
     def __init__(self, config, modes):
         data_roots = config.dataset.index_path
@@ -31,9 +30,10 @@ class AudioDatasetCOCO(Dataset):
 
     def __getitem__(self, idx):
         input_path = self.input_data_indices[idx]['path']
-        # waveform, sr = torchaudio.load(input_path, normalize=False)
+        waveform, sr = torchaudio.load(input_path, normalize=False)
+        waveform = waveform.to(torch.float)
         # XXX: temp
-        waveform, sr = torchaudio.load(input_path, normalize=True)
+        # waveform, sr = torchaudio.load(input_path, normalize=True)
         target = self.ground_truth_indices[idx]['category_id']
         input_data = sequence_legth_adjust(waveform[0], self.sr*self.duration)
         input_data = torch.unsqueeze(input_data, dim=0)

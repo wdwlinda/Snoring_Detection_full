@@ -6,6 +6,8 @@ import pandas as pd
 
 from deploy import onnx_model
 from models.image_classification import img_classifier
+from inference import export_onnx
+from utils import configuration
 
 
 
@@ -125,9 +127,16 @@ def timm_to_onnx_main():
     # ort_outs = onnx_model.ONNX_inference(data, save_filename)
 
 
+def export_main():
+    config_path = r'config/_cnn_train_config.yml'
+    config = configuration.load_config(config_path, dict_as_member=True)
+    export_onnx(config)
+
+
 def main():
     # timm_to_onnx_main()
-    pann_to_onnx_main()
+    # pann_to_onnx_main()
+    export_main()
     
 
 if __name__ == '__main__':

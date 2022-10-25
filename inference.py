@@ -18,6 +18,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
 import torchaudio
+import onnxruntime
 
 from models.image_classification import img_classifier
 from dataset.dataloader import AudioDatasetCOCO
@@ -27,6 +28,7 @@ from utils import train_utils
 from utils import metrics
 from utils import configuration
 from utils import train_utils as local_train_utils
+from models.snoring_model import create_snoring_model
 
 
 # TODO: solve device problem, check behavoir while GPU using
@@ -34,6 +36,36 @@ from utils import train_utils as local_train_utils
 # device = torch.device('cpu')
 ImageClassifier = img_classifier.ImageClassifier
 CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_valid_config.yml'
+
+
+def onnx_inference(inputs, ort_session):
+    # compute ONNX Runtime output prediction
+    input_names = ort_session.get_inputs()
+    assert len(inputs) == len(input_names)
+    ort_inputs = {
+        input_session.name: input_data for input_session, input_data in zip(input_names, inputs)}
+    ort_outs = ort_session.run(None, ort_inputs)
+    return ort_outs
+
+
+def ONNX_inference(inputs, onnx_model):
+    """AI is creating summary for ONNX_inference
+
+    Args:
+        inputs ([type]): [description]
+        onnx_model ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    ort_session = onnxruntime.InferenceSession(onnx_model)
+    # compute ONNX Runtime output prediction
+    input_names = ort_session.get_inputs()
+    assert len(inputs) == len(input_names)
+    ort_inputs = {
+        input_session.name: input_data for input_session, input_data in zip(input_names, inputs)}
+    ort_outs = ort_session.run(None, ort_inputs)
+    return ort_outs
 
 
 def pred_data():
@@ -144,18 +176,18 @@ class Inferencer():
         self.transform = transform
         # self.restore()
 
-        # XXX: temp
-        tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.tflite'
-        self.interpreter = build_tflite(tflite_path, [1, 32000])
+        # # XXX: temp
+        # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.tflite'
+        # self.interpreter = build_tflite(tflite_path, [1, 32000])
         
-        import onnxruntime
-        onnx_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.onnx'
-        self.ort_session = onnxruntime.InferenceSession(onnx_path)
+        # import onnxruntime
+        # onnx_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.onnx'
+        # self.ort_session = onnxruntime.InferenceSession(onnx_path)
 
-        # Get TF output
-        tf_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741'
-        new_model = tf.saved_model.load(tf_path)
-        self.infer = new_model.signatures["serving_default"]
+        # # Get TF output
+        # tf_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741'
+        # new_model = tf.saved_model.load(tf_path)
+        # self.infer = new_model.signatures["serving_default"]
         
 
     def run(self, wav_path):
@@ -194,26 +226,24 @@ class Inferencer():
                 self.prediction[sample_name] = {
                     'prob_0': prob[0, 0], 'prob_1': prob[0, 1], 'pred': prediction, 'target': target}
 
-                inputs = inputs.detach().cpu().numpy()
-                # inputs = np.int32(inputs)
+                # # XXX: temp
+                # inputs = inputs.detach().cpu().numpy()
+                # from deploy import onnx_model
+                # ort_outs = onnx_model.ONNX_inference([inputs], self.ort_session)
 
-                # XXX: temp
-                from deploy import onnx_model
-                ort_outs = onnx_model.ONNX_inference([inputs], self.ort_session)
+                # output = self.infer(tf.constant(inputs))
+                # tf_output = output['output'].numpy()
+                # tflite_output = tflite_inference(inputs, self.interpreter)
 
-                output = self.infer(tf.constant(inputs))
-                tf_output = output['output'].numpy()
-                tflite_output = tflite_inference(inputs, self.interpreter)
-
-                print(
-                    # prob-ort_outs,
-                    # ort_outs-tf_output,
-                    # tf_output-tflite_output
-                    prob,
-                    ort_outs,
-                    tf_output,
-                    tflite_output
-                )
+                # print(
+                #     # prob-ort_outs,
+                #     # ort_outs-tf_output,
+                #     # tf_output-tflite_output
+                #     prob,
+                #     ort_outs,
+                #     tf_output,
+                #     tflite_output
+                # )
                 
 
                 if show_info:
@@ -337,6 +367,20 @@ def pred_tflite(config, dataset_mapping, tflite_path):
     total_acc = {}
     config = local_train_utils.DictAsMember(config)
     inf_time = {}
+
+    # tflite model
+    interpreter = build_tflite(tflite_path, [1, 32000])
+    # interpreter = build_tflite(tflite_path, [1, 3, 128, 59])
+    
+    # Get ONNX output
+    onnx_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.onnx'
+    ort_session = onnxruntime.InferenceSession(onnx_path)
+
+    # Get TF output
+    tf_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741'
+    new_model = tf.saved_model.load(tf_path)
+    infer = new_model.signatures["serving_default"]
+
     for test_data_name, data_path in dataset_mapping['data_pre_root'].items():
         # test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
         data_name = Path(data_path).name
@@ -344,12 +388,10 @@ def pred_tflite(config, dataset_mapping, tflite_path):
         test_dataset = AudioDatasetCOCO(config, modes='test')
         test_dataloader = DataLoader(test_dataset, 1, False)
 
-        # tflite model
-        interpreter = build_tflite(tflite_path, [1, 32000])
-        # interpreter = build_tflite(tflite_path, [1, 3, 128, 59])
+        
 
         p = 0
-        data_inf_t = 0
+        data_infer_t = 0
         # small_size = 10
         y_true, y_pred, confidence = [], [], []
         for i, data in enumerate(test_dataloader):
@@ -359,11 +401,25 @@ def pred_tflite(config, dataset_mapping, tflite_path):
             target = target.detach().cpu().numpy()
             input_data = input_data[:,0]
             start_t = time.time()
+            # XXX: temp
+            # TFlite
             prediction = tflite_inference(input_data, interpreter)
+            
+            # ONNX
+            output_node = onnx_inference([input_data], ort_session)
+            onnx_output = output_node[0]
+
+            # Tensorflow
+            output = infer(tf.constant(input_data))
+            tf_output = output['output'].numpy()
+
+
+            # ===
             end_t = time.time()
-            inf_t = end_t - start_t
-            # print(i, test_dataset.input_data_indices[i], prediction[0,1], inf_t)
-            data_inf_t += inf_t
+            infer_t = end_t - start_t
+
+            print(i, test_dataset.input_data_indices[i], prediction[0,1], infer_t)
+            data_infer_t += infer_t
             y_true.append(target[0])
             if prediction[0,1] > 0.5:
                 # p += 1
@@ -395,6 +451,13 @@ def run_test(src_dir, dist_dir, config, splits):
     return acc, precision, recall
 
 
+def export_onnx(config):
+    model = create_snoring_model(config)
+    save_path = Path(config.model.restore_path)
+    save_path = str(save_path.parent)
+    deploy(config, model, save_filename=save_path)
+
+
 def single_test(
     data_path: str, save_path: str, config: str = None, show_info: bool = False, 
     splits: str = None) -> dict:
@@ -403,10 +466,6 @@ def single_test(
     name = os.path.split(save_path)[1]
     config['dataset']['index_path'] = {name: data_path}
     test_dataset = AudioDatasetCOCO(config, modes=splits)
-    
-    from models.snoring_model import create_snoring_model
-    model = create_snoring_model(config, config.model.name)
-    deploy(config, model, save_filename=config.CHECKPOINT_PATH)
 
     # FIXME: params for sr, device
     test_transform = WavtoMelspec_torchaudio(
@@ -418,6 +477,8 @@ def single_test(
         is_wav_transform=False,
         device=configuration.get_device()
     ) 
+    
+    model = create_snoring_model(config)
 
     inferencer = Inferencer(
         config, dataset=test_dataset, model=model, save_path=save_path, 
@@ -476,11 +537,12 @@ if __name__ == "__main__":
 
 
     # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\pann_run_461\pann_run_461.tflite'
-    tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.tflite'
+    tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\snoring_model_1021.tflite'
     # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_723\pann.MobileNetV2_run_723.tflite'
     # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_722\pann.ResNet54_run_722.tflite'
     # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082\snoring_relu_trained.tflite'
     pred_tflite(config, test_dataset, tflite_path)
+
 
     
     

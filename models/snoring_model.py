@@ -16,12 +16,13 @@ def convert_model_name(model_name):
     return model_name, converted_name
     
 
-def create_snoring_model(common_config: dict, model_name: str):
+def create_snoring_model(common_config: dict):
     # TODO: independent and autoing mapping part
     # TODO: Add timm models
     # TODO: All the if-else statement will be redundent in the future
 
     # TODO: return the same variable name is confusing
+    model_name = common_config.model.name
     model_name, converted_name = convert_model_name(model_name)
 
     if 'timm' in model_name:

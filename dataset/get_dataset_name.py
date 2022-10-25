@@ -65,7 +65,7 @@ def get_dataset_names():
         # dataset1, 
         # dataset2, dataset3, 
         dataset7, 
-        # dataset8,
+        dataset8,
     ]
     # datasets = [
     #     # ['Audioset_snoring_strong'],
