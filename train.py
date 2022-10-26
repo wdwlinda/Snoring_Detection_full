@@ -196,8 +196,8 @@ def main():
     
     # Configuration
     config = configuration.load_config(CONFIG_PATH, dict_as_member=False)
-    all_checkpoint_path = os.path.join(config['TRAIN']['project_path'], 'checkpoints')
-    train_utils.clear_empty_dir(all_checkpoint_path)
+    checkpoint_root = os.path.join(config['TRAIN']['project_path'], 'checkpoints')
+    train_utils.clear_empty_dir(checkpoint_root)
     
     # train & valid dataset
     dataset_paths = get_dataset()
@@ -218,7 +218,7 @@ def main():
     # TODO: This should in order to decide which params to be test first?
     exp_config = {
         'dataset.index_path': dataset_paths,
-        'model.name': ['pann.MobileNetV2'],
+        'model.name': ['pann.ResNet22'],
         # 'model.name': ['pann.ResNet38'],
         # 'model.name': ['timm.resnet34', 'timm.convnext_tiny_384_in22ft1k'],
         # 'model.name': ['pann.ResNet38', 'pann.ResNet54', 'pann.MobileNetV2', 'timm.resnet34', 
@@ -238,7 +238,7 @@ def main():
     for run_idx, config in enumerate(configs):
         dataset = '--'.join(list(config['dataset']['index_path']))
         # dataset = '--'.join(list(config['dataset']['index_path']['train'].keys()))
-        checkpoint_path = train_utils.create_training_path(all_checkpoint_path)
+        checkpoint_path = train_utils.create_training_path(checkpoint_root)
         config['CHECKPOINT_PATH'] = checkpoint_path
         checkpoint_dir = os.path.split(config['CHECKPOINT_PATH'])[1]
         now = datetime.now()
@@ -264,7 +264,6 @@ def main():
             mlflow.log_param('pretrained', config['model']['pretrained'])
             mlflow.log_param('mixup', config['TRAIN']['MIXUP'])
             mlflow.log_param('wav_transform', config['dataset']['wav_transform'])
-            # mlflow.log_param('feature', config['dataset']['transform_methods'])
             mlflow.log_param('checkpoint', checkpoint_dir)
             # config['CHECKPOINT_PATH'] = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_742'
             # config['eval'] = {
@@ -276,6 +275,13 @@ def main():
             run_train(config)
             total_acc = []
 
+            if config['model']['restore_path'] is not None:
+                config['model']['restore_path'] = Path(
+                    config['model']['restore_path']).joinpath(config.model.checkpoint_name)
+            else:
+                config['model']['restore_path'] = Path(
+                    config['CHECKPOINT_PATH']).joinpath(config.model.checkpoint_name)
+
             for test_data_name, test_path in test_dataset.items():
                 if test_data_name in full_test_list:
                     split = None
@@ -285,13 +291,13 @@ def main():
                 print(test_data_name)
                 src_dir = test_path
                 dist_dir = os.path.join(config['CHECKPOINT_PATH'], test_data_name)
-                # config['model']['restore_path'] = Path(
-                #     config.eval.restore_checkpoint_path).joinpath(config.eval.checkpoint_name)
 
                 acc, precision, recall = run_test(src_dir, dist_dir, config, split)
 
                 mlflow.log_metric(f'{test_data_name}_acc', acc)
-                if test_data_name in ['ASUS_snoring', 'ESC50']:
+                precision_and_recall = full_test_list.copy()
+                precision_and_recall.extend(['ASUS_snoring', 'ESC50'])
+                if test_data_name in precision_and_recall:
                     mlflow.log_metric(f'{test_data_name}_precision', precision)
                     mlflow.log_metric(f'{test_data_name}_recall', recall)
                 total_acc.append(acc)

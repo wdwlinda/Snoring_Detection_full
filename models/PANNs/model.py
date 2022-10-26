@@ -778,7 +778,7 @@ class _ResNet(nn.Module):
 
 class ResNet22(nn.Module):
     def __init__(self, sample_rate, window_size, hop_size, mel_bins, fmin, 
-        fmax, classes_num):
+        fmax, classes_num, dropout=True):
         
         super(ResNet22, self).__init__()
 
@@ -814,6 +814,8 @@ class ResNet22(nn.Module):
 
         self.fc1 = nn.Linear(2048, 2048)
         self.fc_audioset = nn.Linear(2048, classes_num, bias=True)
+
+        self.dropout = dropout
 
         self.init_weights()
 
@@ -855,12 +857,15 @@ class ResNet22(nn.Module):
         x = x1 + x2
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
-        embedding = F.dropout(x, p=0.5, training=self.training)
-        clipwise_output = torch.sigmoid(self.fc_audioset(x))
-        
-        output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+        # embedding = F.dropout(x, p=0.5, training=self.training)
+        # clipwise_output = torch.sigmoid(self.fc_audioset(x))
 
-        return output_dict
+        clipwise_output = self.fc_audioset(x)
+        
+        # output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+
+        return clipwise_output
+        # return output_dict
 
 
 def log_melspec(melspec, top_db=80.0):
@@ -1617,6 +1622,10 @@ class MobileNetV2(nn.Module):
         self.fc_audioset = nn.Linear(1024, classes_num, bias=True)
         
         self.dropout = dropout
+        self.conv_last = nn.Conv2d(in_channels=self.last_channel, 
+                                   out_channels=self.last_channel,
+                                   kernel_size=(3, 3), stride=(1, 1),
+                                   padding=(1, 1), bias=False)
 
         self.init_weight()
 
@@ -1651,8 +1660,10 @@ class MobileNetV2(nn.Module):
         
         # XXX: PANNs
         # x = input
-
         x = self.features(x)
+        
+        # XXX: temp
+        x = self.conv_last(x)
         
         x = torch.mean(x, dim=3)
         

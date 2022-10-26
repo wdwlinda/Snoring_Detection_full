@@ -64,6 +64,7 @@ def get_dataset_names():
         # dataset4, dataset5, dataset6,
         # dataset1, 
         # dataset2, dataset3, 
+        dataset6, 
         dataset7, 
         dataset8,
     ]

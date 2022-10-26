@@ -5,6 +5,7 @@ from models.PANNs.pann import PannImgClassifierBuilder
 # TODO: This is bad, the interface should also has this function
 def convert_model_name(model_name):
     model_map = {
+        'pann.ResNet22': 'Snoring_Detection.models.PANNs.model.ResNet22',
         'pann.ResNet38': 'Snoring_Detection.models.PANNs.model.ResNet38',
         'pann.ResNet54': 'Snoring_Detection.models.PANNs.model.ResNet54',
         'pann.MobileNetV2': 'Snoring_Detection.models.PANNs.model.MobileNetV2',
@@ -29,19 +30,11 @@ def create_snoring_model(common_config: dict):
         model_builder = TimmImgClassifierBuilder(common_config, converted_name)
         model = model_builder.build()
     elif 'pann' in model_name:
-        # hop_size = 512
-        # window_size = 2048
-        # mel_bins = 128
-        # fmin = 0
-        # fmax = None
-
         hop_size = 320
         window_size = 1024
         mel_bins = 64
         fmin = 0
         fmax = None
-        # fmin = 50
-        # fmax = 14000
         new_model_config = {
             'sample_rate': 16000,
             'window_size': window_size,

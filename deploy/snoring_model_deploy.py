@@ -6,7 +6,7 @@ import pandas as pd
 
 from deploy import onnx_model
 from models.image_classification import img_classifier
-from inference import export_onnx
+# from inference import export_onnx
 from utils import configuration
 
 

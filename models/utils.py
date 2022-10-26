@@ -88,8 +88,8 @@ class ModelBuilder():
         # TODO: modify yaml
         self.restore_path = common_config.model.restore_path
         # XXX: params device, statedict_key
-        self.device = torch.device('cuda:0')
-        # self.device = torch.device('cpu')
+        # self.device = torch.device('cuda:0')
+        self.device = torch.device('cpu')
         self.statedict_key = 'net'
         self.Model = self.get_model(model_name)
         if new_model_config is not None:
@@ -139,9 +139,16 @@ def get_model(model_config):
 
 
 def get_activation(name, *args, **kwargs):
+    if name is None:
+        return None
+
     if name == 'relu':
         return nn.ReLU(inplace=True, *args, **kwargs)
     elif name == 'sigmoid':
         return nn.Sigmoid()
     elif name == 'softmax':
         return nn.Softmax(*args, **kwargs)
+
+
+def get_activation2(name, *args, **kwargs):
+    pass

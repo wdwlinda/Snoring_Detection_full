@@ -29,6 +29,8 @@ from utils import metrics
 from utils import configuration
 from utils import train_utils as local_train_utils
 from models.snoring_model import create_snoring_model
+from models.utils import get_activation
+from models.import_model import build_tflite
 
 
 # TODO: solve device problem, check behavoir while GPU using
@@ -174,7 +176,7 @@ class Inferencer():
         self.save_path = save_path
         self.prediction = {}
         self.transform = transform
-        # self.restore()
+        self.activation = get_activation(config.model.activation)
 
         # # XXX: temp
         # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.tflite'
@@ -189,7 +191,7 @@ class Inferencer():
         # new_model = tf.saved_model.load(tf_path)
         # self.infer = new_model.signatures["serving_default"]
         
-
+    # TODO: from data dir
     def run(self, wav_path):
         inputs, sr = torchaudio.load(wav_path, normalize=True)
         inputs = inputs.to(self.device)
@@ -200,54 +202,40 @@ class Inferencer():
         prob = prob.detach().cpu().numpy()
         return prob
         
+    def pred_with_model(self, inputs):
+        return self.model(inputs)
+
     def __call__(self, show_info=False):
         with torch.no_grad():
             self.model.eval()
             if len(self.data_loader) == 0:
-                raise ValueError('No Data Exist. Please check the data path or data_plit.')
+                raise ValueError(
+                    'No Data Exist. Please check the data path or data_plit.')
 
             total_prob = []
             for i, data in enumerate(self.data_loader, 1):
                 inputs = data['input']
                 inputs = inputs.to(self.device)
-                
                 target = data.get('target', None)
                 target = target.to(self.device)
                 inputs, target = self.transform(inputs, target) 
 
-                prob = self.model(inputs)
-                # XXX: temporally
-                prob = torch.nn.Softmax(dim=1)(prob)
-                # prob = torch.sigmoid(prob)
-                prediction = torch.argmax(prob, dim=1).item()
-                prob = prob.detach().cpu().numpy()
+                output = self.pred_with_model(inputs)
+                if self.activation is not None:
+                    output = self.activation(output)
+                prediction = torch.argmax(output, dim=1)
+
+                output = output.detach().cpu().numpy()
                 target = target.detach().cpu().numpy()[0]
+                prediction = prediction.item()
                 sample_name = self.dataset.input_data_indices[i-1]['file_name'][:-4]
                 self.prediction[sample_name] = {
-                    'prob_0': prob[0, 0], 'prob_1': prob[0, 1], 'pred': prediction, 'target': target}
-
-                # # XXX: temp
-                # inputs = inputs.detach().cpu().numpy()
-                # from deploy import onnx_model
-                # ort_outs = onnx_model.ONNX_inference([inputs], self.ort_session)
-
-                # output = self.infer(tf.constant(inputs))
-                # tf_output = output['output'].numpy()
-                # tflite_output = tflite_inference(inputs, self.interpreter)
-
-                # print(
-                #     # prob-ort_outs,
-                #     # ort_outs-tf_output,
-                #     # tf_output-tflite_output
-                #     prob,
-                #     ort_outs,
-                #     tf_output,
-                #     tflite_output
-                # )
-                
+                    'prob_0': output[0, 0], 'prob_1': output[0, 1], 
+                    'pred': prediction, 'target': target
+                }
 
                 if show_info:
-                    print(f'Sample: {i}', prob, prediction, self.dataset.input_data_indices[i-1])
+                    print(f'Sample: {i}', output, prediction, self.dataset.input_data_indices[i-1])
             self.record(self.prediction)
         return self.prediction        
 
@@ -277,58 +265,51 @@ class Inferencer():
                     pred_info['pred'], pred_info['target']
                 ])
 
-    def restore(self):
-        checkpoint = os.path.join(
-            self.config.eval.restore_checkpoint_path, self.config.eval.checkpoint_name)
-        state_key = torch.load(checkpoint, map_location=self.device)
-        self.model.load_state_dict(state_key['net'])
-        self.model = self.model.to(self.device)
+    # def inference(self, show_info=False):
+    #     with torch.no_grad():
+    #         self.model.eval()
 
-    def inference(self, show_info=False):
-        with torch.no_grad():
-            self.model.eval()
+    #         if len(self.data_loader) == 0:
+    #             raise ValueError('No Data Exist. Please check the data path or data_plit.')
 
-            if len(self.data_loader) == 0:
-                raise ValueError('No Data Exist. Please check the data path or data_plit.')
-
-            total_prob = []
-            for i, data in enumerate(self.data_loader, 1):
-                inputs = data['input']
-                inputs = inputs.to(self.device)
+    #         total_prob = []
+    #         for i, data in enumerate(self.data_loader, 1):
+    #             inputs = data['input']
+    #             inputs = inputs.to(self.device)
                 
-                inputs, _ = self.transform(inputs, None)
+    #             inputs, _ = self.transform(inputs, None)
 
-                prob = self.model(inputs)
-                prediction = torch.argmax(prob, dim=1).item()
-                prob = prob.detach().cpu().numpy()
-                prob_p = prob[0, 1]
-                if show_info:
-                    print(f'Sample: {i}', prob, prediction, self.dataset.input_data_indices[i-1])
-                self.record_prediction(i-1, prob, prediction)
-        return self.prediction        
+    #             prob = self.model(inputs)
+    #             prediction = torch.argmax(prob, dim=1).item()
+    #             prob = prob.detach().cpu().numpy()
+    #             prob_p = prob[0, 1]
+    #             if show_info:
+    #                 print(f'Sample: {i}', prob, prediction, self.dataset.input_data_indices[i-1])
+    #             self.record_prediction(i-1, prob, prediction)
+    #     return self.prediction        
     
-    def record_prediction(self, index, prob, pred):
-        # if prediction[0] == 1:
-        if self.save_path is not None:
-            path = self.save_path
-        else:
-            path = os.path.join(self.config.eval.restore_checkpoint_path, self.config.eval.running_mode, os.path.basename(self.config.dataset.index_path))
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        name = f'pred.csv'
-        # name = f'{os.path.basename(self.config.dataset.index_path)}_pred.csv'
-        # name = f'{os.path.basename(self.dataset.path)}_pred .csv'
-        if index == 0:
-            with open(os.path.join(path, name), mode='w+', newline='') as csv_file:
-                writer = csv.writer(csv_file)
-                writer.writerow([''])
+    # def record_prediction(self, index, prob, pred):
+    #     # if prediction[0] == 1:
+    #     if self.save_path is not None:
+    #         path = self.save_path
+    #     else:
+    #         path = os.path.join(self.config.eval.restore_checkpoint_path, self.config.eval.running_mode, os.path.basename(self.config.dataset.index_path))
+    #     if not os.path.isdir(path):
+    #         os.makedirs(path)
+    #     name = f'pred.csv'
+    #     # name = f'{os.path.basename(self.config.dataset.index_path)}_pred.csv'
+    #     # name = f'{os.path.basename(self.dataset.path)}_pred .csv'
+    #     if index == 0:
+    #         with open(os.path.join(path, name), mode='w+', newline='') as csv_file:
+    #             writer = csv.writer(csv_file)
+    #             writer.writerow([''])
 
-        with open(os.path.join(path, name), mode='a+', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            sample_name = os.path.basename(self.dataset.input_data_indices[index])[:-4]
-            writer.writerow(
-                [sample_name, prob[0, 0], prob[0, 1], pred, self.dataset.input_data_indices[index]])
-        self.prediction[sample_name] = {'prob': prob, 'pred': pred}
+    #     with open(os.path.join(path, name), mode='a+', newline='') as csv_file:
+    #         writer = csv.writer(csv_file)
+    #         sample_name = os.path.basename(self.dataset.input_data_indices[index])[:-4]
+    #         writer.writerow(
+    #             [sample_name, prob[0, 0], prob[0, 1], pred, self.dataset.input_data_indices[index]])
+    #     self.prediction[sample_name] = {'prob': prob, 'pred': pred}
         
 
 
@@ -355,12 +336,6 @@ def tflite_inference(inputs, interpreter):
     output_data = interpreter.get_tensor(output_details[0]['index'])
     return output_data
 
-
-def build_tflite(tflite_path, input_shape):
-    interpreter = tf.lite.Interpreter(model_path=tflite_path)
-    interpreter.resize_tensor_input(0, input_shape, strict=True)
-    interpreter.allocate_tensors()
-    return interpreter
 
 
 def pred_tflite(config, dataset_mapping, tflite_path):
@@ -451,13 +426,6 @@ def run_test(src_dir, dist_dir, config, splits):
     return acc, precision, recall
 
 
-def export_onnx(config):
-    model = create_snoring_model(config)
-    save_path = Path(config.model.restore_path)
-    save_path = str(save_path.parent)
-    deploy(config, model, save_filename=save_path)
-
-
 def single_test(
     data_path: str, save_path: str, config: str = None, show_info: bool = False, 
     splits: str = None) -> dict:
@@ -487,30 +455,6 @@ def single_test(
     prediction = inferencer(show_info)
     return prediction
     
-from torch import nn
-class Audio16BitNorm(nn.Module):
-    def __init__(self, b):
-        super().__init__()
-        self.register_buffer('b', b)
-        
-    def forward(self, x):
-        x = x / self.b
-        return x
-
-
-def deploy(config, model, save_filename):
-    from deploy.snoring_model_deploy import model_to_onnx
-
-    model = torch.nn.Sequential(
-        Audio16BitNorm(b=torch.tensor(32768)),
-        model,
-        torch.nn.Softmax(1)
-    )
-    dummy_input = np.float32(np.random.rand(1, 32000))
-    restore_path = Path(config.model.restore_path).parent
-    run_id = restore_path.name
-    save_filename = restore_path.joinpath(f'{config.model.name}_{run_id}.onnx')
-    model_to_onnx(dummy_input, model, str(save_filename))
 
 
 if __name__ == "__main__":
