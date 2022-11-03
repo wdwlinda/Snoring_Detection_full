@@ -1,370 +1,454 @@
+
 import os
+from pathlib import Path
+import time
+
+from cv2 import normalize
 import numpy as np
-import torchaudio
-from pydub import AudioSegment
 import matplotlib.pyplot as plt
-import librosa.display
+import torch
+from torch.serialization import save
+from sklearn import metrics
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 import pandas as pd
-import random
-from analysis import data_splitting
+import csv
+from sklearn.model_selection import train_test_split
+import tensorflow as tf
+import torchaudio
+import onnxruntime
+
+from models.image_classification import img_classifier
+from dataset.dataloader import AudioDatasetCOCO
 from dataset import dataset_utils
-from analysis import utils
-import shutil
+from dataset.data_transform import WavtoMelspec_torchaudio
+from utils import train_utils
+# from utils import metrics
+from utils import configuration
+from utils import train_utils as local_train_utils
+from models.snoring_model import create_snoring_model
+from models.utils import get_activation
+from models.import_model import build_tflite
 
 
-
-def generate_index_for_subject():
-    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
-    valid_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test\valid.txt'
-    dir_list = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
-    val_content = dataset_utils.load_content_from_txt(valid_path)
-
-    for d in dir_list:
-        print(f'[INFO] Generating training index for subject {d}')
-        if not os.path.isdir(os.path.join(save_path, d)):
-            os.mkdir(os.path.join(save_path, d))
-        # save_aLL_files_name(
-        #     os.path.join(path, d), keyword='wav', name='train', shuffle=False, save_path=os.path.join(save_path, d))
-        file_names = dataset_utils.get_files(os.path.join(path, d), keys='wav', is_fullpath=True, sort=True)
-        # TODO: redundency code, change it ASAP
-        for f in file_names:
-            for valid_f in val_content:
-                v_f = os.path.basename(valid_f).split('_')[0] + '_' + os.path.basename(valid_f).split('_')[1]
-                if v_f in f:
-                    print(f'remove {f}')
-                    if f in file_names:
-                        file_names.remove(f)
-        dataset_utils.save_content_in_txt(
-            file_names, os.path.join(os.path.join(save_path, d), f'train.txt'), filter_bank=[], access_mode='w+', dir=None)
-        dataset_utils.save_content_in_txt(
-            val_content, os.path.join(os.path.join(save_path, d), 'valid.txt'), filter_bank=[], access_mode='w+', dir=None)
-    dir_list_full = [os.path.join(save_path, f) for f in dir_list]
-    dataset_utils.save_content_in_txt(
-        dir_list_full, os.path.join(save_path, 'dir_name.txt'), filter_bank=[], access_mode='w+', dir=None)
-    # print(dir_list)
+# TODO: solve device problem, check behavoir while GPU using
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cpu')
+ImageClassifier = img_classifier.ImageClassifier
+CONFIG_PATH = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\config\_cnn_valid_config.yml'
 
 
-def save_files_in_csv():
-    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_subject_training'
-    valid_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\index\ASUS_h_train_ASUS_m_test\valid.txt'
-    dir_list = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
-
-    dir_list = dir_list[:4]
-    for d in dir_list:
-        print(f'[INFO] Saving file name for subject {d}')
-        if not os.path.isdir(os.path.join(save_path, d)):
-            os.mkdir(os.path.join(save_path, d))
-
-        file_names = dataset_utils.load_content_from_txt(os.path.join(path, d, 'train.txt'))
-        file_names.sort()
-        pred_label = [int(os.path.split(os.path.split(f)[0])[1]) for f in file_names]
-        df = pd.DataFrame({'file_name': file_names})
-        df.index += 1
-        df['predict_label'] = pred_label
-        df.to_csv(os.path.join(save_path, d, f'{d}_label.csv'))
+def onnx_inference(inputs, ort_session):
+    # compute ONNX Runtime output prediction
+    input_names = ort_session.get_inputs()
+    assert len(inputs) == len(input_names)
+    ort_inputs = {
+        input_session.name: input_data for input_session, input_data in zip(input_names, inputs)}
+    ort_outs = ort_session.run(None, ort_inputs)
+    return ort_outs
 
 
-def string_process(_str, keyword_pair, keep_remain=True):
-    assert isinstance(keyword_pair, (list, tuple))
-    if keep_remain:
-        return _str.replace(keyword_pair[0], keyword_pair[1])
-    else:
-        return keyword_pair[1]
+def ONNX_inference(inputs, onnx_model):
+    """AI is creating summary for ONNX_inference
+
+    Args:
+        inputs ([type]): [description]
+        onnx_model ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    ort_session = onnxruntime.InferenceSession(onnx_model)
+    # compute ONNX Runtime output prediction
+    input_names = ort_session.get_inputs()
+    assert len(inputs) == len(input_names)
+    ort_inputs = {
+        input_session.name: input_data for input_session, input_data in zip(input_names, inputs)}
+    ort_outs = ort_session.run(None, ort_inputs)
+    return ort_outs
 
 
-# TODO: coding start in 0 or 1
-# TODO: format filtering
-# TODO: optional zfill number?
-def change_all_file_names(path, keyword_pair, keep_remain=False, recode=True):
-    files = os.listdir(path)
-    files.sort(key=len)
-    os.chdir(path)
-    for i, f in enumerate(files):
+def pred_data():
+    total_data_info = {}
+
+    # preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp'
+    # _0727_data = ['1658889529250_RedmiNote8', '1658889531056_Pixel4XL', '1658889531172_iPhone11']
+    # for dataset in _0727_data:
+    #     src_dir = os.path.join(preprocess_dir, dataset, '16000', 'img', 'filenames')
+    #     dist_dir = os.path.join(preprocess_dir, dataset, '16000', 'pred')
+    #     gt_dir = os.path.join(preprocess_dir, dataset, '16000', 'filenames.csv')
+    #     total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
+
+    preprocess_dir = r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\preprocess'
+    # _0811_data = ['Samsung_Note10Plus_night']
+    _0811_data = ['Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
+    # _0811_data = ['Mi11_night', 'Mi11_office', 'Redmi_Note8_night', 'Samsung_Note10Plus_night']
+    for dataset in _0811_data:
+        src_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'img', 'filenames')
+        dist_dir = os.path.join(preprocess_dir, dataset, 'pred3')
+        gt_dir = os.path.join(preprocess_dir, dataset, 'melspec', 'filenames.csv')
+        total_data_info[dataset] = {'src': src_dir, 'dist': dist_dir, 'gt': gt_dir}
+
+    # test = {'Test': {
+    #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\temp_test',
+    #     'dist': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\temp_test',
+    #     'gt': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+    #     }
+    # }
+    # total_data_info.update(test)
+
+    # esc50 = {'ESC-50': {
+    #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\img\file_names',
+    #     'dist': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\pred',
+    #     'gt': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\esc50\44100\file_names.csv',
+    #     }
+    # }
+    # total_data_info.update(esc50)
+
+    # asus_snoring = {'ASUS_snoring': {
+    #     'src': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\img\test',
+    #     'dist': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\pred',
+    #     'gt': r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_cpp\2_21_2s_my2\test.csv',
+    #     }
+    # }
+    # total_data_info.update(asus_snoring)
+
+    total_confidence = {}
+    data_names = []
+    for dataset, data_info in total_data_info.items():
+        data_names.append(dataset)
+        src_dir = data_info['src']
+        dist_dir = data_info['dist']
+        prediction = pred_from_feature(src_dir, dist_dir)
+
+        y_true, y_pred, confidence = [], [], []
+    
+        # df = pd.read_csv(data_info['gt'])
+        # for index, sample_gt in df.iterrows():
+        #     if prediction.get(sample_gt['input'], None):
+        #         true_val = sample_gt['label']
+        #         y_true.append(true_val)
+        #         y_pred.append(prediction[sample_gt['input']]['pred'])
+        #         confidence.append(sample['prob'][0, true_val])
+
+        true_val = 0
+        for index, sample in prediction.items():
+            y_pred.append(sample['pred'])
+            y_true.append(true_val)
+            confidence.append(sample['prob'][0, true_val])
+
+        acc = metrics.accuracy_score(y_true, y_pred)
+        precision = metrics.precision_score(y_true, y_pred, zero_division=0)
+        recall = metrics.recall_score(y_true, y_pred, zero_division=0)
+        with open(os.path.join(data_info['dist'], 'result.txt'), 'w') as fw:
+            fw.write(f'Precision {precision:.4f}\n')
+            fw.write(f'Recall {recall:.4f}\n')
+            fw.write(f'Accuracy {acc:.4f}\n')
+        # print(acc)
+
+        plot_confusion_matrix(y_true, y_pred, save_path=data_info['dist'])
+        total_confidence[dataset] = confidence
+
+    fig, ax = plt.subplots(1, 1)
+    for idx, (dataset, confidence) in enumerate(total_confidence.items(), 1):
+        ax.scatter(np.ones_like(confidence, dtype=np.int32)*idx, confidence, s=0.5, alpha=0.5)
+    ax.set_xlabel('dataset')
+    ax.set_ylabel('probability')
+    ax.set_title('Prediction confidence comparision')
+    ax.set_xticks(np.arange(1, len(total_confidence)+1), data_names)
+    ax.plot([1, len(total_confidence)+1], [0.5, 0.5], 'k--')
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+    fig.tight_layout()
+    fig.savefig(os.path.join(data_info['dist'], 'confidence_comp.png'))
+
+
+class Inferencer():
+    def __init__(self, config, dataset, model, save_path=None, batch_size=1, shuffle=False, transform=None):
+        self.config = config
+        self.dataset = dataset
+        # TODO: Inference will be wrong if batch_size > 1
+        self.data_loader = DataLoader(self.dataset, batch_size, shuffle)
+        self.model = model
+        self.device = configuration.get_device()
+        self.save_path = save_path
+        self.prediction = {}
+        self.transform = transform
+        self.activation = get_activation(config.model.activation)
+
+        # # XXX: temp
+        # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.tflite'
+        # self.interpreter = build_tflite(tflite_path, [1, 32000])
         
-        old_name, suffix = f.split('.')
-        new_name = string_process(old_name, keyword_pair, keep_remain)
-        if recode:
-            new_name = f'{new_name}_{i+1:03d}.{suffix}'
-        print(f'Changing file name from {f} to {new_name}')
-        os.rename(f, new_name)
+        # import onnxruntime
+        # onnx_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.onnx'
+        # self.ort_session = onnxruntime.InferenceSession(onnx_path)
+
+        # # Get TF output
+        # tf_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741'
+        # new_model = tf.saved_model.load(tf_path)
+        # self.infer = new_model.signatures["serving_default"]
+        
+    # TODO: from data dir
+    def run(self, wav_path):
+        inputs, sr = torchaudio.load(wav_path, normalize=True)
+        inputs = inputs.to(self.device)
+        inputs, _ = self.transform(inputs, None) 
+
+        prob = self.model(inputs)
+        prediction = torch.argmax(prob, dim=1).item()
+        prob = prob.detach().cpu().numpy()
+        return prob
+        
+    def pred_with_model(self, inputs):
+        return self.model(inputs)
+
+    def __call__(self, show_info=False):
+        with torch.no_grad():
+            self.model.eval()
+            if len(self.data_loader) == 0:
+                raise ValueError(
+                    'No Data Exist. Please check the data path or data_plit.')
+
+            total_prob = []
+            for i, data in enumerate(self.data_loader, 1):
+                inputs = data['input']
+                inputs = inputs.to(self.device)
+                target = data.get('target', None)
+                target = target.to(self.device)
+                inputs, target = self.transform(inputs, target) 
+
+                output = self.pred_with_model(inputs)
+                if self.activation is not None:
+                    output = self.activation(output)
+                prediction = torch.argmax(output, dim=1)
+
+                output = output.detach().cpu().numpy()
+                target = target.detach().cpu().numpy()[0]
+                prediction = prediction.item()
+                sample_name = self.dataset.input_data_indices[i-1]['file_name'][:-4]
+                self.prediction[sample_name] = {
+                    'prob_0': output[0, 0], 'prob_1': output[0, 1], 
+                    'pred': prediction, 'target': target
+                }
+
+                if show_info:
+                    print(f'Sample: {i}', output, prediction, self.dataset.input_data_indices[i-1])
+            self.record(self.prediction)
+        return self.prediction        
+
+    def record(self, prediction):
+        if self.save_path is not None:
+            path = self.save_path
+        else:
+            path = os.path.join(
+                self.config.eval.restore_checkpoint_path, 
+                self.config.eval.running_mode, 
+                os.path.basename(self.config.dataset.index_path))
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        # XXX: pred.csv -> kaggle_snorin_pred.csv
+        name = f'pred.csv'
+
+        for index, (sample_name, pred_info) in enumerate(prediction.items()):
+            if index == 0:
+                with open(os.path.join(path, name), mode='w+', newline='') as csv_file:
+                    writer = csv.writer(csv_file)
+                    writer.writerow(['sample'] + list(prediction[sample_name].keys()))
+
+            with open(os.path.join(path, name), mode='a+', newline='') as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow([
+                    sample_name, pred_info['prob_0'], pred_info['prob_1'], 
+                    pred_info['pred'], pred_info['target']
+                ])
 
 
-def try_noisereduce():
-    from scipy.io import wavfile
-    import noisereduce as nr
+def plot_confusion_matrix(y_true, y_pred, save_path=''):
+    cm = metrics.confusion_matrix(y_true, y_pred)
+    disp = metrics.ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot()
+    plt.savefig(os.path.join(save_path, 'cm.png'))
+
+
+
+def tflite_inference(inputs, interpreter):
+    # Get input and output tensors.
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    # Test the model on random input data.
+    inputs = tf.constant(inputs)
+    interpreter.set_tensor(input_details[0]['index'], inputs)
+    interpreter.invoke()
+
+    # The function `get_tensor()` returns a copy of the tensor data.
+    # Use `tensor()` in order to get a pointer to the tensor.
+    output_data = interpreter.get_tensor(output_details[0]['index'])
+    return output_data
+
+
+def pred_tflite(config, dataset_mapping, tflite_path):
+    total_acc = {}
+    config = local_train_utils.DictAsMember(config)
+    inf_time = {}
+
+    # tflite model
+    interpreter = build_tflite(tflite_path, [1, 32000])
+    # interpreter = build_tflite(tflite_path, [1, 3, 128, 59])
     
-    # load data
-    file = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital\1630513297437_AA1700268\1\1630513297437_16_141.0_142.0_002.wav'
-    rate, data = wavfile.read(file)
-    # perform noise reduction
-    reduced_noise = nr.reduce_noise(y=data, sr=rate)
-    wavfile.write('noisereduce_test.wav', rate, reduced_noise)
+    # Get ONNX output
+    onnx_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741.onnx'
+    ort_session = onnxruntime.InferenceSession(onnx_path)
 
+    # Get TF output
+    tf_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\pann.ResNet38_run_741'
+    new_model = tf.saved_model.load(tf_path)
+    infer = new_model.signatures["serving_default"]
 
-def Snoring_data_analysis():
-    data_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
-    threshold = 82
-    single_length = 3
-    data_format = 'm4a'
-    test_amplitude = False
-    data_analysis(data_path, threshold, single_length, data_format, test_amplitude)
+    for test_data_name, data_path in dataset_mapping['data_pre_root'].items():
+        # test_dataset = SimpleAudioDatasetfromNumpy_csv(config, data_path)
+        data_name = Path(data_path).name
+        config['dataset']['index_path'] = {data_name: data_path}
+        test_dataset = AudioDatasetCOCO(config, modes='test')
+        test_dataloader = DataLoader(test_dataset, 1, False)
 
+        
 
-def data_analysis(path, threshold, single_length, data_format, test_amplitude):
-    sample_list = os.listdir(path)
-    sample_nums = len(sample_list)
-    sample_length, sample_length_threshold, data_length_threshold, max_amplitude, min_amplitude = [], [], [], [], []
-    min_length, max_length, sample_names, non_effective = [], [], [], []
-    persons = {}
-    os.chdir(path)
-    for idx, dir in enumerate(sample_list):
-        if os.path.isdir(dir):
-            audio_list = os.listdir(dir)
-            file_length = len(audio_list)
-            sample_length.append(file_length)
-            if file_length > threshold:
-                sample_length_threshold.append(file_length)
-                data_length_threshold.append(file_length*single_length)
-                sample_names.append(dir)
-                working_number = dir.split('_')[1]
-                if working_number in persons:
-                    persons[working_number] += 1
-                else:
-                    persons[working_number] = 1
-
-                if test_amplitude:
-                    max_temp_amplitude, min_temp_amplitude = [], []
-                    for f in audio_list:
-                        if f.endswith(data_format):
-                            print(f'{idx+1}/{len(sample_list)}', dir, f)
-                            x = AudioSegment.from_file(os.path.join(dir, f), format='m4a').get_array_of_samples()
-                            x = np.array(x, np.float32)
-                            max_temp_amplitude.append(np.max(x))
-                            min_temp_amplitude.append(np.min(x))
-                    max_amplitude.append(np.max(max_temp_amplitude))
-                    min_amplitude.append(np.min(min_temp_amplitude))
-            else:
-                non_effective.append(dir)
-    print('Sample Number: ', len(sample_length))
-    print('Effective Sample Number: ', len(sample_length_threshold))
-    print(f"Total data duration: {np.sum(data_length_threshold)} (sec) ")
-    print(f"Mean data duration: {np.mean(data_length_threshold)} (sec) ")
-    print(f"Std data duration: {np.std(data_length_threshold)} (sec) ")
-    print(f"Max data duration: {np.max(data_length_threshold)} (sec) ")
-    print(f"Min data duration: {np.min(data_length_threshold)} (sec) ")
-    print(sample_length)
-    if test_amplitude:
-        print(f"Max data amplitude: {np.max(max_amplitude)}")
-        print(f"Min data amplitude: {np.min(min_amplitude)}")
-
-    
-    # Write effective sample names to text file.
-    # print(sample_names)
-    with open('effective_samples.txt', 'w+') as fw:
-        fw.write("effective\n")
-        for item in sample_names:
-            fw.write(f"{item}\n")
-        fw.write("\n")
-        fw.write("non-effective\n")
-        for item in non_effective:
-            fw.write(f"{item}\n")
-
-    # Write audio belonging information
-    # print(persons)
-    total_person = sum(list(persons.values()))
-    with open('persons.txt', 'w+') as fw:
-        for k, v in persons.items():
-            fw.write(f'{k}: {v}\n')
-        fw.write(30*'-')
-        fw.write(f'\nTotal: {total_person}')
-
-
-def thresholding(filename, threshold):
-    df = pd.read_csv(filename)
-    data = df[df.columns[1]]
-    data = data.to_numpy()
-    data = np.int32(data)
-
-    for i in data:
-        if isinstance(i, int):
-            if i >= threshold:
-                df = 1
-    print([156])
-
-
-def peak_analysis():
-    filename = rf'C:\Users\test\Downloads\total_peak2.csv'
-    thresholding(filename, threshold=25)
-
-
-def re_split():
-    """ A test code which is for temporally purpose to extend audio clip from 1 sec to 2 sec. 
-    Not a great example, please define everything clearly at first"""
-    peak_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\peak3_2'
-    audio_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_raw'
-    save_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2_new'
-    times = [1, 2]
-    sr = 16000
-    channels = 1
-    load_format = 'm4a'
-    save_format = 'wav'
-
-    # dir_list = utils.get_dir_list(peak_path)
-    # for d in dir_list:
-    #     os.rename(d, os.path.join(peak_path, os.path.basename(d).split('_')[0]))
-
-    c = '0'
-    for c in ['0', '1']:
-        clip_path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\{c}'
-        filenames = dataset_utils.get_files(clip_path, keys='wav', is_fullpath=True, sort=True)
-        for i, f in enumerate(filenames):
-            # if f == rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\0\1630345236867_6_034.wav':
-            # Get subject, peak number, and peak time
-            subject = os.path.split(f)[1].split('_')[0]
-            number = os.path.split(f)[1].split('_')[1]
-            peak_number = os.path.split(f)[1].split('_')[2].split('.')[0]
-            df = pd.read_csv(os.path.join(peak_path, subject, f'{subject}_{number}_peak.csv'))
-            if df['Time (second)'][0] == 0:
-                index = int(peak_number)
-            else:
-                index = int(peak_number) - 1
-            peak_time = df['Time (second)'][index]
+        p = 0
+        data_infer_t = 0
+        # small_size = 10
+        y_true, y_pred, confidence = [], [], []
+        for i, data in enumerate(test_dataloader):
+            # if i > small_size: break
+            input_data, target = data['input'], data['target']
+            input_data = input_data.detach().cpu().numpy()
+            target = target.detach().cpu().numpy()
+            input_data = input_data[:,0]
+            start_t = time.time()
+            # XXX: temp
+            # TFlite
+            prediction = tflite_inference(input_data, interpreter)
             
-            #  Load raw audio
-            data_path = os.path.join(audio_path, subject, f'{subject}_{number}.{load_format}')
-            y = utils.get_pydub_sound(data_path, load_format, sr, channels)
+            # ONNX
+            output_node = onnx_inference([input_data], ort_session)
+            onnx_output = output_node[0]
 
-            # if i+1==158:
-            #     print(i)
-            print(i+1, f, c)
-            for t in times:
-                # pick_next = utils.get_audio_clip(y, [peak_time, peak_time+t], 1000)
-                # pick_cent = utils.get_audio_clip(y, [peak_time-0.5*t, peak_time+0.5*t], 1000)
-
-                # # make dir
-                # path_cent = os.path.join(save_path, f'test_{t}sec_cent_mono', c)
-                # path_next = os.path.join(save_path, f'test_{t}sec_next_mono', c)
-                # if not os.path.isdir(path_cent): os.makedirs(path_cent)
-                # if not os.path.isdir(path_next): os.makedirs(path_next)
-
-                # # save audio clip
-                # save_name = os.path.basename(f)
-                # pick_cent.export(os.path.join(path_cent, save_name), format=save_format)
-                # pick_next.export(os.path.join(path_next, save_name), format=save_format)
+            # Tensorflow
+            output = infer(tf.constant(input_data))
+            tf_output = output['output'].numpy()
 
 
-                range_next = [peak_time, peak_time+t]
-                if range_next[0] > 0 and range_next[1] < y.duration_seconds:
-                    pick_next = utils.get_audio_clip(y, range_next, 1000)
-                    path_next = os.path.join(save_path, f'test_{t}sec_next_mono_16k', c)
-                    # make dir
-                    if not os.path.isdir(path_next): os.makedirs(path_next)
-                    # save audio clip
-                    save_name = os.path.basename(f)
-                    pick_next.export(os.path.join(path_next, save_name), format=save_format)
+            # ===
+            end_t = time.time()
+            infer_t = end_t - start_t
 
-                range_cent = [peak_time-0.5*t, peak_time+0.5*t]
-                if range_cent[0] > 0 and range_cent[1] < y.duration_seconds:
-                    pick_cent = utils.get_audio_clip(y, range_cent, 1000)
-                    path_cent = os.path.join(save_path, f'test_{t}sec_cent_mono_16k', c)
-                    # make dir
-                    if not os.path.isdir(path_cent): os.makedirs(path_cent)
-                    # save audio clip
-                    save_name = os.path.basename(f)
-                    pick_cent.export(os.path.join(path_cent, save_name), format=save_format)
+            print(i, test_dataset.input_data_indices[i], prediction[0,1], infer_t)
+            data_infer_t += infer_t
+            y_true.append(target[0])
+            if prediction[0,1] > 0.5:
+                # p += 1
+                y_pred.append(1)
+            else:
+                y_pred.append(0)
 
-
-def save_audio_fig():
-    path = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring'
-    save_path = rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\imgs\ASUS_snoring'
-    sample_list = os.listdir(path)
-    threshold = 82
-    data_format = 'm4a'
-    os.chdir(path)
-    for idx, dir in enumerate(sample_list):
-        if idx > 37:
-            audio_list = os.listdir(dir)
-            file_length = len(audio_list)
-            if file_length > threshold:
-                if not os.path.isdir(os.path.join(save_path, dir)):
-                    os.mkdir(os.path.join(save_path, dir))
-                for f in audio_list:
-                    if f.endswith(data_format):
-                        print(f'{idx+1}/{len(sample_list)}', dir, f)
-                        x = AudioSegment.from_file(os.path.join(dir, f), format='m4a').get_array_of_samples()
-                        x = np.array(x, np.float32)
-                        plt.figure(figsize=(14, 5))
-                        librosa.display.waveplot(x, 44100)
-                        plt.savefig(os.path.join(save_path, dir, f'{f}.png'))
-                        plt.close()
+        acc = metrics.accuracy_score(y_true, y_pred)
+        # inf_time[test_data_name] = data_inf_t/small_size
+        # inf_time[test_data_name] = data_inf_t/len(test_dataloader.dataset)
+        print('--')
+        print(inf_time, acc, y_true, y_pred)
+        
+    return prediction
 
 
-def get_diff_files(src1, src2, dst, data_format='wav'):
-    files1 = dataset_utils.get_files(src1, data_format, is_fullpath=False)
-    files2 = dataset_utils.get_files(src2, data_format, is_fullpath=False)
-    # TODO: fix above lines for generalization
-    dst_files = list(set(files1)-set(files2))
-    dst_files = [os.path.join(src1, f.split('_')[0], f) for f in dst_files]
+def run_test(src_dir, dist_dir, config, splits):
+    test_dataset_name = Path(dist_dir).stem
+    prediction = single_test(src_dir, dist_dir, config, splits=splits)
+    y_true, y_pred, confidence = [], [], []
+    for sample_name in prediction:
+        y_true.append(prediction[sample_name]['target'])
+        y_pred.append(prediction[sample_name]['pred'])
     
-    for idx, f in enumerate(dst_files):
-        print(f'{idx+1}/{len(dst_files)}', f)
-        new_f = f.replace(src1, dst)
-        if not os.path.isdir(os.path.split(new_f)[0]):
-            os.makedirs(os.path.split(new_f)[0])
-        shutil.copyfile(f, new_f)
+    all_zeros = [
+        'redmi',
+        'pixel',
+        'iphone',
+        'Mi11_night',
+        'Mi11_office',
+        'Redmi_Note8_night',
+        'Samsung_Note10Plus_night'
+    ]
+
+    if test_dataset_name in all_zeros:
+        mAP = AUC = metrics.accuracy_score(y_true, y_pred)
+    else:
+        mAP = metrics.average_precision_score(y_true, y_pred, average=None)
+        AUC = metrics.roc_auc_score(y_true, y_pred, average=None)
+
+    plot_confusion_matrix(y_true, y_pred, save_path=dist_dir)
+    return mAP, AUC
 
 
-def convert_testing_data(path, src, dst, add_dB):
-    y1 = dataset_utils.get_pydub_sound(path, src, 16000, 1)
-    y2 = y1 + add_dB
-    y1.export(path.replace(src, dst), dst)
-    y2.export(path.replace(f'.{src}', f'_6dB.{dst}'), dst)
-
-
-def convert_KC_testing():
-    file_list = dataset_utils.get_files(rf'C:\Users\test\Downloads\1112\KC_testing', 'm4a')
-    for f in file_list:
-        convert_testing_data(f, 'm4a', 'wav', 6)
-
-
-if __name__ == '__main__':
-    # Snoring_data_analysis()
-    # save_audio_fig()
-    # peak_analysis()
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset1\1')
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword=None, filtering_mode='in', shuffle=False, is_fullpath=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\0', keyword='wav', name='0')
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\Snoring_Detection\Snoring Dataset\1', keyword='wav', name='1')
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\subset2\1', keyword='wav', name='1', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw2_mono_hospital', keyword='wav', name='filename', shuffle=True)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono', keyword='wav', name='filenames', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\ecs50\ecs50_1', keyword='wav', name='train', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ESC-50\ESC-50_process\ecs50\ecs50_2', keyword='wav', name='train', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_MFCC', keyword='npy', name='filenames', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
-    # save_aLL_files_name(rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\raw_mono_h_MFCC', keyword='npy', name='filenames', shuffle=False)
-    # change_all_file_names(rf'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\infos\test_samples\0', 
-    #                       keyword_pair=['1', '0'], 
-    #                       keep_remain=False, 
-    #                       recode=True)
-    # generate_index_for_subject()
-    # save_files_in_csv()
-    # try_noisereduce()
-    # re_split()
-
-    dataset_utils.save_aLL_files_name(
-        r'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq6_no_limit_shift\2_21\raw_f_h_2_mono_16k', keyword='wav', name='file_names', shuffle=False)
+def single_test(
+    data_path: str, save_path: str, config: str = None, show_info: bool = False, 
+    splits: str = None) -> dict:
+    if not config:
+        config = configuration.load_config_and_setup(CONFIG_PATH, dict_as_member=True)
+    name = os.path.split(save_path)[1]
+    config['dataset']['index_path'] = {name: data_path}
     
-    # convert_KC_testing()
+    test_dataset = AudioDatasetCOCO(config, modes=splits)
 
-    # for i in [2, 4]:
-    #     for j in [13,21]:
-    #         for k in [1,2,3]:
-    #             src1 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq7_no_limit\{i}_{j}\raw_f_{k}_mono_16k'
-    #             src2 = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq7_no_limit\{i}_{j}\raw_f_h_{k}_mono_16k'
-    #             dst = rf'C:\Users\test\Desktop\Leon\Datasets\ASUS_snoring_subset\raw_final_test\freq7_no_limit\{i}_{j}\raw_f_unlabeled_{k}_mono_16k_'
-    #             get_diff_files(src1, src2, dst, data_format='wav')
+    test_transform = WavtoMelspec_torchaudio(
+        sr=config.dataset.sample_rate,
+        n_class=config.model.out_channels,
+        preprocess_config=config.dataset.preprocess_config,
+        is_mixup=False,
+        is_spec_transform=False,
+        is_wav_transform=False,
+        device=config.device
+    ) 
     
-    pass
+    model = create_snoring_model(config)
+
+    inferencer = Inferencer(
+        config, dataset=test_dataset, model=model, save_path=save_path, 
+        transform=test_transform
+    )
+    prediction = inferencer(show_info)
+    return prediction
+    
+
+
+if __name__ == "__main__":
+    CONFIG_PATH = 'config/_cnn_train_config.yml'
+    checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741'
+    # checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_723'
+    # checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741'
+
+    # checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\pann_run_461'
+    # checkpoint = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082'
+    # model_name = 'convnext_tiny_384_in22ft1k'
+    # model_name = 'edgenext_small'
+    model_name = 'pann.Resnet38'
+    # model_name = 'pann.MobileNetV2'
+
+    test_dataset = configuration.load_config('dataset/dataset.yml')
+    # test_dataset['dataset'].pop('ASUS_snoring_train')
+    # test_dataset['dataset'].pop('ESC50')
+
+    config = configuration.load_config(CONFIG_PATH, dict_as_member=False)
+    config['CHECKPOINT_PATH'] = checkpoint
+    config['model']['name'] = model_name
+    # inference_test(config, test_dataset)
+
+
+    # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\pann_run_461\pann_run_461.tflite'
+    tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_741\snoring_model_1021.tflite'
+    # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_723\pann.MobileNetV2_run_723.tflite'
+    # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_722\pann.ResNet54_run_722.tflite'
+    # tflite_path = r'C:\Users\test\Desktop\Leon\Projects\Snoring_Detection\checkpoints\run_082\snoring_relu_trained.tflite'
+    pred_tflite(config, test_dataset, tflite_path)
+
+
+    
+    

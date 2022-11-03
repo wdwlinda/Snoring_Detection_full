@@ -8,6 +8,7 @@ def convert_model_name(model_name):
         'pann.ResNet22': 'Snoring_Detection.models.PANNs.model.ResNet22',
         'pann.ResNet38': 'Snoring_Detection.models.PANNs.model.ResNet38',
         'pann.ResNet54': 'Snoring_Detection.models.PANNs.model.ResNet54',
+        'pann.MobileNetV1': 'Snoring_Detection.models.PANNs.model.MobileNetV1',
         'pann.MobileNetV2': 'Snoring_Detection.models.PANNs.model.MobileNetV2',
     }
     if model_name.split('.')[0] == 'timm':

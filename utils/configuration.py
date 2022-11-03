@@ -1,9 +1,30 @@
 import argparse
-import torch
 import yaml
-from utils import train_utils
+import random
 
+import numpy as np
+import torch
+
+from utils import train_utils
 logger = train_utils.get_logger('ConfigLoader')
+
+
+
+def load_config_and_setup(config_reference=None, dict_as_member=False, device_name=None):
+    config = load_config(config_reference, dict_as_member)
+
+    # Set deterministic
+    manual_seed = config.get('manual_seed', None)
+    if manual_seed is not None:
+        logger.info(f'Seed the RNG for all devices with {manual_seed}')
+        train_utils.set_deterministic(manual_seed, random, np, torch)
+            
+    # Device
+    if device_name is not None:
+        config['device'] = torch.device(device_name)
+    else:
+        config['device'] = get_device()
+    return config
 
 
 def get_device(device_str=None):

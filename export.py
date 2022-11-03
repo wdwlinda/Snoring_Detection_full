@@ -10,7 +10,8 @@ from utils import configuration
 
 def export_onnx(config):
     restore_path = Path(config.model.restore_path)
-    config['model']['restore_path'] = str(restore_path.joinpath(config.model.checkpoint_name))
+    config['model']['restore_path'] = str(
+        restore_path.joinpath(config.model.checkpoint_name))
     save_path = str(restore_path.parent)
     model = create_snoring_model(config)
     deploy(config, model, save_filename=save_path)
@@ -43,5 +44,6 @@ def deploy(config, model, save_filename):
 
 if __name__ == '__main__':
     CONFIG_PATH = r'config/_cnn_train_config.yml'
-    config = configuration.load_config(CONFIG_PATH, dict_as_member=True)
+    config = configuration.load_config_and_setup(
+        CONFIG_PATH, dict_as_member=True, device_name='cpu')
     export_onnx(config)

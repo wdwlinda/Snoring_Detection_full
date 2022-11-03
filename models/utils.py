@@ -88,8 +88,9 @@ class ModelBuilder():
         # TODO: modify yaml
         self.restore_path = common_config.model.restore_path
         # XXX: params device, statedict_key
+        self.device = common_config.device
         # self.device = torch.device('cuda:0')
-        self.device = torch.device('cpu')
+        # self.device = torch.device('cpu')
         self.statedict_key = 'net'
         self.Model = self.get_model(model_name)
         if new_model_config is not None:

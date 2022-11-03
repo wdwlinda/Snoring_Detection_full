@@ -16,6 +16,7 @@ class PannImgClassifierBuilder(ModelBuilder):
             'classes_num': common_config.model.out_channels,
             # 'pretrained': common_config.model.pretrained,
             'dropout': common_config.model.dropout,
+            'extra_extractor': common_config.model.extra_extractor
         }
         return model_kwargs
 

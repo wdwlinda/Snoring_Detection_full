@@ -312,24 +312,7 @@ def config_logging(path, config, access_mode):
                 fw.write(f'{dict_key}: {dict_value}\n')
 
 
-def create_optimizer(config, model):
-    learning_rate = config.TRAIN.BASE_LR
-    weight_decay = config.TRAIN.OPTIMIZER.WEIGHT_DECAY
-    momentum = config.TRAIN.OPTIMIZER.MOMENTUM
-    betas = config.TRAIN.OPTIMIZER.BETAS
-    optimizer_name = config.TRAIN.OPTIMIZER.NAME
-    if optimizer_name == 'Adam':
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate, betas=betas, weight_decay=weight_decay)
-    elif optimizer_name == 'SGD':
-        optimizer = optim.SGD(model.parameters(), lr=learning_rate, betas=betas, momentum=momentum, weight_decay=weight_decay)
-    elif optimizer_name == 'AdamW':
-        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, betas=betas, weight_decay=weight_decay)
-    else:
-        raise ValueError('Unknown optimizer name.')
-    return optimizer
-
-
-def create_optimizer_temp(optimizer_config, model):
+def create_optimizer(optimizer_config, model):
     learning_rate = optimizer_config['lr_config']['learning_rate']
     weight_decay = optimizer_config.get('weight_decay', 0)
     momentum = optimizer_config.get('momentum', 0)

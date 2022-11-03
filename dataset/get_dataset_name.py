@@ -59,14 +59,37 @@ def get_dataset_names():
         'Samsung_Note10Plus_night',
         'Redmi_Note8_night',
     ]
+    dataset9 = [
+        'Audioset_snoring_strong_repeat',
+        'Kaggle_snoring_pad',
+        'ASUS_snoring',
+    ]
+    dataset10 = [
+        'Audioset_snoring_strong_repeat',
+        'Kaggle_snoring_pad',
+    ]
+    dataset11 = [
+        'Audioset_snoring_strong_repeat',
+        'ASUS_snoring',
+    ]
+    dataset12 = [
+        'Kaggle_snoring_pad',
+        'ASUS_snoring',
+    ]
 
     datasets = [
-        # dataset4, dataset5, dataset6,
-        # dataset1, 
-        # dataset2, dataset3, 
-        dataset6, 
-        dataset7, 
-        dataset8,
+        dataset1, 
+        dataset2, 
+        # dataset3, 
+        # dataset4, 
+        # dataset5,
+        # dataset6, 
+        # dataset7, 
+        # dataset8,
+        # dataset9,
+        # dataset10,
+        # dataset11,
+        # dataset12,
     ]
     # datasets = [
     #     # ['Audioset_snoring_strong'],

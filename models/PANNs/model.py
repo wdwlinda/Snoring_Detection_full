@@ -1365,7 +1365,7 @@ class Cnn14_emb32(nn.Module):
 
 class MobileNetV1(nn.Module):
     def __init__(self, sample_rate, window_size, hop_size, mel_bins, fmin, 
-        fmax, classes_num):
+        fmax, classes_num, dropout=True, extra_extractor=None):
         
         super(MobileNetV1, self).__init__()
 
@@ -1440,6 +1440,22 @@ class MobileNetV1(nn.Module):
         self.fc1 = nn.Linear(1024, 1024, bias=True)
         self.fc_audioset = nn.Linear(1024, classes_num, bias=True)
 
+        self.dropout = dropout
+        self.extra_extractor = extra_extractor
+        if self.extra_extractor is not None:
+            if self.extra_extractor == 'conv':
+                self.conv_last = nn.Conv2d(in_channels=1024, 
+                                        out_channels=1024,
+                                        kernel_size=(3, 3), stride=(1, 1),
+                                        padding=(1, 1), bias=False)
+            elif self.extra_extractor == 'dw_conv':
+                self.conv_last = nn.Sequential(
+                    conv_dw(1024, 1024, 1),
+                    conv_dw(1024, 1024, 1)
+                )
+        else:
+            self.conv_last = None
+                    
         self.init_weights()
 
     def init_weights(self):
@@ -1466,6 +1482,11 @@ class MobileNetV1(nn.Module):
             x = do_mixup(x, mixup_lambda)
         
         x = self.features(x)
+        
+        # XXX: temp
+        if self.conv_last is not None:
+            x = self.conv_last(x)
+
         x = torch.mean(x, dim=3)
         
         (x1, _) = torch.max(x, dim=2)
@@ -1473,12 +1494,14 @@ class MobileNetV1(nn.Module):
         x = x1 + x2
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
-        embedding = F.dropout(x, p=0.5, training=self.training)
-        clipwise_output = torch.sigmoid(self.fc_audioset(x))
+        # embedding = F.dropout(x, p=0.5, training=self.training)
+        # clipwise_output = torch.sigmoid(self.fc_audioset(x))
         
-        output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
+        # output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
 
-        return output_dict
+        # return output_dict
+        clipwise_output = self.fc_audioset(x)
+        return clipwise_output
 
 
 class InvertedResidual(nn.Module):
@@ -1535,7 +1558,7 @@ class InvertedResidual(nn.Module):
 
 class MobileNetV2(nn.Module):
     def __init__(self, sample_rate, window_size, hop_size, mel_bins, fmin, 
-        fmax, classes_num, dropout=True):
+        fmax, classes_num, dropout=True, extra_extractor=None):
         
         super(MobileNetV2, self).__init__()
 
@@ -1622,11 +1645,38 @@ class MobileNetV2(nn.Module):
         self.fc_audioset = nn.Linear(1024, classes_num, bias=True)
         
         self.dropout = dropout
-        self.conv_last = nn.Conv2d(in_channels=self.last_channel, 
-                                   out_channels=self.last_channel,
-                                   kernel_size=(3, 3), stride=(1, 1),
-                                   padding=(1, 1), bias=False)
+        self.extra_extractor = extra_extractor
+        if self.extra_extractor is not None:
+            if self.extra_extractor == 'conv':
+                self.conv_last = nn.Conv2d(in_channels=self.last_channel, 
+                                           out_channels=self.last_channel,
+                                           kernel_size=(3, 3), stride=(1, 1),
+                                           padding=(1, 1), bias=False)
+            elif self.extra_extractor == 'dw_conv':
+                def conv_dw(inp, oup, stride):
+                    _layers = [
+                        nn.Conv2d(inp, inp, 3, 1, 1, groups=inp, bias=False), 
+                        nn.AvgPool2d(stride), 
+                        nn.BatchNorm2d(inp), 
+                        nn.ReLU(inplace=True), 
+                        nn.Conv2d(inp, oup, 1, 1, 0, bias=False), 
+                        nn.BatchNorm2d(oup), 
+                        nn.ReLU(inplace=True)
+                        ]
+                    _layers = nn.Sequential(*_layers)
+                    init_layer(_layers[0])
+                    init_bn(_layers[2])
+                    init_layer(_layers[4])
+                    init_bn(_layers[5])
+                    return _layers
 
+                self.conv_last = nn.Sequential(
+                    conv_dw(self.last_channel, self.last_channel, 1),
+                    conv_dw(self.last_channel, self.last_channel, 1)
+                )
+        else:
+            self.conv_last = None
+            
         self.init_weight()
 
     def init_weight(self):
@@ -1658,12 +1708,11 @@ class MobileNetV2(nn.Module):
             x = do_mixup(x, mixup_lambda)
             # show_torch_image(torch_batch=x)
         
-        # XXX: PANNs
-        # x = input
         x = self.features(x)
         
         # XXX: temp
-        x = self.conv_last(x)
+        if self.conv_last is not None:
+            x = self.conv_last(x)
         
         x = torch.mean(x, dim=3)
         
@@ -1677,12 +1726,13 @@ class MobileNetV2(nn.Module):
             # embedding = F.dropout(x, p=0.5, training=self.training)
 
         # clipwise_output = torch.sigmoid(self.fc_audioset(x))
-        clipwise_output = self.fc_audioset(x)
         
         # output_dict = {'clipwise_output': clipwise_output, 'embedding': embedding}
 
-        return clipwise_output
         # return output_dict
+        
+        clipwise_output = self.fc_audioset(x)
+        return clipwise_output
 
 
 class LeeNetConvBlock(nn.Module):
